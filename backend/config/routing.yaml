@@ -1,0 +1,90 @@
+# Aegis routing-hint and cache-guard configuration.
+#
+# The Inspector does not route. It classifies each request's complexity and
+# emits a hint; the Gateway (Person 2) maps LOW / MEDIUM / HIGH to a provider
+# and model in its own routing table. Keeping the classifier here and the
+# provider table there means model names never appear in this service.
+#
+# The classifier is a heuristic. Word count and marker phrases are a first
+# pass, not a difficulty estimator, and the hint says which reasons fired
+# so the dashboard can show why a request went where it went.
+
+version: 1
+
+complexity:
+  # Word-count bands. Below low_max_words -> LOW; below medium_max_words ->
+  # MEDIUM; otherwise HIGH.
+  low_max_words: 20
+  medium_max_words: 120
+
+  # Any of these phrases lifts the request to HIGH regardless of length: a
+  # short prompt that demands reasoning is not simple.
+  reasoning_markers:
+    - explain why
+    - explain how
+    - step by step
+    - step-by-step
+    - prove
+    - derive
+    - analyse
+    - analyze
+    - compare and contrast
+    - critique
+    - evaluate the
+    - reason about
+    - think through
+    - what are the implications
+    - trade-offs
+    - tradeoffs
+    - pros and cons
+
+  # Code presence lifts LOW to MEDIUM (code needs a capable model) and, with
+  # more than code_high_lines lines of code, to HIGH.
+  code_markers:
+    - "```"
+    - "def "
+    - "class "
+    - "function "
+    - "SELECT "
+    - "import "
+    - "#include"
+    - "public static"
+    - "=> {"
+  code_high_lines: 30
+
+  # Multi-part questions are harder than their word count suggests.
+  multi_question_threshold: 3
+
+semantic_guards:
+  # Cosine similarity handles negation badly: "is X safe" and "is X unsafe"
+  # embed almost identically. The Gateway must refuse a cache hit unless
+  # these markers match exactly. Matched as whole words, case-insensitive.
+  negations:
+    - not
+    - no
+    - never
+    - none
+    - neither
+    - nor
+    - cannot
+    - without
+    - unsafe
+    - unable
+    - "n't"
+    - except
+    - unless
+
+  # Numbers and percentages: "15% of 200" vs "50% of 200" embed close.
+  number_pattern: '\b\d+(?:[.,]\d+)?%?\b'
+
+  # Capitalised tokens not covered by a PII detection. Kept short and never
+  # populated for requests that are not cacheable, so no personal data can
+  # reach the cache index through this field.
+  max_entities: 8
+
+cache:
+  # A request that contained personal data is not cacheable by default even
+  # after sanitisation: the placeholder-mapped shape of a real person's
+  # question is still that person's question. Override per tenant with
+  # AEGIS_CACHE_ALLOW_PII=true.
+  allow_pii_default: false

@@ -70,6 +70,11 @@ class Settings(BaseSettings):
     # ---- Vault ------------------------------------------------------------
     vault_ttl_seconds: int = Field(default=300, alias="AEGIS_VAULT_TTL_SECONDS")
 
+    # ---- Cache hints ------------------------------------------------------
+    # A request that contained personal data is not cacheable by default,
+    # even after sanitisation. See config/routing.yaml.
+    cache_allow_pii: bool = Field(default=False, alias="AEGIS_CACHE_ALLOW_PII")
+
     # ---- Privacy of our own audit log ------------------------------------
     user_hash_salt: str = Field(default="dev-salt-change-me", alias="AEGIS_USER_HASH_SALT")
     audit_retention_days: int = Field(default=30, alias="AEGIS_AUDIT_RETENTION_DAYS")
@@ -106,6 +111,10 @@ class Settings(BaseSettings):
     @property
     def injection_rules_path(self) -> Path:
         return CONFIG_DIR / "injection_rules.yaml"
+
+    @property
+    def routing_path(self) -> Path:
+        return CONFIG_DIR / "routing.yaml"
 
 
 @lru_cache
