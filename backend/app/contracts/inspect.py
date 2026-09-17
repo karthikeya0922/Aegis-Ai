@@ -68,6 +68,17 @@ class SemanticGuards(StrictModel):
 
 
 class CacheHint(StrictModel):
+    """Whether the Gateway may cache this request, and the guards to match.
+
+    `reason` vocabulary when `cacheable` is false:
+        blocked                 -- the request was blocked; nothing to cache
+        credential_present      -- a secret was detected
+        personal_data_present   -- PII was detected and AEGIS_CACHE_ALLOW_PII is off
+    and when true:
+        null                             -- ordinary cacheable request
+        personal_data_allowed_by_config  -- PII present but caching allowed
+    """
+
     cacheable: bool = True
     reason: str | None = None
     semantic_guards: SemanticGuards = Field(default_factory=SemanticGuards)

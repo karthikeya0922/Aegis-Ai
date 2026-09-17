@@ -1,23 +1,22 @@
-"""Phase 0 stub responses.
+"""Stub responses for subsystems that have not shipped yet.
 
-Purpose: give Person 2 a real HTTP surface to build the Gateway against on day
-one, before any model is loaded or any scanner is written.
+Phase 0 gave Person 2 a complete HTTP surface on day one by stubbing every
+endpoint. Each phase since has replaced one stub with the real thing; this
+module now holds only what remains:
 
-These stubs are deliberately *keyword-reactive* rather than constant, so the
-Gateway can exercise every branch it must handle -- BLOCK, SANITIZE, WARN,
-ALLOW, cache-ineligible, and each routing complexity -- without waiting for
-Phase 1-7.
+    stub_egress            -> Phase 10 (grounding) and Phase 11 (harm/bias)
+    stub_*_metrics         -> Phase 12 (aggregation over request_audit)
+    stub_audit_*           -> Phase 8 / 12
+    stub_reviews, _record  -> Phase 8 / 14
+    stub_fairness_report   -> Phase 13 (returns nulls, never invented numbers)
 
-Every function here is replaced by real logic in later phases. The contract
-shape does not change when that happens. Nothing in this module is imported by
-production code paths once Phase 7 lands; `STUB_MODE` in /api/health reports
-whether a deployment is still serving stubs.
+The ingress path -- /inspect -- is real as of Phase 7 (security/pipeline.py)
+and nothing here is on it. /api/health reports per component which of the
+above are still stubs.
 """
 
 from __future__ import annotations
 
-import re
-import time
 from datetime import datetime, timedelta, timezone
 
 from app.contracts.audit import (
@@ -27,17 +26,9 @@ from app.contracts.audit import (
     AuditReportSection,
 )
 from app.contracts.common import (
-    BlockReason,
-    Complexity,
     Decision,
-    Detection,
-    DetectionCategory,
-    EntropyFinding,
     GroundingStatus,
-    InjectionFinding,
-    Message,
     PipelineStage,
-    PolicyAction,
     ReviewStatus,
     StageStatus,
 )
@@ -52,25 +43,8 @@ from app.contracts.governance import (
     FairnessGroupResult,
     FairnessReportResponse,
     FairnessRun,
-    PolicyResponse,
     ReviewListResponse,
     ReviewRecord,
-)
-from app.security.entropy import scan as entropy_scan
-from app.security.injection import get_detector as get_injection_detector
-from app.security.pii_scanner import get_pii_scanner
-from app.security.policy_engine import get_policy_engine
-from app.security.redactor import get_redactor
-from app.security.secret_scanner import get_scanner
-from app.contracts.inspect import (
-    CacheHint,
-    DetectionBundle,
-    DetectionCounts,
-    InspectRequest,
-    InspectResponse,
-    RoutingHint,
-    SemanticGuards,
-    VaultPolicy,
 )
 from app.contracts.metrics import (
     CostStats,
@@ -84,198 +58,9 @@ from app.contracts.metrics import (
     TokenStats,
 )
 
-STUB_MODE = True
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
-
-
-def stub_inspect(req: InspectRequest) -> InspectResponse:
-    """Keyword-reactive ingress stub covering every branch the Gateway handles."""
-    text = "\n".join(m.content for m in req.messages)
-
-    pii: list[Detection] = []
-    secrets: list[Detection] = []
-    entropy: list[EntropyFinding] = []
-
-    # Scanners run PER MESSAGE so every span carries a real message_index and
-    # offsets into that message's own content. The redactor relies on this;
-    # scanning the joined text (what earlier phases did) produced offsets
-    # into a string that does not exist in the request.
-    secret_ms = entropy_ms = pii_ms = 0.0
-    for mi, m in enumerate(req.messages):
-        # --- secrets (REAL as of Phase 1) ---------------------------------
-        _t0 = time.perf_counter()
-        sd, _ = get_scanner().scan(m.content, message_index=mi)
-        secrets.extend(sd)
-        secret_ms += time.perf_counter() - _t0
-
-        # --- entropy (REAL as of Phase 1; warn-only by design) ------------
-        _t0 = time.perf_counter()
-        entropy.extend(entropy_scan(m.content, message_index=mi))
-        entropy_ms += time.perf_counter() - _t0
-
-        # --- PII (REAL as of Phase 2, India engine as of Phase 3) ---------
-        _t0 = time.perf_counter()
-        pd, _ = get_pii_scanner().scan(m.content, message_index=mi)
-        pii.extend(pd)
-        pii_ms += time.perf_counter() - _t0
-    secret_ms = round(secret_ms * 1000.0, 3)
-    entropy_ms = round(entropy_ms * 1000.0, 3)
-    pii_ms = round(pii_ms * 1000.0, 3)
-
-    # --- overlap resolution (Phase 5) -------------------------------------
-    # Cross-scanner precedence before policy sees anything, so the email-
-    # shaped fragment inside a DB URI never gets its own policy event.
-    _t0 = time.perf_counter()
-    resolved, dropped_overlaps = get_redactor().resolve(secrets + pii)
-    resolve_ms = time.perf_counter() - _t0
-
-    # --- injection (REAL as of Phase 4) -----------------------------------
-    # Only user and tool turns are scanned. The operator's own system prompt
-    # legitimately says things like "You are now a helpful assistant", and
-    # assistant turns are the model's prior output, already inspected.
-    _t0 = time.perf_counter()
-    injection_text = "\n".join(m.content for m in req.messages if m.role in ("user", "tool"))
-    detector = get_injection_detector()
-    injection = detector.analyze(injection_text)
-    injection_ms = round((time.perf_counter() - _t0) * 1000.0, 3)
-
-    # --- policy (REAL as of Phase 6) ----------------------------------------
-    # The engine maps findings to actions from config/policies.yaml. Nothing
-    # here decides anything; `mode: strict` selects the strict profile, and
-    # an override token (verified for real in Phase 14) lifts only the
-    # appealable blocking rules.
-    profile = req.policy_profile or ("strict" if (req.mode or "").lower() == "strict" else None)
-    policy = get_policy_engine().evaluate(
-        resolved,
-        entropy,
-        injection,
-        profile=profile,
-        override=bool(req.override_token),
-        injection_summary=detector.explain(injection) if injection.matched_rules else None,
-    )
-    decision = policy.decision
-    block_reason = policy.block_reason
-    explanation = policy.explanation
-    override_applied = policy.override_applied
-
-    # --- redaction (REAL as of Phase 5) -----------------------------------
-    # Splices only what policy said to SANITIZE. BLOCKed findings are
-    # numbered so the UI can show what would have been redacted; WARNed
-    # findings are reported with offsets and no placeholder.
-    _t0 = time.perf_counter()
-    redaction = get_redactor().redact(req.messages, policy.detections, resolve=False)
-    redaction.dropped_overlaps = dropped_overlaps
-    secrets = [d for d in redaction.detections if d.category is DetectionCategory.SECRET]
-    pii = [d for d in redaction.detections if d.category is DetectionCategory.PII]
-    vault = redaction.vault
-    redact_ms = round((resolve_ms + time.perf_counter() - _t0) * 1000.0, 3)
-
-    # --- routing hint ------------------------------------------------------
-    words = len(text.split())
-    if words < 20:
-        complexity, reasons = Complexity.LOW, ["short_prompt"]
-    elif words < 120:
-        complexity, reasons = Complexity.MEDIUM, ["moderate_length"]
-    else:
-        complexity, reasons = Complexity.HIGH, ["long_prompt"]
-    if re.search(r"(?i)\b(explain why|step by step|prove|derive|analyse|analyze)\b", text):
-        complexity, reasons = Complexity.HIGH, reasons + ["reasoning_markers"]
-
-    # --- cache hint --------------------------------------------------------
-    cacheable = decision is not Decision.BLOCK and not secrets
-    cache = CacheHint(
-        cacheable=cacheable,
-        reason=None if cacheable else "sensitive_content",
-        semantic_guards=SemanticGuards(
-            negations=re.findall(r"(?i)\b(not|no|never|unsafe|cannot|without)\b", text),
-            numbers=re.findall(r"\b\d+(?:\.\d+)?\b", text),
-            entities=[],
-        ),
-    )
-
-    pipeline = [
-        PipelineStage(
-            stage="pii_scanner",
-            status=StageStatus.WARNING if pii else StageStatus.SUCCESS,
-            duration_ms=pii_ms,
-            detail=f"{len(pii)} finding(s)" if pii else None,
-        ),
-        PipelineStage(
-            stage="secret_scanner",
-            status=StageStatus.WARNING if secrets else StageStatus.SUCCESS,
-            duration_ms=secret_ms,
-            detail=f"{len(secrets)} finding(s)" if secrets else None,
-        ),
-        PipelineStage(
-            stage="entropy_scanner",
-            status=StageStatus.WARNING if entropy else StageStatus.SUCCESS,
-            duration_ms=entropy_ms,
-            detail=f"{len(entropy)} high-entropy string(s)" if entropy else None,
-        ),
-        PipelineStage(
-            stage="injection_detector",
-            status=(
-                StageStatus.BLOCKED if injection.detected
-                else StageStatus.WARNING if injection.matched_rules
-                else StageStatus.SUCCESS
-            ),
-            duration_ms=injection_ms,
-            detail=(
-                f"score={injection.score} rules={','.join(injection.matched_rules[:3])}"
-                if injection.matched_rules else None
-            ),
-        ),
-        PipelineStage(
-            stage="redactor",
-            status=StageStatus.SUCCESS,
-            duration_ms=redact_ms,
-            detail=(
-                f"{redaction.replacements} span(s) replaced across "
-                f"{len(redaction.per_message)} message(s)"
-                + (f", {redaction.dropped_overlaps} overlap(s) resolved" if redaction.dropped_overlaps else "")
-            ) if redaction.replacements else None,
-        ),
-        PipelineStage(
-            stage="policy_engine",
-            status=StageStatus.BLOCKED
-            if decision is Decision.BLOCK
-            else StageStatus.SUCCESS,
-            duration_ms=policy.duration_ms,
-            detail=(
-                f"profile={policy.profile} v{policy.policy_version} decision={decision.value}"
-                + (f" rules={','.join(policy.rules_fired)}" if policy.rules_fired else "")
-                + (" override=applied" if policy.override_applied else "")
-                + (" override=refused" if policy.override_refused else "")
-            ),
-        ),
-    ]
-
-    # A blocked request is returned unmodified -- nothing is transmitted, so
-    # nothing needs sanitising, and the Gateway may need the original for a
-    # human-review replay. Otherwise the redactor's output is the contract.
-    out_messages = req.messages if decision is Decision.BLOCK else redaction.messages
-
-    return InspectResponse(
-        request_id=req.request_id,
-        policy_version=policy.policy_version,
-        decision=decision,
-        block_reason=block_reason,
-        messages=out_messages,
-        detections=DetectionBundle(
-            pii=pii, secrets=secrets, entropy=entropy, injection=injection
-        ),
-        counts=DetectionCounts(**policy.counts),
-        vault=vault if req.options.return_vault else {},
-        vault_policy=redaction.vault_policy,
-        cache=cache,
-        routing_hint=RoutingHint(complexity=complexity, reasons=reasons),
-        explanation=explanation if req.options.return_explanation else "",
-        override_applied=override_applied,
-        pipeline=pipeline,
-        total_duration_ms=sum(s.duration_ms for s in pipeline),
-    )
 
 
 def stub_egress(request_id: str, response_text: str, has_reference: bool) -> EgressResponse:
@@ -378,16 +163,6 @@ def stub_audit_report(tenant_id: str) -> AuditReport:
     )
 
 
-def stub_policy() -> PolicyResponse:
-    return PolicyResponse(
-        version=1,
-        profile="default",
-        available_profiles=["default", "strict"],
-        yaml_body="# Real policy YAML lands in Phase 6\nversion: 1\nprofiles: {}\n",
-        updated_at=_now(),
-    )
-
-
 def stub_reviews() -> ReviewListResponse:
     return ReviewListResponse(items=[], total=0)
 
@@ -429,16 +204,13 @@ def stub_fairness_report() -> FairnessReportResponse:
 
 
 __all__ = [
-    "STUB_MODE",
     "FairnessGroupResult",
     "FairnessRun",
     "stub_audit_page",
     "stub_audit_report",
     "stub_egress",
     "stub_fairness_report",
-    "stub_inspect",
     "stub_metrics",
-    "stub_policy",
     "stub_provider_metrics",
     "stub_review_record",
     "stub_reviews",

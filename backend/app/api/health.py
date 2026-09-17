@@ -15,12 +15,11 @@ from app.contracts.health import ComponentHealth, HealthResponse
 from app.security.injection import get_detector as get_injection_detector
 from app.security.pii_scanner import get_pii_scanner
 from app.security.policy_engine import get_policy_engine
-from app.stubs import STUB_MODE
 
 router = APIRouter(tags=["health"])
 
 _STARTED = time.monotonic()
-BUILD_PHASE = "phase-6-policy"
+BUILD_PHASE = "phase-7-pipeline"
 
 
 def _pii_component() -> ComponentHealth:
@@ -41,7 +40,7 @@ def _pii_component() -> ComponentHealth:
 
 
 def _components() -> list[ComponentHealth]:
-    stub = "stub" if STUB_MODE else "ok"
+    stub = "stub"  # components below that have not shipped yet
     return [
         _pii_component(),
         ComponentHealth(name="secret_scanner", status="ok", detail="25 config-driven patterns, overlap-resolved"),

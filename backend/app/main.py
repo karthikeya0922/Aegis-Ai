@@ -99,6 +99,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     inj = get_injection_detector()
     log.info("injection detector ready (%d rules, v%d)", len(inj.ruleset.rules), inj.ruleset.version)
 
+    from app.security.pipeline import get_pipeline
+
+    pipe = get_pipeline()
+    pipe.warm()
+    log.info("inspection pipeline ready (routing config v%d)", pipe.routing.version)
+
     if settings.warm_models_on_startup:
         log.info("model warm-up requested (embeddings/NLI: no-op until Phase 9)")
     yield

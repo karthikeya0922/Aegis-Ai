@@ -324,7 +324,7 @@ def test_end_to_end_multi_message_request():
     """Regression for the joined-text bug: two messages, each with its own
     PII, must each be sanitised in place with distinct placeholders."""
     from app.contracts.inspect import InspectRequest
-    from app.stubs import stub_inspect
+    from app.security.pipeline import get_pipeline
 
     req = InspectRequest(
         request_id="req_t",
@@ -335,7 +335,7 @@ def test_end_to_end_multi_message_request():
             Message(role="user", content="Also reach me at b@example.com or +1-555-123-4567"),
         ],
     )
-    res = stub_inspect(req)
+    res = get_pipeline().run(req)
     assert res.decision.value == "SANITIZE"
     assert res.messages[0].content == "You are a support assistant."
     assert res.messages[1].content == "My email is [EMAIL_1]"
@@ -352,10 +352,10 @@ def test_end_to_end_multi_message_request():
 
 def test_end_to_end_blocked_request_returns_original_messages():
     from app.contracts.inspect import InspectRequest
-    from app.stubs import stub_inspect
+    from app.security.pipeline import get_pipeline
 
     req = InspectRequest(request_id="req_t", messages=[user("key AKIAIOSFODNN7EXAMPLE")])
-    res = stub_inspect(req)
+    res = get_pipeline().run(req)
     assert res.decision.value == "BLOCK"
     assert res.messages[0].content == "key AKIAIOSFODNN7EXAMPLE"
     assert res.vault == {"[AWS_KEY_1]": "AKIAIOSFODNN7EXAMPLE"}
@@ -405,11 +405,11 @@ def test_mixed_actions_in_one_request(r):
 def test_permissive_profile_end_to_end_does_not_redact():
     """Regression: under a warn-only profile the outgoing text is unchanged."""
     from app.contracts.inspect import InspectRequest
-    from app.stubs import stub_inspect
+    from app.security.pipeline import get_pipeline
 
     req = InspectRequest(request_id="req_t", policy_profile="permissive",
                          messages=[user("mail john@example.com")])
-    res = stub_inspect(req)
+    res = get_pipeline().run(req)
     assert res.decision.value == "WARN"
     assert res.messages[0].content == "mail john@example.com"
     assert res.counts.pii == 1

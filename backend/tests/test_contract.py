@@ -127,9 +127,17 @@ def test_vault_policy_never_rehydrates_secrets():
 
 
 def test_secrets_are_not_cacheable():
+    """A blocked request is never cacheable; the reason names why."""
     res = _inspect("AKIAIOSFODNN7EXAMPLE")
     assert res.cache.cacheable is False
-    assert res.cache.reason == "sensitive_content"
+    assert res.cache.reason in {"blocked", "credential_present"}
+
+
+def test_pii_is_not_cacheable_by_default():
+    """Even sanitised, a real person's question is that person's question."""
+    res = _inspect("mail john@example.com")
+    assert res.cache.cacheable is False
+    assert res.cache.reason == "personal_data_present"
 
 
 # ---------------------------------------------------------------------------

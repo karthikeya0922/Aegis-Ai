@@ -16,7 +16,8 @@ from app.contracts.egress import (
     VerifyResponse,
 )
 from app.contracts.inspect import InspectRequest, InspectResponse
-from app.stubs import stub_egress, stub_inspect
+from app.security.pipeline import get_pipeline
+from app.stubs import stub_egress
 from app.utils.logging import get_logger
 
 router = APIRouter(tags=["inspection"])
@@ -38,17 +39,8 @@ log = get_logger(__name__)
     ),
 )
 async def inspect(req: InspectRequest) -> InspectResponse:
-    result = stub_inspect(req)
-    log.info(
-        "inspect request_id=%s decision=%s pii=%d secrets=%d injection=%s",
-        req.request_id,
-        result.decision.value,
-        result.counts.pii,
-        result.counts.secrets,
-        result.detections.injection.detected,
-        extra={"request_id": req.request_id},
-    )
-    return result
+    # The pipeline logs its own summary line with the request id.
+    return get_pipeline().run(req)
 
 
 @router.post(
