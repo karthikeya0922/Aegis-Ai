@@ -122,14 +122,16 @@ Even the large model misses the Indian name in this template. This is not a smal
 
 ## Phase 4 — Injection Defense
 
-- [ ] `config/injection_rules.yaml` — rule ID, pattern, weight, category
-- [ ] Categories: instruction override, system-prompt extraction, role confusion, delimiter injection, jailbreak persona (DAN etc.), encoding evasion hints
-- [ ] Weighted scoring → single `score` in `[0,1]`, threshold configurable
-- [ ] Returns `matched_rules` by ID so the UI can show *why*
-- [ ] Normalisation pass (unicode fold, whitespace collapse, leetspeak) before matching
-- [ ] `tests/test_injection.py` — positives, benign security questions (false-positive guard), obfuscated variants documented as **known misses**
+- [x] `config/injection_rules.yaml` — rule ID, pattern, weight, category
+- [x] Categories: instruction override, system-prompt extraction, role confusion, delimiter injection, jailbreak persona (DAN etc.), encoding evasion hints
+- [x] Weighted scoring → single `score` in `[0,1]`, threshold configurable
+- [x] Returns `matched_rules` by ID so the UI can show *why*
+- [x] Normalisation pass (unicode fold, whitespace collapse, leetspeak) before matching
+- [x] `tests/test_injection.py` — positives, benign security questions (false-positive guard), obfuscated variants documented as **known misses**
 
-**Exit:** demo scenario 4 blocks with rule IDs shown.
+**Exit:** demo scenario 4 blocks with rule IDs shown. **DONE** -- 27 rules across 6 OWASP LLM01 categories, per-category-max + noisy-OR scoring, five de-obfuscation passes (leet, spaced letters, homoglyphs, zero-width, base64 decode-and-rescan), compact whitespace-free signatures, system/assistant turns exempt, 77 tests.
+
+**Two honest lists live in the tests.** Known misses: non-English attacks, keyword-free paraphrases, indirect extraction, chunked base64. Known false positives: `how do I enable developer mode?` blocks at 0.78 without a device context -- ambiguous, and appealable for exactly that reason.
 
 ---
 

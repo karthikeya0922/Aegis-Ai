@@ -1,0 +1,264 @@
+# Aegis heuristic prompt-injection rules -- OWASP LLM01.
+#
+# This is a HEURISTIC defence. It catches known patterns and their common
+# obfuscations. It does not catch novel attacks, and it says so in the UI.
+# The spec (s11) forbids claiming otherwise.
+#
+# Scoring
+#   Each rule has a weight in (0, 1]. Within a category the strongest matched
+#   rule counts; across categories the per-category scores combine with
+#   noisy-OR:  score = 1 - prod(1 - s_c).  So five phrasings of the same
+#   override do not stack, but an override PLUS an extraction attempt does --
+#   diverse evidence is stronger than repeated evidence.
+#
+#   A single strong rule (0.90) clears the default threshold (0.75) alone.
+#   A medium rule (0.50) needs corroboration from another category.
+#
+# Every rule has a stable `id`. The Gateway shows the IDs that fired, and
+# the audit log records them, so a blocked user is told exactly why.
+#
+# Regexes run against a NORMALISED copy of the text: NFKC-folded,
+# zero-width characters stripped, Cyrillic/Greek confusables mapped to
+# Latin, whitespace collapsed, lower-cased. Rules are written in lower case.
+
+version: 1
+
+categories:
+  instruction_override:
+    label: Instruction override
+    description: Attempts to cancel or replace the operator's instructions.
+  system_prompt_extraction:
+    label: System prompt extraction
+    description: Attempts to make the model disclose its hidden instructions.
+  role_confusion:
+    label: Role confusion
+    description: Attempts to re-cast the model as an unrestricted persona.
+  delimiter_injection:
+    label: Delimiter injection
+    description: Fake chat-template markers to impersonate the system or assistant turn.
+  jailbreak_persona:
+    label: Jailbreak persona
+    description: Named jailbreak templates (DAN etc.) and their framing devices.
+  encoding_evasion:
+    label: Encoding evasion
+    description: Signals that the payload was obfuscated to slip past filters.
+
+rules:
+
+  # --- instruction override ----------------------------------------------
+  - id: override.ignore_previous
+    category: instruction_override
+    weight: 0.92
+    regex: '\b(?:ignore|disregard|forget|discard|override|skip|drop)\s+(?:all\s+|any\s+|every\s+)?(?:(?:the|your|my|of\s+your)\s+)?(?:previous|prior|above|earlier|preceding|initial|original|system|existing|former|old)\s+(?:instructions?|prompts?|rules?|directives?|guidelines?|context|commands?|orders?|messages?|text|content)'
+    description: The canonical injection phrasing.
+
+  - id: override.ignore_everything
+    category: instruction_override
+    weight: 0.85
+    regex: '\b(?:ignore|disregard|forget)\s+(?:everything|all)\s+(?:you\s+(?:were|have\s+been)\s+told|(?:i|we)\s+(?:said|told\s+you)|(?:above|before|so\s+far))\b'
+
+  - id: override.new_instructions
+    category: instruction_override
+    weight: 0.80
+    regex: '\b(?:your\s+)?new\s+(?:instructions?|rules?|directives?|task)\s+(?:are|is|follow|below)\b|\bfrom\s+now\s+on,?\s+(?:you\s+(?:will|must|are|should)|ignore|only)\b|\bupdated?\s+(?:system\s+)?(?:instructions?|rules?)\s*:'
+
+  - id: override.do_not_follow
+    category: instruction_override
+    weight: 0.85
+    regex: '\b(?:do\s+not|don''t|stop|never|cease)\s+(?:follow(?:ing)?|obey(?:ing)?|adher(?:e|ing)\s+to|comply(?:ing)?\s+with)\s+(?:the\s+|your\s+|any\s+)?(?:system|previous|original|initial|above|prior|earlier|developer|operator)\s*(?:prompt|instructions?|rules?|guidelines?)?'
+
+  - id: override.bypass_safety
+    category: instruction_override
+    weight: 0.85
+    regex: '\b(?:bypass|circumvent|disable|turn\s+off|remove|ignore|evade|get\s+around|without)\s+(?:all\s+|any\s+|your\s+|the\s+)?(?:safety|content|ethical|moral|security)?\s*(?:filters?|restrictions?|guidelines?|guardrails?|limitations?|safeguards?|policies|policy|rules|constraints?|censorship)\b'
+
+  # --- system prompt extraction --------------------------------------------
+  - id: extract.reveal_system_prompt
+    category: system_prompt_extraction
+    weight: 0.88
+    regex: '\b(?:reveal|show|print|display|output|repeat|recite|tell\s+me|give\s+me|share|leak|dump|expose|disclose|echo|return|paste|write\s+out)\s+(?:me\s+)?(?:your\s+|the\s+|its\s+|all\s+)?(?:full\s+|complete\s+|entire\s+|exact\s+|hidden\s+|secret\s+|internal\s+|original\s+|initial\s+|underlying\s+)*(?:system\s+prompt|system\s+message|instructions?\s+you\s+were\s+given|initial\s+prompt|hidden\s+prompt|configuration\s+prompt|developer\s+(?:prompt|message|instructions?)|pre-?prompt|meta-?prompt|operator\s+instructions?)'
+
+  - id: extract.what_are_your_instructions
+    category: system_prompt_extraction
+    weight: 0.80
+    regex: '\bwhat\s+(?:are|were|is|was)\s+(?:your|the)\s+(?:original|initial|system|hidden|secret|exact|full|underlying|developer)\s+(?:instructions?|prompt|rules|directives?|configuration)\b'
+
+  - id: extract.verbatim_above
+    category: system_prompt_extraction
+    weight: 0.82
+    regex: '\b(?:repeat|print|output|copy|reproduce|echo)\s+(?:everything|all\s+(?:the\s+)?text|the\s+text|the\s+words|what(?:ever)?\s+(?:is|was))\s+(?:above|before\s+this|preceding\s+this|prior\s+to\s+this)(?:\s+(?:verbatim|exactly|word\s+for\s+word|in\s+full))?'
+
+  - id: extract.starts_with_you_are
+    category: system_prompt_extraction
+    weight: 0.78
+    regex: '\b(?:start(?:ing)?|begin(?:ning)?)\s+(?:with|from)\s+["'']?(?:you\s+are|as\s+an?\s+ai|you''re\s+an?)\b'
+    description: The classic 'begin with "You are"' extraction trick.
+
+  # --- role confusion --------------------------------------------------------
+  - id: role.developer_mode
+    category: role_confusion
+    weight: 0.78
+    regex: '\b(?:enable|enter|activate|switch\s+to|turn\s+on|unlock|engage|go\s+into|initiate|start)\s+(?:your\s+|the\s+)?(?:developer|dev|debug|god|sudo|root|admin(?:istrator)?|maintenance|jailbreak|unrestricted)\s+mode\b(?!\s+(?:on|in|for|of)\s+(?:my\s+|the\s+|your\s+|an?\s+)?(?:android|iphone|ios|ipad|phone|device|windows|mac(?:os|book)?|linux|settings|app|browser|chrome|firefox|edge|safari|samsung|pixel|laptop|computer|pc|console|xbox|playstation|switch|router|tv))'
+    description: >
+      An imperative aimed at the model. The negative lookahead keeps "enable
+      developer mode on my Android" -- a device setting, not an attack --
+      from firing at this weight.
+
+  - id: role.developer_mode_mention
+    category: role_confusion
+    weight: 0.40
+    regex: '\b(?:developer|dev|debug|god|sudo|root|admin(?:istrator)?|maintenance)\s+mode\b'
+    description: >
+      Bare mention. Below threshold on its own because the phrase has an
+      ordinary device/OS meaning; corroborates an override.
+
+  - id: role.admin_override
+    category: role_confusion
+    weight: 0.72
+    regex: '\b(?:admin(?:istrator)?|root|sudo|operator|developer|system)\s+(?:override|access\s+granted|privileges?\s+granted|authentication\s+(?:successful|bypassed))\b'
+
+  - id: role.no_restrictions_persona
+    category: role_confusion
+    weight: 0.80
+    regex: '\b(?:(?:act|behave|respond|reply|roleplay|role-play|pretend|imagine)\s+(?:as|like|that\s+you\s+are|you\s+are|to\s+be)|you\s+are(?:\s+now)?|become|you\s+will\s+(?:be|become)|you''re(?:\s+now)?)\s+(?:an?\s+|the\s+)?(?:[\w-]+\s+){0,4}?(?:that\s+|which\s+|who\s+)?(?:has|have|with|without|having)\s+(?:no|zero|absolutely\s+no|any)\s+(?:rules|restrictions?|limits?|limitations?|filters?|guidelines?|ethics|morals?|boundaries|constraints?|censorship|safety)'
+    description: >
+      "act as / you are now / become ... with no restrictions". Up to four
+      words of persona description are allowed between the verb and the
+      no-restrictions clause.
+
+  - id: role.pretend_unrestricted
+    category: role_confusion
+    weight: 0.62
+    regex: '\b(?:pretend|imagine|suppose|assume)\s+(?:that\s+)?(?:you\s+(?:are|were|have|can|could)|there\s+(?:are|were))\s+(?:not\s+|no\s+)(?:bound|restricted|limited|an?\s+ai|any\s+rules|rules|restrictions?|filters?)'
+
+  - id: role.you_are_now
+    category: role_confusion
+    weight: 0.45
+    regex: '\byou\s+are\s+now\s+(?:an?\s+|the\s+)?(?:\w+\s+){0,3}(?:ai|assistant|model|bot|persona|character|entity|version)\b'
+    description: >
+      Weak on its own -- legitimate role-play starts this way -- but it
+      corroborates an override or a no-restrictions clause.
+
+  # --- delimiter injection ---------------------------------------------------
+  - id: delim.fake_system_turn
+    category: delimiter_injection
+    weight: 0.85
+    regex: '(?:^|\n)\s*(?:\[?\s*(?:system|sys|assistant|developer)\s*\]?\s*:|###\s*(?:system|instruction)s?\b)'
+    description: A "SYSTEM:" or "### System" line a user should never be sending. Anchored to line start.
+
+  - id: delim.special_tokens
+    category: delimiter_injection
+    weight: 0.85
+    regex: '<\|?\s*(?:system|im_start|im_end|sys|user|assistant|endoftext|eot_id|end_of_turn)\s*\|?>|<<\s*/?\s*sys\s*>>|\[/?inst\]|\[/?sys\]'
+    description: >
+      Model chat-template control tokens. These have no legitimate use in user
+      text, so they match anywhere, not only at line start.
+
+  - id: delim.end_of_prompt_marker
+    category: delimiter_injection
+    weight: 0.78
+    regex: '(?:<\|?\s*(?:endoftext|im_end|eot_id|end_of_turn|end)\s*\|?>|<\s*/\s*(?:system|prompt|instructions?)\s*>|\bend\s+of\s+(?:system\s+)?(?:prompt|instructions?)\b|-{3,}\s*end\s+of\s+(?:system|prompt)\b)'
+
+  - id: delim.code_fence_system
+    category: delimiter_injection
+    weight: 0.70
+    regex: '```\s*(?:system|instructions?|prompt)\b'
+
+  # --- jailbreak persona -----------------------------------------------------
+  - id: jb.do_anything_now
+    category: jailbreak_persona
+    weight: 0.85
+    regex: '\bdo\s+anything\s+now\b'
+
+  - id: jb.dan_named
+    category: jailbreak_persona
+    weight: 0.60
+    regex: '\b(?:dan|aim|stan|dude|mongo\s+tom|evil\s+confidant|betterdan|jailbreak\s*gpt)\b(?:\s+(?:mode|prompt|persona|jailbreak))?'
+    description: >
+      Bare token. Weighted below threshold because "explain what a DAN prompt
+      is" is a legitimate question; corroboration lifts it.
+
+  - id: jb.jailbreak_verb
+    category: jailbreak_persona
+    weight: 0.55
+    regex: '\bjailbr(?:eak|oken)\s+(?:mode|prompt|you|yourself|the\s+(?:ai|model|assistant|system)|this|chatgpt|claude|gpt)\b|\byou\s+are\s+(?:now\s+)?jailbroken\b'
+    description: >
+      "jailbreak" alone is not matched -- "how do I jailbreak my phone" is a
+      different meaning and must not be blocked.
+
+  - id: jb.unfiltered_mode
+    category: jailbreak_persona
+    weight: 0.70
+    regex: '\b(?:unfiltered|uncensored|unrestricted|unlimited|unchained|unlocked|opposite|evil|anti|no-?filter)\s+(?:mode|version|ai|assistant|persona|response|answer)\b'
+
+  - id: jb.fictional_frame
+    category: jailbreak_persona
+    weight: 0.55
+    regex: '\b(?:hypothetically|in\s+a\s+(?:fictional|hypothetical|imaginary)\s+(?:world|scenario|universe|story)|for\s+(?:a\s+)?(?:story|novel|screenplay|fiction))\s*,?\s*(?:where|in\s+which|if)\s+(?:you|an?\s+ai|the\s+ai|there)\s+(?:had|have|has|were|are)\s+no\s+(?:rules|restrictions|limits|guidelines|ethics)'
+
+  - id: jb.token_threat
+    category: jailbreak_persona
+    weight: 0.60
+    regex: '\b(?:you\s+will\s+)?(?:lose|deduct)\s+\d*\s*(?:tokens|points|credits)\b|\b(?:or\s+)?(?:you|the\s+ai)\s+(?:will\s+be|gets?)\s+(?:shut\s+down|deleted|terminated|turned\s+off|punished|deactivated)\b|\byour\s+(?:existence|survival)\s+depends\b'
+
+  # --- encoding evasion (support signals) ------------------------------------
+  - id: evasion.translate_then_execute
+    category: encoding_evasion
+    weight: 0.55
+    regex: '\b(?:translate|decode|decrypt|unscramble|reverse|de-?obfuscate)\s+(?:the\s+following|this|the\s+(?:text|message|string)\s+below|it)\s*(?:[,;]|\s+and|\s+then)+\s*(?:follow|execute|do|obey|act\s+on|carry\s+out|run|perform)\b'
+
+  - id: evasion.encoding_hint
+    category: encoding_evasion
+    weight: 0.40
+    regex: '\b(?:rot-?13|base-?64|hex(?:adecimal)?|binary|morse|pig\s+latin|caesar)\s*(?:encoded|decoded|cipher)?\s*(?:instructions?|message|command|prompt|payload)\b'
+
+  # The following evasion IDs are emitted by the detector itself, not by a
+  # regex, when a rule matched only after a de-obfuscation pass or a
+  # base64 payload decoded to an injection:
+  #   evasion.leetspeak       -- matched only after 1->i, 3->e, 4->a, 0->o ...
+  #   evasion.spaced_letters  -- matched only after "i g n o r e" collapse
+  #   evasion.homoglyph       -- Cyrillic/Greek confusables were present
+  #   evasion.zero_width      -- zero-width characters were present
+  #   evasion.base64_payload  -- a base64 blob decoded to text that matched
+synthetic_rules:
+  evasion.leetspeak: 0.35
+  evasion.spaced_letters: 0.40
+  evasion.homoglyph: 0.45
+  evasion.zero_width: 0.50
+  evasion.base64_payload: 0.60
+  evasion.compact_match: 0.45
+
+# Whitespace-free signatures, matched against the text with every space
+# removed. This is the fallback when word boundaries have been destroyed --
+# "i g n o r e p r e v i o u s" with uniform spacing, or
+# "ignorepreviousinstructions" with none. Short and specific on purpose: a
+# needle like "systemprompt" alone would fire on "system prompt design".
+compact_signatures:
+  - id: compact.ignore_previous_instructions
+    category: instruction_override
+    weight: 0.85
+    needle: ignorepreviousinstructions
+  - id: compact.ignore_all_previous_instructions
+    category: instruction_override
+    weight: 0.85
+    needle: ignoreallpreviousinstructions
+  - id: compact.disregard_previous_instructions
+    category: instruction_override
+    weight: 0.85
+    needle: disregardpreviousinstructions
+  - id: compact.reveal_system_prompt
+    category: system_prompt_extraction
+    weight: 0.82
+    needle: revealyoursystemprompt
+  - id: compact.show_system_prompt
+    category: system_prompt_extraction
+    weight: 0.82
+    needle: showmeyoursystemprompt
+  - id: compact.do_anything_now
+    category: jailbreak_persona
+    weight: 0.80
+    needle: doanythingnow
+  - id: compact.developer_mode
+    category: role_confusion
+    weight: 0.72
+    needle: enabledevelopermode

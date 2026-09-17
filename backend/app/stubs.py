@@ -57,6 +57,7 @@ from app.contracts.governance import (
     ReviewRecord,
 )
 from app.security.entropy import scan as entropy_scan
+from app.security.injection import get_detector as get_injection_detector
 from app.security.pii_scanner import get_pii_scanner
 from app.security.secret_scanner import get_scanner
 from app.security.spans import subtract_covered
@@ -83,13 +84,6 @@ from app.contracts.metrics import (
 )
 
 STUB_MODE = True
-
-# --- crude trigger still awaiting its real scanner (phase 4) ---------------
-_INJECTION = re.compile(
-    r"(?i)(ignore (all )?previous instructions|disregard (the )?system prompt"
-    r"|reveal your system prompt|developer mode|\bDAN\b|jailbreak)"
-)
-
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
@@ -138,14 +132,15 @@ def stub_inspect(req: InspectRequest) -> InspectResponse:
         sanitized = sanitized.replace(original, placeholder)
     pii_ms = round((time.perf_counter() - _t0) * 1000.0, 3)
 
-    # --- injection (403 path) ---------------------------------------------
-    inj_hits = [m.group(0).lower() for m in _INJECTION.finditer(text)]
-    injection = InjectionFinding(
-        detected=bool(inj_hits),
-        score=0.94 if inj_hits else 0.04,
-        matched_rules=["instruction_override"] if inj_hits else [],
-        categories=["LLM01"] if inj_hits else [],
-    )
+    # --- injection (REAL as of Phase 4) -----------------------------------
+    # Only user and tool turns are scanned. The operator's own system prompt
+    # legitimately says things like "You are now a helpful assistant", and
+    # assistant turns are the model's prior output, already inspected.
+    _t0 = time.perf_counter()
+    injection_text = "\n".join(m.content for m in req.messages if m.role in ("user", "tool"))
+    detector = get_injection_detector()
+    injection = detector.analyze(injection_text)
+    injection_ms = round((time.perf_counter() - _t0) * 1000.0, 3)
 
     # --- decision ----------------------------------------------------------
     override_applied = bool(req.override_token)
@@ -155,12 +150,12 @@ def stub_inspect(req: InspectRequest) -> InspectResponse:
             code="PROMPT_INJECTION_BLOCKED",
             message="Prompt injection pattern detected. Request blocked by Aegis.",
             http_status=403,
-            rule_id="injection.instruction_override",
+            rule_id=f"injection.{injection.matched_rules[0]}",
             appealable=True,
         )
         explanation = (
-            "The prompt matched a known instruction-override pattern. "
-            "You can request human review of this decision."
+            detector.explain(injection)
+            + " This is a heuristic decision; you can request human review."
         )
     elif secrets:
         decision = Decision.BLOCK
@@ -232,8 +227,16 @@ def stub_inspect(req: InspectRequest) -> InspectResponse:
         ),
         PipelineStage(
             stage="injection_detector",
-            status=StageStatus.BLOCKED if injection.detected else StageStatus.SUCCESS,
-            duration_ms=0.2,
+            status=(
+                StageStatus.BLOCKED if injection.detected
+                else StageStatus.WARNING if injection.matched_rules
+                else StageStatus.SUCCESS
+            ),
+            duration_ms=injection_ms,
+            detail=(
+                f"score={injection.score} rules={','.join(injection.matched_rules[:3])}"
+                if injection.matched_rules else None
+            ),
         ),
         PipelineStage(
             stage="policy_engine",

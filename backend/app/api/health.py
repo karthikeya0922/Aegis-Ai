@@ -12,13 +12,14 @@ from fastapi import APIRouter
 
 from app.config import settings
 from app.contracts.health import ComponentHealth, HealthResponse
+from app.security.injection import get_detector as get_injection_detector
 from app.security.pii_scanner import get_pii_scanner
 from app.stubs import STUB_MODE
 
 router = APIRouter(tags=["health"])
 
 _STARTED = time.monotonic()
-BUILD_PHASE = "phase-3-india-recognizers"
+BUILD_PHASE = "phase-4-injection"
 
 
 def _pii_component() -> ComponentHealth:
@@ -44,7 +45,15 @@ def _components() -> list[ComponentHealth]:
         _pii_component(),
         ComponentHealth(name="secret_scanner", status="ok", detail="25 config-driven patterns, overlap-resolved"),
         ComponentHealth(name="entropy_scanner", status="ok", detail="Shannon entropy, warn-only by design"),
-        ComponentHealth(name="injection_detector", status=stub, detail="Phase 4"),
+        ComponentHealth(
+            name="injection_detector",
+            status="ok",
+            detail=(
+                f"heuristic, {len(get_injection_detector().ruleset.rules)} rules across "
+                f"{len(get_injection_detector().ruleset.categories)} OWASP LLM01 categories; "
+                "does not claim to catch novel attacks"
+            ),
+        ),
         ComponentHealth(name="policy_engine", status=stub, detail="Phase 6"),
         ComponentHealth(name="embeddings", status=stub, detail="Deterministic stub vectors until Phase 9"),
         ComponentHealth(name="grounding", status=stub, detail="NLI cross-encoder lands in Phase 10"),

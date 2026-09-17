@@ -94,6 +94,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     else:
         log.info("pii scanner ready (engine=%s, spaCy=%s)", pii.engine, pii.spacy_model)
 
+    from app.security.injection import get_detector as get_injection_detector
+
+    inj = get_injection_detector()
+    log.info("injection detector ready (%d rules, v%d)", len(inj.ruleset.rules), inj.ruleset.version)
+
     if settings.warm_models_on_startup:
         log.info("model warm-up requested (embeddings/NLI: no-op until Phase 9)")
     yield
