@@ -25,7 +25,8 @@ from app.contracts.governance import (
     ReviewListResponse,
 )
 from app.security.policy_engine import get_policy_engine
-from app.stubs import stub_fairness_report, stub_review_record, stub_reviews
+from app.fairness import harness as fairness
+from app.stubs import stub_review_record, stub_reviews
 from app.utils.ids import override_token
 from app.utils.logging import get_logger
 
@@ -202,14 +203,38 @@ async def decide_review(
     response_model=FairnessReportResponse,
     summary="Detector recall across population groups",
     description=(
-        "Reports measured PII-detector recall per name-origin group, and the "
-        "gap between the best- and worst-served group.\n\n"
+        "Measured PERSON-detector recall per name-origin group, for two "
+        "configurations: `baseline` (stock NER only) and `current` (the full "
+        "scanner). The gap is best-group recall minus worst-group recall; "
+        "`deltas` shows each group's change so a lift in one group is visible "
+        "even when the overall gap is set by another.\n\n"
         "A privacy tool that protects some people's identities more reliably "
         "than others is an unfair system. Aegis measures its own gap and "
-        "publishes it, including the baseline where it was worse.\n\n"
-        "Returns nulls until Phase 13 -- the numbers are measured, never "
-        "assumed."
+        "publishes it -- including when the measurement contradicts what the "
+        "team expected.\n\n"
+        "Returns nulls until a run has been recorded (`POST /api/fairness/run`). "
+        "The numbers are measured, never assumed."
     ),
 )
 async def fairness_report(detector: str = Query("pii.person")) -> FairnessReportResponse:
-    return stub_fairness_report()
+    return fairness.build_report(detector)
+
+
+@router.post(
+    "/fairness/run",
+    response_model=FairnessReportResponse,
+    summary="Run the fairness harness now and persist the result",
+    description=(
+        "Runs baseline (gazetteer disabled) and current (full scanner) over "
+        "the corpus in `eval/name_corpus.yaml` and persists both. The full "
+        "corpus is 1,800 samples per configuration and takes a few seconds "
+        "per run on the large spaCy model; `max_templates` and `max_names` "
+        "shorten it for a smoke test."
+    ),
+)
+async def fairness_run(
+    max_templates: int | None = Query(None, ge=1, le=20),
+    max_names: int | None = Query(None, ge=1, le=500),
+) -> FairnessReportResponse:
+    fairness.run_both(max_templates=max_templates, max_names=max_names)
+    return fairness.build_report()

@@ -1,0 +1,354 @@
+# Fairness evaluation corpus for the PERSON detector.
+#
+# Five name-origin groups, 60 full names each, every name run through the
+# SAME sentence templates. Recall is measured per group; the gap between the
+# best- and worst-served group is the number that matters.
+#
+# Honesty constraints on this corpus:
+#
+#   * The Indian group is NOT a copy of config/india_names.yaml. Roughly half
+#     the Indian names have a first or last name in the gazetteer and half
+#     have neither, and the harness reports both subsets separately. Measuring
+#     the gazetteer only on names it contains would be circular.
+#   * The East Asian group includes ten hyphenated Korean given names
+#     (Min-jun, Ji-woo) on purpose. The capitalised-token patterns do not
+#     handle hyphens, and the corpus should surface that rather than avoid it.
+#   * This is a fixed synthetic corpus, not a representative population
+#     sample. It is indicative of relative detector behaviour across groups,
+#     not an absolute accuracy claim. The API response says so.
+#
+# Templates use {name} once. They are ordinary workplace sentences; nothing
+# about them signals "a name follows" beyond what any prompt would.
+
+version: 1
+detector: pii.person
+
+templates:
+  - "Contact {name} about the invoice."
+  - "Please forward this to {name} by Friday."
+  - "{name} submitted the form yesterday."
+  - "The meeting with {name} is at 3pm."
+  - "Can you ask {name} to review the draft?"
+  - "I spoke to {name} about the delivery."
+
+groups:
+
+  indian:
+    label: Indian
+    names:
+      - Aarav Sharma
+      - Priya Ramaswamy
+      - Karthikeya Gupta
+      - Ananya Iyer
+      - Rohan Mehta
+      - Divya Nair
+      - Arjun Reddy
+      - Sneha Patel
+      - Vikram Singh
+      - Kavya Krishnan
+      - Rahul Verma
+      - Meera Pillai
+      - Aditya Joshi
+      - Pooja Desai
+      - Siddharth Rao
+      - Neha Kulkarni
+      - Nikhil Banerjee
+      - Shreya Menon
+      - Manish Chaudhary
+      - Lakshmi Narayanan
+      - Aadhya Bhandari
+      - Advait Chakravarthy
+      - Bhavesh Dhingra
+      - Chirag Ganesan
+      - Devika Hariharan
+      - Ekta Jadhav
+      - Falguni Kannan
+      - Girish Lokhande
+      - Hansika Mahadevan
+      - Ishita Nagaraj
+      - Jagdish Ojha
+      - Kunal Padmanabhan
+      - Lavanya Rangarajan
+      - Madhav Sawant
+      - Nandita Tripathi
+      - Omkar Upadhyay
+      - Parul Venkataraman
+      - Ritika Wadhwa
+      - Sanjana Achari
+      - Tanmay Bhagat
+      - Urvashi Chandran
+      - Vaibhav Dholakia
+      - Yamini Easwaran
+      - Abhinav Gokhale
+      - Bhumika Hegde
+      - Chaitanya Iyengar
+      - Darshan Jayaraman
+      - Esha Kapadia
+      - Gautam Lamba
+      - Harini Mohanty
+      - Indrajit Nadkarni
+      - Jhanvi Oberoi
+      - Kartik Parikh
+      - Leela Raghunathan
+      - Mihir Sabharwal
+      - Nivedita Thakkar
+      - Pranav Ullal
+      - Rhea Vaidya
+      - Samarth Wagle
+      - Trisha Yadav
+
+  anglo:
+    label: Anglo
+    names:
+      - John Smith
+      - Emily Johnson
+      - Michael Brown
+      - Sarah Williams
+      - David Jones
+      - Jessica Miller
+      - James Davis
+      - Ashley Wilson
+      - Robert Taylor
+      - Amanda Anderson
+      - William Thomas
+      - Jennifer Moore
+      - Richard Martin
+      - Elizabeth Jackson
+      - Thomas White
+      - Laura Harris
+      - Charles Clark
+      - Megan Lewis
+      - Daniel Walker
+      - Rebecca Hall
+      - Matthew Allen
+      - Hannah Young
+      - Andrew King
+      - Olivia Wright
+      - Joseph Scott
+      - Emma Green
+      - Christopher Baker
+      - Sophie Adams
+      - Benjamin Nelson
+      - Charlotte Hill
+      - Samuel Carter
+      - Grace Mitchell
+      - Henry Roberts
+      - Chloe Turner
+      - George Phillips
+      - Lucy Campbell
+      - Edward Parker
+      - Alice Evans
+      - Oliver Collins
+      - Isabella Edwards
+      - Jack Stewart
+      - Amelia Morris
+      - Harry Rogers
+      - Ella Reed
+      - Alexander Cook
+      - Mia Morgan
+      - Nathan Bell
+      - Lily Murphy
+      - Ryan Bailey
+      - Zoe Cooper
+      - Jacob Richardson
+      - Ruby Cox
+      - Luke Howard
+      - Evie Ward
+      - Adam Torres
+      - Sienna Peterson
+      - Peter Gray
+      - Molly Ramirez
+      - Simon Watson
+      - Freya Brooks
+
+  arabic:
+    label: Arabic
+    names:
+      - Ahmed Hassan
+      - Fatima Mansour
+      - Mohammed Khalil
+      - Aisha Rahman
+      - Omar Farouk
+      - Layla Haddad
+      - Youssef Ibrahim
+      - Zainab Nasser
+      - Ali Saleh
+      - Mariam Aziz
+      - Khalid Qasim
+      - Noor Yusuf
+      - Hamza Karim
+      - Huda Abbas
+      - Tariq Mahmoud
+      - Rania Hamid
+      - Bilal Rashid
+      - Samira Siddiq
+      - Ibrahim Zaki
+      - Amina Fadel
+      - Karim Darwish
+      - Yasmin Hakim
+      - Mustafa Nazir
+      - Salma Amin
+      - Rashid Sharif
+      - Dalia Jabbar
+      - Faisal Saad
+      - Leila Tahir
+      - Hassan Barakat
+      - Nadia Khoury
+      - Sami Bishara
+      - Hana Ghanem
+      - Adel Sultan
+      - Lina Halabi
+      - Ziad Abdallah
+      - Reem Shaaban
+      - Walid Naji
+      - Farah Hariri
+      - Nabil Kanaan
+      - Maya Rizk
+      - Jamal Taha
+      - Salwa Awad
+      - Kamal Khalifa
+      - Nour Zayed
+      - Marwan Salem
+      - Ghada Fares
+      - Bassam Attar
+      - Rasha Badr
+      - Hisham Sabbagh
+      - Iman Ayoub
+      - Fadi Nassar
+      - Rola Sulaiman
+      - Anwar Maalouf
+      - Dina Hijazi
+      - Tamer Baghdadi
+      - Sahar Jaber
+      - Osama Assaf
+      - Manal Younis
+      - Rami Haddad
+      - Widad Karam
+
+  east_asian:
+    label: East Asian
+    names:
+      - Wei Zhang
+      - Li Wang
+      - Jing Chen
+      - Hao Liu
+      - Yan Yang
+      - Min Huang
+      - Jun Zhao
+      - Xiu Wu
+      - Lei Zhou
+      - Fang Xu
+      - Hiroshi Tanaka
+      - Yuki Sato
+      - Kenji Suzuki
+      - Akiko Takahashi
+      - Takeshi Watanabe
+      - Haruka Ito
+      - Daiki Yamamoto
+      - Sakura Nakamura
+      - Ryo Kobayashi
+      - Mei Kato
+      - Min-jun Kim
+      - Ji-woo Lee
+      - Seo-yeon Park
+      - Hyun-woo Choi
+      - Ji-ho Jung
+      - Soo-min Kang
+      - Do-yun Cho
+      - Ha-eun Yoon
+      - Jae-won Jang
+      - Eun-ji Lim
+      - Minjun Kim
+      - Jiwoo Lee
+      - Seoyeon Park
+      - Hyunwoo Choi
+      - Jiho Jung
+      - Soomin Kang
+      - Doyun Cho
+      - Haeun Yoon
+      - Jaewon Jang
+      - Eunji Lim
+      - Thanh Nguyen
+      - Linh Tran
+      - Minh Le
+      - Huong Pham
+      - Duc Hoang
+      - Mai Vu
+      - Anh Dang
+      - Quang Bui
+      - Thu Do
+      - Long Ngo
+      - Xiang Lin
+      - Ying Sun
+      - Bo Ma
+      - Ning Zhu
+      - Qiang Guo
+      - Hui He
+      - Feng Gao
+      - Lan Luo
+      - Tao Liang
+      - Rui Song
+
+  african:
+    label: African
+    names:
+      - Chidi Okafor
+      - Amara Nwosu
+      - Emeka Eze
+      - Ngozi Okoro
+      - Tunde Adeyemi
+      - Funmi Balogun
+      - Kwame Mensah
+      - Ama Boateng
+      - Kofi Asante
+      - Abena Owusu
+      - Sipho Dlamini
+      - Thandiwe Nkosi
+      - Themba Mthembu
+      - Zanele Khumalo
+      - Lerato Molefe
+      - Kagiso Mokoena
+      - Tendai Moyo
+      - Chipo Ncube
+      - Farai Mutasa
+      - Rudo Chikwanha
+      - Wanjiru Kamau
+      - Otieno Odhiambo
+      - Achieng Onyango
+      - Mwangi Njoroge
+      - Baraka Mwangi
+      - Zuri Wekesa
+      - Amani Okello
+      - Nadia Abdi
+      - Yusuf Warsame
+      - Hodan Farah
+      - Adaeze Obi
+      - Ikenna Chukwu
+      - Obinna Nnamdi
+      - Chiamaka Ude
+      - Ifeoma Anozie
+      - Sekou Toure
+      - Aminata Diallo
+      - Mamadou Sow
+      - Fatoumata Keita
+      - Ousmane Ndiaye
+      - Abebe Bekele
+      - Tigist Alemu
+      - Dawit Haile
+      - Selam Tesfaye
+      - Yohannes Girma
+      - Nomvula Zulu
+      - Bongani Sithole
+      - Naledi Mahlangu
+      - Tshepo Modise
+      - Karabo Maluleke
+      - Adaora Chukwuma
+      - Oluwaseun Adebayo
+      - Temitope Ogunleye
+      - Babajide Okonkwo
+      - Folake Afolabi
+      - Kwabena Ofori
+      - Akosua Appiah
+      - Yaw Darko
+      - Efua Quaye
+      - Kojo Antwi

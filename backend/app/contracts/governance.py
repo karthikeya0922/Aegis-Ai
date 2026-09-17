@@ -118,13 +118,22 @@ class FairnessRun(StrictModel):
     worst_group_recall: float | None = None
     recall_gap: float | None = None
     notes: str | None = None
+    # Free-form measured breakdown, e.g. "indian.held_out.recall",
+    # "indian.by_engine.presidio", "anglo.false_positives". Keys are stable
+    # strings; the dashboard may render any subset.
+    breakdown: dict[str, float] = Field(default_factory=dict)
 
 
 class FairnessReportResponse(StrictModel):
     detector: str
     baseline: FairnessRun | None = None
     current: FairnessRun | None = None
+    # baseline gap minus current gap. Zero when the worst-served group did
+    # not change -- which is itself a finding, not a failure of the report.
     gap_closed: float | None = None
+    # current recall minus baseline recall, per group, so a lift in one group
+    # is visible even when the overall gap is set by a different group.
+    deltas: dict[str, float] = Field(default_factory=dict)
     method: str
     disclaimer: str = (
         "Recall measured against a fixed synthetic name corpus, not a "

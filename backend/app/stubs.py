@@ -8,7 +8,6 @@ module now holds only what remains:
     stub_*_metrics         -> Phase 12 (aggregation over request_audit)
     stub_audit_*           -> Phase 8 / 12
     stub_reviews, _record  -> Phase 8 / 14
-    stub_fairness_report   -> Phase 13 (returns nulls, never invented numbers)
 
 The ingress path -- /inspect -- is real as of Phase 7 (security/pipeline.py)
 and nothing here is on it. /api/health reports per component which of the
@@ -40,9 +39,6 @@ from app.contracts.egress import (
     SafetyResult,
 )
 from app.contracts.governance import (
-    FairnessGroupResult,
-    FairnessReportResponse,
-    FairnessRun,
     ReviewListResponse,
     ReviewRecord,
 )
@@ -183,33 +179,10 @@ def stub_review_record(request_id: str, justification: str) -> ReviewRecord:
     )
 
 
-def stub_fairness_report() -> FairnessReportResponse:
-    """Empty scaffold. Phase 13 fills this with *measured* numbers.
-
-    Deliberately not populated with plausible-looking fake values: a fairness
-    claim we have not measured is exactly the kind of thing this project
-    exists to prevent.
-    """
-    return FairnessReportResponse(
-        detector="pii.person",
-        baseline=None,
-        current=None,
-        gap_closed=None,
-        method=(
-            "Recall of the PERSON recogniser over a fixed synthetic corpus of "
-            "names across origin groups, embedded in identical sentence "
-            "templates. Populated in Phase 13."
-        ),
-    )
-
-
 __all__ = [
-    "FairnessGroupResult",
-    "FairnessRun",
     "stub_audit_page",
     "stub_audit_report",
     "stub_egress",
-    "stub_fairness_report",
     "stub_metrics",
     "stub_provider_metrics",
     "stub_review_record",

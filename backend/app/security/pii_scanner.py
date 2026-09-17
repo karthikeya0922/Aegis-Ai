@@ -290,18 +290,34 @@ class PresidioEngine:
 
 
 class PIIScanner:
-    def __init__(self, config_path: Path | None = None) -> None:
+    def __init__(
+        self,
+        config_path: Path | None = None,
+        *,
+        gazetteer_enabled: bool = True,
+        share_presidio_with: "PIIScanner | None" = None,
+    ) -> None:
         self.entities, self._disabled_recognizers, self.version = _load_config(
             config_path or PII_CONFIG_PATH
         )
         self._regex = RegexEngine()
         from app.security.india_recognizers import IndiaEngine  # noqa: WPS433 - circular
 
-        self._india = IndiaEngine()
+        self._india = IndiaEngine(gazetteer_enabled=gazetteer_enabled)
         self._presidio: PresidioEngine | None = None
         self._presidio_attempted = False
         self._lock = threading.Lock()
         self.degraded_reason: str | None = None
+        self.gazetteer_enabled = gazetteer_enabled
+
+        # A second scanner (the fairness baseline) reuses an already-loaded
+        # spaCy model rather than paying another multi-second load and a
+        # second copy in memory.
+        if share_presidio_with is not None:
+            share_presidio_with._try_load_presidio()
+            self._presidio = share_presidio_with._presidio
+            self._presidio_attempted = True
+            self.degraded_reason = share_presidio_with.degraded_reason
 
     # -- engine management --------------------------------------------------
 

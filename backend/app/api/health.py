@@ -21,7 +21,7 @@ from app.security.policy_engine import get_policy_engine
 router = APIRouter(tags=["health"])
 
 _STARTED = time.monotonic()
-BUILD_PHASE = "phase-8-database"
+BUILD_PHASE = "phase-13-fairness"
 
 
 def _pii_component() -> ComponentHealth:
@@ -56,6 +56,27 @@ def _database_component() -> ComponentHealth:
     )
 
 
+def _fairness_component() -> ComponentHealth:
+    from app.fairness import harness as fairness
+
+    rows = fairness.latest_run(fairness.CURRENT_LABEL)
+    if not rows:
+        return ComponentHealth(
+            name="fairness_harness", status="ok",
+            detail="harness ready; no run recorded yet (POST /api/fairness/run)",
+        )
+    recalls = {r.group: r.recall for r in rows}
+    worst = min(recalls, key=recalls.get)
+    return ComponentHealth(
+        name="fairness_harness", status="ok",
+        detail=(
+            f"last run {rows[0].run_at:%Y-%m-%d %H:%M} UTC over {len(rows)} groups; "
+            f"gap {max(recalls.values()) - min(recalls.values()):.3f}, worst-served: {worst} "
+            f"({recalls[worst]:.3f})"
+        ),
+    )
+
+
 def _components() -> list[ComponentHealth]:
     stub = "stub"  # components below that have not shipped yet
     return [
@@ -82,7 +103,7 @@ def _components() -> list[ComponentHealth]:
         ComponentHealth(name="embeddings", status=stub, detail="Deterministic stub vectors until Phase 9"),
         ComponentHealth(name="grounding", status=stub, detail="NLI cross-encoder lands in Phase 10"),
         _database_component(),
-        ComponentHealth(name="fairness_harness", status=stub, detail="Phase 13"),
+        _fairness_component(),
         ComponentHealth(name="review_api", status=stub, detail="Phase 14"),
     ]
 

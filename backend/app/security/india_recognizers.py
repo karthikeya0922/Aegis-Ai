@@ -168,8 +168,11 @@ def _load_gazetteer(path: Path) -> Gazetteer:
 class IndiaEngine:
     name = "india"
 
-    def __init__(self, names_path: Path | None = None) -> None:
+    def __init__(self, names_path: Path | None = None, *, gazetteer_enabled: bool = True) -> None:
         self.gazetteer = _load_gazetteer(names_path or NAMES_CONFIG_PATH)
+        # The fairness harness disables the gazetteer to measure the NER-only
+        # baseline live. Identifiers (Aadhaar, PAN, ...) are unaffected.
+        self.gazetteer_enabled = gazetteer_enabled
 
     def find(self, text: str, message_index: int) -> list[PIIMatch]:
         out: list[PIIMatch] = []
@@ -178,8 +181,13 @@ class IndiaEngine:
         out.extend(self._ifsc(text, message_index))
         out.extend(self._upi(text, message_index))
         out.extend(self._mobile(text, message_index))
-        out.extend(self._names(text, message_index))
+        if self.gazetteer_enabled:
+            out.extend(self._names(text, message_index))
         return out
+
+    def covers(self, full_name: str) -> bool:
+        """True if any token of the name is in the gazetteer."""
+        return any(tok in self.gazetteer.all_names for tok in full_name.split())
 
     # -- identifiers ----------------------------------------------------------
 
