@@ -7,7 +7,7 @@ This service is the absolute authority on whether a prompt is safe. It is
 **stateless** -- the same input always yields the same verdict. All session
 state (token vault, semantic cache) belongs to Person 2's Gateway and its Redis.
 
-**Current build phase: Phase 7 (pipeline).** The whole ingress path is real. Every endpoint
+**Current build phase: Phase 8 (database).** The whole ingress path is real and every decision is on file. Every endpoint
 is live and contract-valid. `GET /api/health` reports exactly which subsystems
 are real and which are still stubs.
 
@@ -21,7 +21,8 @@ are real and which are still stubs.
 | Redactor | **Real.** Global placeholder numbering, offset-safe splicing, cross-scanner precedence, vault policy that never rehydrates secrets |
 | Policy engine | **Real.** `config/policies.yaml`, three profiles with inheritance, hot-reloaded. Contains no detection logic |
 | Pipeline | **Real.** `security/pipeline.py`: ten measured stages, config-driven routing and cache hints, pluggable override verifier |
-| Egress, embeddings, grounding, database, metrics, fairness harness, reviews | Stub -- phases 8-14, see `docs/PERSON1_BUILD_PLAN.md` |
+| Database | **Real.** SQLite by default, Postgres by `DATABASE_URL`; Alembic migrations; two-phase audit write; erasure and retention |
+| Egress, embeddings, grounding, metrics, fairness harness, reviews | Stub -- phases 9-14, see `docs/PERSON1_BUILD_PLAN.md` |
 
 ---
 
@@ -381,6 +382,43 @@ on the `CacheHint` contract.
 **Override verification** is pluggable. The Phase 7 verifier accepts any
 well-formed `ovr_` token; Phase 14 checks it against the review table.
 
+## The database (Phase 8)
+
+SQLite is the zero-setup default; PostgreSQL is a `DATABASE_URL` change.
+`create_all` runs at startup for development; `alembic upgrade head` is
+the path for controlled deployments, and `alembic check` confirms the
+migration and the models describe the same schema.
+
+**One audit row, two writers.** `/inspect` records the decision,
+detections, policy and stage timings the moment it answers. The Gateway's
+`POST /audit/events` later merges provider, tokens, cache, cost and egress
+fields into the same row -- idempotent on `request_id`, never clearing a
+field with null. Either half alone is a valid record, so a Gateway that
+never posts still leaves the decision on file.
+
+**Privacy is enforced by the schema, not by discipline.** There is no
+column for prompt text, credentials, passwords, private keys, vault
+contents or raw user identifiers, and a test checks a forbidden-name list
+against every table so a future migration cannot add one. User references
+are salted HMACs (`AEGIS_USER_HASH_SALT`). Override tokens are stored
+hashed. Both writers map named fields explicitly -- a test walks the AST to
+assert no `**kwargs` and no loop over the event's own fields -- so an
+unknown field has no route into a row.
+
+**The log is a surveillance capability and is constrained accordingly.**
+`POST /api/audit/erase-subject` deletes every row for one hashed user
+reference (right to erasure). `POST /api/audit/purge` enforces
+`AEGIS_AUDIT_RETENTION_DAYS`. Neither writer can raise: a database failure
+is counted, logged, and never changes the user's response.
+
+| Endpoint | |
+|---|---|
+| `POST /audit/events` | Gateway finalizes a request |
+| `GET /api/audit/events` | tenant-scoped, paginated, filterable |
+| `GET /api/requests/{id}` | one request's record; 404 if unknown |
+| `POST /api/audit/erase-subject` | right to erasure |
+| `POST /api/audit/purge` | retention window |
+
 ### Entropy is a supporting signal
 
 `H(X) = -sum p(x) log2 p(x)` over string literals. A UUID, a git SHA and a
@@ -394,6 +432,7 @@ confidence modifier on a pattern that already fired, and as a standalone
 ## Layout
 
 ```text
+alembic.ini, migrations/   controlled schema upgrades (alembic upgrade head)
 app/
   config.py         every threshold, sourced from env
   main.py           app, middleware, error envelopes
@@ -402,7 +441,7 @@ app/
   security/         secret_scanner.py, entropy.py, pii_scanner.py,
                     india_recognizers.py, injection.py, redactor.py,
                     policy_engine.py, pipeline.py, spans.py (all real)
-  audit/            SQLAlchemy models + metrics   (phases 8, 12)
+  audit/            database.py, models.py, service.py (real); metrics.py (phase 12)
   verification/     grounded response checking    (phase 10)
   utils/            ids, timing, redacting logger
   stubs.py          only the subsystems not yet shipped (phases 8-14)

@@ -182,16 +182,18 @@ Even the large model misses the Indian name in this template. This is not a smal
 
 ## Phase 8 — Database Layer
 
-- [ ] `app/audit/models.py` — `request_audit`, `review_request`, `policy_version`, `fairness_eval`
-- [ ] `app/audit/database.py` — engine, session factory, SQLite→Postgres via `DATABASE_URL`
-- [ ] Alembic migrations
-- [ ] `app/audit/service.py` — write path, with a **field allowlist** so nothing unexpected is persisted
-- [ ] Salted-hash helper for `user_ref_hash`
-- [ ] `POST /audit/events` real implementation, idempotent on `request_id`
-- [ ] Retention purge job + per-subject delete endpoint
-- [ ] `tests/test_audit.py` — asserts no raw prompt, key or identifier reaches the DB
+- [x] `app/audit/models.py` — `request_audit`, `review_request`, `policy_version`, `fairness_eval`
+- [x] `app/audit/database.py` — engine, session factory, SQLite→Postgres via `DATABASE_URL`
+- [x] Alembic migrations
+- [x] `app/audit/service.py` — write path, with a **field allowlist** so nothing unexpected is persisted
+- [x] Salted-hash helper for `user_ref_hash`
+- [x] `POST /audit/events` real implementation, idempotent on `request_id`
+- [x] Retention purge job + per-subject delete endpoint
+- [x] `tests/test_audit.py` — asserts no raw prompt, key or identifier reaches the DB
 
 ---
+
+**DONE** -- 4 tables, Alembic initial migration verified with `alembic check`, two-phase write (Inspector at `/inspect`, Gateway at `POST /audit/events`), idempotent upsert, per-subject erasure, retention purge, `GET /api/requests/{id}`. Privacy enforced by schema (no column can hold a prompt, credential or raw identity -- tested against every table) and by an AST-checked field allowlist. 23 tests plus API round-trips.
 
 ## Phase 9 — Embeddings
 
@@ -312,12 +314,12 @@ sweep's checklist. Add to it whenever something is hardcoded to keep moving.
 | Health component list maintained by hand | `api/health.py` | derived from a scanner registry | Phase 16 |
 | `BUILD_PHASE` string bumped by hand | `api/health.py` | derived from git tag or version | Phase 16 |
 | ~~Scanners run on joined text; `message_index` always 0~~ | `stubs.py` | per-message scan, real offsets | **done, Phase 5** |
-| In-memory review records | `api/governance.py` | `review_request` table | Phase 8 / 14 |
+| In-memory review records | `api/governance.py` | `review_request` table (exists as of Phase 8) | Phase 14 |
 | `PermissiveOverrideVerifier` accepts any `ovr_` token | `security/pipeline.py` | verify against `review_request`: single-use, scoped, unexpired | Phase 14 |
 | Deterministic hash "embeddings" | `api/embed.py` | sentence-transformers | Phase 9 |
 | Fixed 8/10 grounding result | `stubs.py` | NLI cross-encoder | Phase 10 |
 | Egress always PASS | `stubs.py` | harm/bias screen | Phase 11 |
-| Metrics return zeros | `stubs.py` | aggregation over `request_audit` | Phase 12 |
+| Metrics return zeros | `stubs.py` | aggregation over `request_audit` (table populated as of Phase 8) | Phase 12 |
 | Fairness report nulls | `stubs.py` | measured harness output | Phase 13 |
 | Policy PUT not persisted | `api/governance.py` | `policy_version` table | Phase 15 |
 

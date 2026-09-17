@@ -180,7 +180,7 @@
           "audit"
         ],
         "summary": "Record one finalized request",
-        "description": "Called by the Gateway after a response completes, including after a stream ends. Idempotent on `request_id`.\n\nA failed audit write must never fail the user's request -- the Gateway should fire-and-forget and increment its own `audit_write_failures` counter.\n\n`user_ref` is hashed on arrival and the raw value is discarded. The model has no field for prompt text, keys or passwords, so they cannot be persisted even by accident.",
+        "description": "Called by the Gateway after a response completes, including after a stream ends. Idempotent on `request_id`: the first call merges the Gateway's fields into the row the Inspector already wrote; a repeat is accepted and flagged `duplicate`.\n\nA failed audit write must never fail the user's request -- the Gateway should fire-and-forget and count its own failures.\n\n`user_ref` is hashed on arrival and the raw value is discarded. The model has no field for prompt text, keys or passwords, and the schema has no column for them, so they cannot be persisted.",
         "operationId": "write_audit_event_audit_events_post",
         "requestBody": {
           "content": {
@@ -270,8 +270,10 @@
                   "type": "null"
                 }
               ],
+              "description": "ALLOW | WARN | SANITIZE | BLOCK",
               "title": "Policy Action"
-            }
+            },
+            "description": "ALLOW | WARN | SANITIZE | BLOCK"
           },
           {
             "name": "since_hours",
@@ -310,13 +312,55 @@
         }
       }
     },
+    "/api/requests/{request_id}": {
+      "get": {
+        "tags": [
+          "audit"
+        ],
+        "summary": "One request's audit record",
+        "operationId": "get_request_api_requests__request_id__get",
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Request Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditEventRecord"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/audit/report": {
       "get": {
         "tags": [
           "audit"
         ],
         "summary": "Structured audit export",
-        "description": "Returns structured sections the Gateway renders. Carries a disclaimer stating that this is transaction evidence supporting a deployer's own obligations, not a conformity assessment.",
+        "description": "Returns structured sections the Gateway renders. Carries a disclaimer stating that this is transaction evidence supporting a deployer's own obligations, not a conformity assessment. Populated from the audit table in Phase 12.",
         "operationId": "audit_report_api_audit_report_get",
         "parameters": [
           {
@@ -349,6 +393,100 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AuditReport"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/audit/purge": {
+      "post": {
+        "tags": [
+          "audit"
+        ],
+        "summary": "Delete rows older than the retention window",
+        "description": "Runs the retention policy now. Phase 16 schedules this; until then an operator triggers it. Rows older than AEGIS_AUDIT_RETENTION_DAYS (or the `retention_days` override) are deleted.",
+        "operationId": "purge_api_audit_purge_post",
+        "parameters": [
+          {
+            "name": "retention_days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 3650,
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Retention Days"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurgeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/audit/erase-subject": {
+      "post": {
+        "tags": [
+          "audit"
+        ],
+        "summary": "Erase every audit row for one user (right to erasure)",
+        "description": "The raw `user_ref` is hashed with the deployment salt and every row with that hash is deleted. The raw value is not logged or stored by this call either. Returns the number of rows removed.",
+        "operationId": "erase_subject_api_audit_erase_subject_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EraseSubjectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EraseSubjectResponse"
                 }
               }
             }
@@ -2149,6 +2287,34 @@
         ],
         "title": "EntropyFinding"
       },
+      "EraseSubjectRequest": {
+        "properties": {
+          "user_ref": {
+            "type": "string",
+            "title": "User Ref"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "user_ref"
+        ],
+        "title": "EraseSubjectRequest"
+      },
+      "EraseSubjectResponse": {
+        "properties": {
+          "deleted": {
+            "type": "integer",
+            "title": "Deleted"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "deleted"
+        ],
+        "title": "EraseSubjectResponse"
+      },
       "FairnessGroupResult": {
         "properties": {
           "group": {
@@ -3107,6 +3273,25 @@
           "provider"
         ],
         "title": "ProviderStat"
+      },
+      "PurgeResponse": {
+        "properties": {
+          "deleted": {
+            "type": "integer",
+            "title": "Deleted"
+          },
+          "retention_days": {
+            "type": "integer",
+            "title": "Retention Days"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "deleted",
+          "retention_days"
+        ],
+        "title": "PurgeResponse"
       },
       "ReviewCreateRequest": {
         "properties": {
