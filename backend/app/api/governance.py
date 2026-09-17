@@ -6,7 +6,7 @@ difference between an AI security gateway and a responsible-AI gateway.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException, Query, status
 
@@ -23,11 +23,11 @@ from app.contracts.governance import (
     ReviewDecisionRequest,
     ReviewDecisionResponse,
     ReviewListResponse,
+    ReviewRecord,
 )
 from app.security.policy_engine import get_policy_engine
 from app.fairness import harness as fairness
-from app.stubs import stub_review_record, stub_reviews
-from app.utils.ids import override_token
+from app.reviews import service as reviews
 from app.utils.logging import get_logger
 
 router = APIRouter(prefix="/api", tags=["governance"])
@@ -125,35 +125,36 @@ async def policy_history() -> PolicyHistoryResponse:
     description=(
         "Aegis makes automated decisions that affect people, which makes Aegis "
         "itself subject to the oversight principle it enforces. Any appealable "
-        "block can be contested here with a written justification."
+        "block can be contested here with a written justification.\n\n"
+        "Refused, with the reason, when the rule is not appealable under the "
+        "current policy (credential leaks) or when the audit log shows the "
+        "request was not blocked. One pending review per request; a repeat "
+        "returns the existing one."
     ),
 )
 async def create_review(req: ReviewCreateRequest) -> ReviewCreateResponse:
-    if req.rule_fired and not get_policy_engine().is_appealable(req.rule_fired):
-        return ReviewCreateResponse(
-            review=stub_review_record(req.request_id, req.user_justification),
-            accepted=False,
-            reason=(
-                "Credential-leak blocks are not appealable. The detected value "
-                "should be rotated, and the prompt resubmitted without it."
-            ),
-        )
-    record = stub_review_record(req.request_id, req.user_justification)
-    log.info(
-        "review opened request_id=%s rule=%s",
-        req.request_id,
-        req.rule_fired or "-",
-        extra={"request_id": req.request_id},
-    )
-    return ReviewCreateResponse(review=record, accepted=True)
+    out = reviews.create_review(req)
+    return ReviewCreateResponse(review=out.record, accepted=out.accepted, reason=out.reason)
 
 
 @router.get("/reviews", response_model=ReviewListResponse, summary="Review queue")
 async def list_reviews(
     status_filter: ReviewStatus | None = Query(None, alias="status"),
+    tenant_id: str | None = Query(None),
     limit: int = Query(50, ge=1, le=500),
+    offset: int = Query(0, ge=0),
 ) -> ReviewListResponse:
-    return stub_reviews()
+    items, total = reviews.list_reviews(status=status_filter, tenant_id=tenant_id,
+                                        limit=limit, offset=offset)
+    return ReviewListResponse(items=items, total=total)
+
+
+@router.get("/reviews/{review_id}", response_model=ReviewRecord, summary="One review")
+async def get_review(review_id: str) -> ReviewRecord:
+    rec = reviews.get_review(review_id)
+    if rec is None:
+        raise HTTPException(status_code=404, detail="Review not found")
+    return rec
 
 
 @router.post(
@@ -162,35 +163,27 @@ async def list_reviews(
     summary="Human approves or denies an appeal",
     description=(
         "Approval mints a short-lived, single-use override token scoped to the "
-        "one `request_id` under review. The Gateway replays that request with "
-        "the token; `/inspect` honours it once and records the override."
+        "one `request_id` under review. The token is returned in this response "
+        "exactly once and stored hashed. The Gateway replays the same "
+        "`request_id` with `override_token` set; `/inspect` lifts the "
+        "appealable block, records the override, and consumes the token.\n\n"
+        "Reviewer identity (`reviewer_ref`) is stored as a salted hash. "
+        "Authentication of reviewers is Phase 16."
     ),
 )
-async def decide_review(
-    review_id: str, req: ReviewDecisionRequest
-) -> ReviewDecisionResponse:
-    if not review_id.startswith("rev_"):
-        raise HTTPException(status_code=404, detail="Review not found")
-
-    record = stub_review_record("req_stub", "phase 0 stub")
-    record.id = review_id
-    record.status = ReviewStatus.APPROVED if req.approve else ReviewStatus.DENIED
-    record.reviewer_note = req.reviewer_note
-    record.decided_at = datetime.now(timezone.utc)
-
-    token = None
-    expires = None
-    if req.approve:
-        token = override_token()
-        expires = datetime.now(timezone.utc) + timedelta(
-            seconds=settings.override_token_ttl_seconds
+async def decide_review(review_id: str, req: ReviewDecisionRequest) -> ReviewDecisionResponse:
+    try:
+        out = reviews.decide(
+            review_id, approve=req.approve, reviewer_ref=req.reviewer_ref, note=req.reviewer_note,
         )
-        record.override_expires_at = expires
-
-    log.info("review %s decided approve=%s", review_id, req.approve)
+    except reviews.ReviewNotFound:
+        raise HTTPException(status_code=404, detail="Review not found")
+    except reviews.ReviewNotPending as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
     return ReviewDecisionResponse(
-        review=record, override_token=token, override_expires_at=expires
+        review=out.record, override_token=out.override_token, override_expires_at=out.override_expires_at,
     )
+
 
 
 # ---------------------------------------------------------------------------

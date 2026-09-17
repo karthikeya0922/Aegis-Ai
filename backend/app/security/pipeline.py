@@ -121,13 +121,15 @@ class OverrideResult:
 class OverrideVerifier(Protocol):
     def verify(self, token: str | None, request_id: str) -> OverrideResult: ...
 
+    def consume(self, token: str | None) -> None: ...
+
 
 class PermissiveOverrideVerifier:
-    """Phase 7 placeholder: any well-formed token is accepted.
+    """Accepts any well-formed token. Test and offline use only.
 
-    Phase 14 replaces this with a verifier that checks the token against the
-    review_request table: single use, scoped to one request_id, unexpired.
-    Listed in the debt ledger.
+    The production default is app.reviews.service.ReviewOverrideVerifier,
+    which checks the token against the review_request table: approved,
+    scoped to one request_id, unexpired, single use.
     """
 
     def verify(self, token: str | None, request_id: str) -> OverrideResult:
@@ -135,7 +137,16 @@ class PermissiveOverrideVerifier:
             return OverrideResult(False, "no token")
         if not token.startswith("ovr_"):
             return OverrideResult(False, "malformed token")
-        return OverrideResult(True, "accepted (permissive verifier; Phase 14 adds real checks)")
+        return OverrideResult(True, "accepted (permissive verifier -- not for production)")
+
+    def consume(self, token: str | None) -> None:
+        return None
+
+
+def _default_verifier() -> OverrideVerifier:
+    from app.reviews.service import ReviewOverrideVerifier  # noqa: WPS433 - avoid import cycle
+
+    return ReviewOverrideVerifier()
 
 
 # ---------------------------------------------------------------------------
@@ -165,7 +176,7 @@ class InspectionPipeline:
         self.policy = policy or get_policy_engine()
         self.redactor = redactor or get_redactor()
         self.routing = routing or load_routing_config(settings.routing_path)
-        self.override_verifier = override_verifier or PermissiveOverrideVerifier()
+        self.override_verifier = override_verifier or _default_verifier()
 
     # -- hints ------------------------------------------------------------------
 
@@ -328,6 +339,11 @@ class InspectionPipeline:
                 st.block(detail)
             else:
                 st.note(detail)
+            # Single use: the token is consumed only when it actually lifted a
+            # block. Presenting it on a request that was not blocked, or one
+            # whose block is non-appealable, does not spend it.
+            if decision_result.override_applied:
+                self.override_verifier.consume(req.override_token)
 
         with rec.stage("redactor") as st:
             redaction = self.redactor.redact(messages, decision_result.detections, resolve=False)

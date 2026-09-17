@@ -7,7 +7,6 @@ module now holds only what remains:
     stub_egress            -> Phase 10 (grounding) and Phase 11 (harm/bias)
     stub_*_metrics         -> Phase 12 (aggregation over request_audit)
     stub_audit_*           -> Phase 8 / 12
-    stub_reviews, _record  -> Phase 8 / 14
 
 The ingress path -- /inspect -- is real as of Phase 7 (security/pipeline.py)
 and nothing here is on it. /api/health reports per component which of the
@@ -16,7 +15,7 @@ above are still stubs.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from app.contracts.audit import (
     AuditEventPage,
@@ -25,10 +24,8 @@ from app.contracts.audit import (
     AuditReportSection,
 )
 from app.contracts.common import (
-    Decision,
     GroundingStatus,
     PipelineStage,
-    ReviewStatus,
     StageStatus,
 )
 from app.contracts.egress import (
@@ -37,10 +34,6 @@ from app.contracts.egress import (
     EgressResponse,
     GroundingResult,
     SafetyResult,
-)
-from app.contracts.governance import (
-    ReviewListResponse,
-    ReviewRecord,
 )
 from app.contracts.metrics import (
     CostStats,
@@ -159,34 +152,12 @@ def stub_audit_report(tenant_id: str) -> AuditReport:
     )
 
 
-def stub_reviews() -> ReviewListResponse:
-    return ReviewListResponse(items=[], total=0)
-
-
-def stub_review_record(request_id: str, justification: str) -> ReviewRecord:
-    return ReviewRecord(
-        id="rev_stub000000",
-        request_id=request_id,
-        tenant_id="default",
-        created_at=_now(),
-        original_decision=Decision.BLOCK,
-        rule_fired="injection.instruction_override",
-        user_justification=justification,
-        status=ReviewStatus.PENDING,
-        reviewer_note=None,
-        decided_at=None,
-        override_expires_at=_now() + timedelta(minutes=15),
-    )
-
-
 __all__ = [
     "stub_audit_page",
     "stub_audit_report",
     "stub_egress",
     "stub_metrics",
     "stub_provider_metrics",
-    "stub_review_record",
-    "stub_reviews",
     "stub_security_metrics",
     "stub_sustainability_metrics",
 ]

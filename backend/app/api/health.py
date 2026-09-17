@@ -21,7 +21,7 @@ from app.security.policy_engine import get_policy_engine
 router = APIRouter(tags=["health"])
 
 _STARTED = time.monotonic()
-BUILD_PHASE = "phase-13-fairness"
+BUILD_PHASE = "phase-14-human-review"
 
 
 def _pii_component() -> ComponentHealth:
@@ -77,6 +77,15 @@ def _fairness_component() -> ComponentHealth:
     )
 
 
+def _pending_reviews() -> int:
+    from app.reviews import service as reviews
+
+    try:
+        return reviews.pending_count()
+    except Exception:  # noqa: BLE001 - health must not fail
+        return -1
+
+
 def _components() -> list[ComponentHealth]:
     stub = "stub"  # components below that have not shipped yet
     return [
@@ -104,7 +113,14 @@ def _components() -> list[ComponentHealth]:
         ComponentHealth(name="grounding", status=stub, detail="NLI cross-encoder lands in Phase 10"),
         _database_component(),
         _fairness_component(),
-        ComponentHealth(name="review_api", status=stub, detail="Phase 14"),
+        ComponentHealth(
+            name="review_api",
+            status="ok",
+            detail=(
+                f"{_pending_reviews()} pending; override tokens single-use, request-scoped, "
+                f"{settings.override_token_ttl_seconds}s TTL, stored hashed"
+            ),
+        ),
     ]
 
 
