@@ -19,7 +19,7 @@ from app.stubs import STUB_MODE
 router = APIRouter(tags=["health"])
 
 _STARTED = time.monotonic()
-BUILD_PHASE = "phase-4-injection"
+BUILD_PHASE = "phase-5-redactor"
 
 
 def _pii_component() -> ComponentHealth:

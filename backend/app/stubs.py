@@ -59,8 +59,8 @@ from app.contracts.governance import (
 from app.security.entropy import scan as entropy_scan
 from app.security.injection import get_detector as get_injection_detector
 from app.security.pii_scanner import get_pii_scanner
+from app.security.redactor import get_redactor
 from app.security.secret_scanner import get_scanner
-from app.security.spans import subtract_covered
 from app.contracts.inspect import (
     CacheHint,
     DetectionBundle,
@@ -96,41 +96,43 @@ def stub_inspect(req: InspectRequest) -> InspectResponse:
     pii: list[Detection] = []
     secrets: list[Detection] = []
     entropy: list[EntropyFinding] = []
-    vault: dict[str, str] = {}
-    sanitized = text
 
-    # --- secrets (REAL as of Phase 1) -------------------------------------
-    _t0 = time.perf_counter()
-    secret_detections, secret_vault = get_scanner().scan(text)
-    secrets.extend(secret_detections)
-    vault.update(secret_vault)
-    for placeholder, original in secret_vault.items():
-        sanitized = sanitized.replace(original, placeholder)
-    secret_ms = round((time.perf_counter() - _t0) * 1000.0, 3)
+    # Scanners run PER MESSAGE so every span carries a real message_index and
+    # offsets into that message's own content. The redactor relies on this;
+    # scanning the joined text (what earlier phases did) produced offsets
+    # into a string that does not exist in the request.
+    secret_ms = entropy_ms = pii_ms = 0.0
+    for mi, m in enumerate(req.messages):
+        # --- secrets (REAL as of Phase 1) ---------------------------------
+        _t0 = time.perf_counter()
+        sd, _ = get_scanner().scan(m.content, message_index=mi)
+        secrets.extend(sd)
+        secret_ms += time.perf_counter() - _t0
 
-    # --- entropy (REAL as of Phase 1; warn-only by design) ----------------
-    _t0 = time.perf_counter()
-    entropy.extend(entropy_scan(text))
-    entropy_ms = round((time.perf_counter() - _t0) * 1000.0, 3)
+        # --- entropy (REAL as of Phase 1; warn-only by design) ------------
+        _t0 = time.perf_counter()
+        entropy.extend(entropy_scan(m.content, message_index=mi))
+        entropy_ms += time.perf_counter() - _t0
 
-    # --- PII (REAL as of Phase 2) -----------------------------------------
+        # --- PII (REAL as of Phase 2, India engine as of Phase 3) ---------
+        _t0 = time.perf_counter()
+        pd, _ = get_pii_scanner().scan(m.content, message_index=mi)
+        pii.extend(pd)
+        pii_ms += time.perf_counter() - _t0
+    secret_ms = round(secret_ms * 1000.0, 3)
+    entropy_ms = round(entropy_ms * 1000.0, 3)
+    pii_ms = round(pii_ms * 1000.0, 3)
+
+    # --- redaction (REAL as of Phase 5) -----------------------------------
+    # Cross-scanner precedence, global placeholder numbering, offset-safe
+    # splicing, and the vault map -- all in one place. The scanners' own
+    # per-call vault maps are discarded; values are sliced from the source.
     _t0 = time.perf_counter()
-    pii_detections, pii_vault = get_pii_scanner().scan(text)
-    # A finding that sits inside a secret span (the email-shaped fragment of
-    # a DB URI) is noise: the secret scanner already owns that text.
-    pii_detections = subtract_covered(
-        pii_detections,
-        secrets,
-        span_candidate=lambda d: (d.message_index, d.start, d.end),
-        span_covering=lambda d: (d.message_index, d.start, d.end),
-    )
-    kept_placeholders = {d.placeholder for d in pii_detections}
-    pii_vault = {k: v for k, v in pii_vault.items() if k in kept_placeholders}
-    pii.extend(pii_detections)
-    vault.update(pii_vault)
-    for placeholder, original in pii_vault.items():
-        sanitized = sanitized.replace(original, placeholder)
-    pii_ms = round((time.perf_counter() - _t0) * 1000.0, 3)
+    redaction = get_redactor().redact(req.messages, secrets + pii)
+    secrets = [d for d in redaction.detections if d.category is DetectionCategory.SECRET]
+    pii = [d for d in redaction.detections if d.category is DetectionCategory.PII]
+    vault = redaction.vault
+    redact_ms = round((time.perf_counter() - _t0) * 1000.0, 3)
 
     # --- injection (REAL as of Phase 4) -----------------------------------
     # Only user and tool turns are scanned. The operator's own system prompt
@@ -239,6 +241,16 @@ def stub_inspect(req: InspectRequest) -> InspectResponse:
             ),
         ),
         PipelineStage(
+            stage="redactor",
+            status=StageStatus.SUCCESS,
+            duration_ms=redact_ms,
+            detail=(
+                f"{redaction.replacements} span(s) replaced across "
+                f"{len(redaction.per_message)} message(s)"
+                + (f", {redaction.dropped_overlaps} overlap(s) resolved" if redaction.dropped_overlaps else "")
+            ) if redaction.replacements else None,
+        ),
+        PipelineStage(
             stage="policy_engine",
             status=StageStatus.BLOCKED
             if decision is Decision.BLOCK
@@ -248,15 +260,10 @@ def stub_inspect(req: InspectRequest) -> InspectResponse:
         ),
     ]
 
-    out_messages = (
-        req.messages
-        if decision is Decision.BLOCK
-        else [Message(role=req.messages[-1].role, content=sanitized)]
-        if req.messages
-        else []
-    )
-    if decision is not Decision.BLOCK and len(req.messages) > 1:
-        out_messages = req.messages[:-1] + out_messages
+    # A blocked request is returned unmodified -- nothing is transmitted, so
+    # nothing needs sanitising, and the Gateway may need the original for a
+    # human-review replay. Otherwise the redactor's output is the contract.
+    out_messages = req.messages if decision is Decision.BLOCK else redaction.messages
 
     return InspectResponse(
         request_id=req.request_id,
@@ -274,7 +281,7 @@ def stub_inspect(req: InspectRequest) -> InspectResponse:
             injection=1 if injection.detected else 0,
         ),
         vault=vault if req.options.return_vault else {},
-        vault_policy=VaultPolicy(),
+        vault_policy=redaction.vault_policy,
         cache=cache,
         routing_hint=RoutingHint(complexity=complexity, reasons=reasons),
         explanation=explanation if req.options.return_explanation else "",

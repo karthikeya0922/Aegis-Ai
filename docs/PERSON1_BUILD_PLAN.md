@@ -137,14 +137,16 @@ Even the large model misses the Indian name in this template. This is not a smal
 
 ## Phase 5 — Redactor & Vault Mapping
 
-- [ ] Deterministic placeholder naming: `[EMAIL_1]`, `[PERSON_2]`, `[AWS_KEY_1]`
-- [ ] Stable numbering within a request; identical values reuse the same placeholder
-- [ ] Offset-safe replacement (apply right-to-left, handle overlaps)
-- [ ] Returns `vault` map separately — **raw values never enter `detections[]`**
-- [ ] `vault_policy` marks PII rehydratable, secrets never
-- [ ] `tests/test_redactor.py` — overlapping spans, repeated values, unicode offsets
+- [x] Deterministic placeholder naming: `[EMAIL_1]`, `[PERSON_2]`, `[AWS_KEY_1]`
+- [x] Stable numbering within a request; identical values reuse the same placeholder
+- [x] Offset-safe replacement (apply right-to-left, handle overlaps)
+- [x] Returns `vault` map separately — **raw values never enter `detections[]`**
+- [x] `vault_policy` marks PII rehydratable, secrets never
+- [x] `tests/test_redactor.py` — overlapping spans, repeated values, unicode offsets
 
 ---
+
+**DONE** -- 30 tests. Also fixed two latent bugs found on the way: scanners now run per message (so `message_index` and offsets are real, not into a joined string that does not exist), and multi-message requests are sanitised in place (the old code stuffed the joined text into the last message). Placeholder numbering is global per request: the same value in two turns shares one placeholder, different values never collide. Values are sliced from the source at resolved offsets; the scanners' per-call vault maps are no longer consulted.
 
 ## Phase 6 — Policy Engine
 
@@ -286,6 +288,35 @@ Even the large model misses the Indian name in this template. This is not a smal
 - [ ] Docker image with models baked in
 - [ ] `docker-compose` integration verified with Person 2
 - [ ] Full `pytest` green; coverage on every scanner
+
+---
+
+## Debt ledger -- hardcoded things that must not survive Phase 16
+
+Living list. Most items die in a scheduled phase; the rest are the final
+sweep's checklist. Add to it whenever something is hardcoded to keep moving.
+
+| Item | Where | Should be | Removed in |
+|---|---|---|---|
+| Decision if/else chain (secrets->BLOCK, pii->SANITIZE) | `stubs.py` | `config/policies.yaml` | Phase 6 |
+| `NON_APPEALABLE_RULES` set | `api/governance.py` | derived from `policies.yaml` `appealable` flags | Phase 6 |
+| Routing complexity thresholds (20 / 120 words) | `stubs.py` | `config/routing.yaml` | Phase 7 |
+| Negation / number regex for `semantic_guards` | `stubs.py` | config | Phase 7 |
+| `STUB_MODE = True` flag, misleading now | `stubs.py` | gone | Phase 7 |
+| Whole-request `stubs.py` orchestration | `stubs.py` | `security/pipeline.py` with `StageRecorder` | Phase 7 |
+| `_KNOWN_BANK_CODES`, `_UPI_PSPS` | `india_recognizers.py` | YAML, per "patterns are data" | sweep |
+| Honorific list | `pii_scanner.py` regex | YAML | sweep |
+| `_LEADING_STOP` overlaps `contact_cues` | `india_recognizers.py` / `india_names.yaml` | one list | sweep |
+| Health component list maintained by hand | `api/health.py` | derived from a scanner registry | Phase 16 |
+| `BUILD_PHASE` string bumped by hand | `api/health.py` | derived from git tag or version | Phase 16 |
+| ~~Scanners run on joined text; `message_index` always 0~~ | `stubs.py` | per-message scan, real offsets | **done, Phase 5** |
+| In-memory review records | `api/governance.py` | `review_request` table | Phase 8 / 14 |
+| Deterministic hash "embeddings" | `api/embed.py` | sentence-transformers | Phase 9 |
+| Fixed 8/10 grounding result | `stubs.py` | NLI cross-encoder | Phase 10 |
+| Egress always PASS | `stubs.py` | harm/bias screen | Phase 11 |
+| Metrics return zeros | `stubs.py` | aggregation over `request_audit` | Phase 12 |
+| Fairness report nulls | `stubs.py` | measured harness output | Phase 13 |
+| Policy PUT not persisted | `api/governance.py` | `policy_version` table | Phase 15 |
 
 ---
 

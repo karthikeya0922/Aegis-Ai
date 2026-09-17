@@ -7,7 +7,7 @@ This service is the absolute authority on whether a prompt is safe. It is
 **stateless** -- the same input always yields the same verdict. All session
 state (token vault, semantic cache) belongs to Person 2's Gateway and its Redis.
 
-**Current build phase: Phase 4 (injection defense).** Every endpoint
+**Current build phase: Phase 5 (redactor).** Every endpoint
 is live and contract-valid. `GET /api/health` reports exactly which subsystems
 are real and which are still stubs.
 
@@ -18,6 +18,7 @@ are real and which are still stubs.
 | PII scanner | **Real.** Presidio + spaCy NER with an always-on regex engine for structured identifiers; Luhn-validated cards; degrades to regex-only and says so if no model is installed |
 | India engine | **Real.** Aadhaar (Verhoeff), PAN, IFSC, UPI, Indian mobile, and a 298-name gazetteer that closes the measured PERSON recall gap. Always on -- no model required |
 | Injection detector | **Real.** Heuristic Prompt-Injection Defense: 27 config-driven rules across 6 OWASP LLM01 categories, five de-obfuscation passes, base64 payloads decoded and rescanned. Does not claim to catch novel attacks |
+| Redactor | **Real.** Global placeholder numbering, offset-safe splicing, cross-scanner precedence, vault policy that never rehydrates secrets |
 | Policy engine | Stub (Phase 6) |
 | Everything else | Stub -- see `docs/PERSON1_BUILD_PLAN.md` |
 
@@ -279,6 +280,33 @@ below the length floor. **Known false positive:** `how do I enable
 developer mode?` blocks at 0.78 with no device context -- ambiguous, and
 appealable for exactly that reason.
 
+## Redaction (Phase 5)
+
+The redactor is the only place sanitised text is produced. It owns three
+guarantees the scanners cannot give on their own:
+
+- **One placeholder per distinct value per request.** Each scanner numbers
+  from 1 on every call, so two turns each with a different email would both
+  yield `[EMAIL_1]`. The redactor renumbers globally in document order:
+  the same email in two turns shares a placeholder; different values never
+  collide.
+- **Offset-safe splicing.** Spans are replaced right-to-left within each
+  message so earlier offsets stay valid. `str.replace` -- the Phase 0
+  approach -- also rewrites matching text inside other tokens.
+- **Cross-scanner precedence.** A finding inside another scanner's span
+  yields to it. The email-shaped `user:pass@host` fragment of a DB URI is
+  not an email; the URI finding owns that text and the whole URI is
+  replaced.
+
+Values are sliced from the original message at the resolved offsets and go
+into the vault map only. A blocked request is returned unmodified -- nothing
+is transmitted, and the Gateway may need the original for a human-review
+replay.
+
+**Secrets never rehydrate.** `vault_policy.never_rehydrate` always contains
+`SECRET`, and `AEGIS_SECRET_REHYDRATION=true` is ignored by design -- there
+is a test for that.
+
 ### Entropy is a supporting signal
 
 `H(X) = -sum p(x) log2 p(x)` over string literals. A UUID, a git SHA and a
@@ -298,8 +326,8 @@ app/
   contracts/        Pydantic models -- the seam with Person 2
   api/              route handlers
   security/         secret_scanner.py, entropy.py, pii_scanner.py,
-                    india_recognizers.py, injection.py, spans.py (real)
-                    redactor, policy (phases 5-7)
+                    india_recognizers.py, injection.py, redactor.py, spans.py (real)
+                    policy engine, pipeline (phases 6-7)
   audit/            SQLAlchemy models + metrics   (phases 8, 12)
   verification/     grounded response checking    (phase 10)
   utils/            ids, timing, redacting logger
