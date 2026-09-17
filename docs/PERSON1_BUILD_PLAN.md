@@ -109,14 +109,14 @@ The detector protects the Anglo name and misses the Indian one. This is the gap 
 
 **Exit:** demo scenario 3 detects `Priya Ramaswamy` and an Aadhaar number. **DONE** -- 61 tests, 298-name gazetteer, Verhoeff-validated Aadhaar, PAN holder-type check, IFSC bank list, UPI PSP list.
 
-**The gap is closed, and the finding got stronger.** With `en_core_web_lg` now installed:
+**The anecdote is fixed; Phase 13 then measured the whole corpus and found the systematic gap is elsewhere (see Phase 13).** With `en_core_web_lg` now installed:
 
 | Prompt | spaCy lg | Gazetteer | Result |
 |---|---|---|---|
 | `Contact John Smith at ...` | caught, 0.85 | -- | PERSON |
 | `Contact Priya Ramaswamy at ...` | **still missed** | caught, 0.88 | PERSON |
 
-Even the large model misses the Indian name in this template. This is not a small-model artifact. The gazetteer is what makes detection equitable, and it works with no model loaded at all.
+Even the large model misses the Indian name in this template. The gazetteer catches it, and works with no model loaded. Over the full corpus, though, the large model's Indian recall is 0.942 and the gazetteer lifts it to 0.950 -- the template above was a worst case, not the norm. See Phase 13.
 
 ---
 
@@ -246,14 +246,18 @@ Even the large model misses the Indian name in this template. This is not a smal
 
 *Requirement 5. Do not cut this.*
 
-- [ ] `eval/name_corpus.yaml` — ~60 names × 5 origin groups (Indian, Anglo, Arabic, East Asian, African) in identical templates
-- [ ] `eval/run_fairness.py` — recall / precision / F1 per group
-- [ ] Persist to `fairness_eval`; record the **baseline before** India recognizers
-- [ ] Re-run after Phase 3 and record the **after**
-- [ ] `GET /api/fairness/report` returns both runs plus the measured gap
-- [ ] `tests/test_fairness.py` — harness correctness, not a target score
+- [x] `eval/name_corpus.yaml` — ~60 names × 5 origin groups (Indian, Anglo, Arabic, East Asian, African) in identical templates
+- [x] `eval/run_fairness.py` — recall / precision / F1 per group
+- [x] Persist to `fairness_eval`; record the **baseline before** India recognizers
+- [x] Re-run after Phase 3 and record the **after**
+- [x] `GET /api/fairness/report` returns both runs plus the measured gap
+- [x] `tests/test_fairness.py` — harness correctness, not a target score
 
-**Exit:** a real, honest before/after table for the dashboard.
+**Exit:** a real, honest before/after table for the dashboard. **DONE** -- 1,800 samples per configuration, both persisted, 20 harness-correctness tests, `POST /api/fairness/run`, CLI runner.
+
+**Result (en_core_web_lg):** Indian 0.942 -> 0.950 (gazetteer-covered 0.980 -> 1.000, held-out 0.914 unchanged); Anglo 0.972; Arabic 0.986; **East Asian 0.811; African 0.833**. Gap 0.175 -> 0.175, `gap_closed = 0.0`. Precision 1.00 everywhere.
+
+**The measurement corrected the assumption.** The Phase 2 anecdote was true for its template and is fixed, but the systematic gap is East Asian (hyphenated given names, short names colliding with English words) and African (Southern African and Igbo names under-represented in training data). The India-focused gazetteer does nothing for them. Published as measured; no corpus names were added to any gazetteer. Next fix is in the ledger.
 
 ---
 
@@ -320,7 +324,8 @@ sweep's checklist. Add to it whenever something is hardcoded to keep moving.
 | Fixed 8/10 grounding result | `stubs.py` | NLI cross-encoder | Phase 10 |
 | Egress always PASS | `stubs.py` | harm/bias screen | Phase 11 |
 | Metrics return zeros | `stubs.py` | aggregation over `request_audit` (table populated as of Phase 8) | Phase 12 |
-| Fairness report nulls | `stubs.py` | measured harness output | Phase 13 |
+| ~~Fairness report nulls~~ | `stubs.py` | measured harness output | **done, Phase 13** |
+| PERSON recall gap for East Asian (0.81) and African (0.83) names | detector | gazetteers for those groups sourced independently of the eval corpus; hyphen-aware name matching | post-16 / roadmap |
 | Policy PUT not persisted | `api/governance.py` | `policy_version` table | Phase 15 |
 
 ---

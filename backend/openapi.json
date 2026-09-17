@@ -775,7 +775,7 @@
           "governance"
         ],
         "summary": "Detector recall across population groups",
-        "description": "Reports measured PII-detector recall per name-origin group, and the gap between the best- and worst-served group.\n\nA privacy tool that protects some people's identities more reliably than others is an unfair system. Aegis measures its own gap and publishes it, including the baseline where it was worse.\n\nReturns nulls until Phase 13 -- the numbers are measured, never assumed.",
+        "description": "Measured PERSON-detector recall per name-origin group, for two configurations: `baseline` (stock NER only) and `current` (the full scanner). The gap is best-group recall minus worst-group recall; `deltas` shows each group's change so a lift in one group is visible even when the overall gap is set by another.\n\nA privacy tool that protects some people's identities more reliably than others is an unfair system. Aegis measures its own gap and publishes it -- including when the measurement contradicts what the team expected.\n\nReturns nulls until a run has been recorded (`POST /api/fairness/run`). The numbers are measured, never assumed.",
         "operationId": "fairness_report_api_fairness_report_get",
         "parameters": [
           {
@@ -786,6 +786,76 @@
               "type": "string",
               "default": "pii.person",
               "title": "Detector"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FairnessReportResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/fairness/run": {
+      "post": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Run the fairness harness now and persist the result",
+        "description": "Runs baseline (gazetteer disabled) and current (full scanner) over the corpus in `eval/name_corpus.yaml` and persists both. The full corpus is 1,800 samples per configuration and takes a few seconds per run on the large spaCy model; `max_templates` and `max_names` shorten it for a smoke test.",
+        "operationId": "fairness_run_api_fairness_run_post",
+        "parameters": [
+          {
+            "name": "max_templates",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 20,
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Max Templates"
+            }
+          },
+          {
+            "name": "max_names",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 500,
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Max Names"
             }
           }
         ],
@@ -2409,6 +2479,13 @@
             ],
             "title": "Gap Closed"
           },
+          "deltas": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Deltas"
+          },
           "method": {
             "type": "string",
             "title": "Method"
@@ -2496,6 +2573,13 @@
               }
             ],
             "title": "Notes"
+          },
+          "breakdown": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Breakdown"
           }
         },
         "additionalProperties": false,

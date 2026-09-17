@@ -7,7 +7,7 @@ This service is the absolute authority on whether a prompt is safe. It is
 **stateless** -- the same input always yields the same verdict. All session
 state (token vault, semantic cache) belongs to Person 2's Gateway and its Redis.
 
-**Current build phase: Phase 8 (database).** The whole ingress path is real and every decision is on file. Every endpoint
+**Current build phase: Phase 13 (fairness harness).** The whole ingress path is real, every decision is on file, and the detector's fairness is measured. Every endpoint
 is live and contract-valid. `GET /api/health` reports exactly which subsystems
 are real and which are still stubs.
 
@@ -16,13 +16,14 @@ are real and which are still stubs.
 | Secret scanner | **Real.** 25 config-driven patterns in `config/secret_patterns.yaml`, overlap-resolved, entropy-weighted confidence |
 | Entropy scanner | **Real.** Shannon entropy over candidate literals; warn-only by design |
 | PII scanner | **Real.** Presidio + spaCy NER with an always-on regex engine for structured identifiers; Luhn-validated cards; degrades to regex-only and says so if no model is installed |
-| India engine | **Real.** Aadhaar (Verhoeff), PAN, IFSC, UPI, Indian mobile, and a 298-name gazetteer that closes the measured PERSON recall gap. Always on -- no model required |
+| India engine | **Real.** Aadhaar (Verhoeff), PAN, IFSC, UPI, Indian mobile, and a 298-name gazetteer that lifts gazetteer-covered Indian names to 1.000 recall. Always on -- no model required |
 | Injection detector | **Real.** Heuristic Prompt-Injection Defense: 27 config-driven rules across 6 OWASP LLM01 categories, five de-obfuscation passes, base64 payloads decoded and rescanned. Does not claim to catch novel attacks |
 | Redactor | **Real.** Global placeholder numbering, offset-safe splicing, cross-scanner precedence, vault policy that never rehydrates secrets |
 | Policy engine | **Real.** `config/policies.yaml`, three profiles with inheritance, hot-reloaded. Contains no detection logic |
 | Pipeline | **Real.** `security/pipeline.py`: ten measured stages, config-driven routing and cache hints, pluggable override verifier |
 | Database | **Real.** SQLite by default, Postgres by `DATABASE_URL`; Alembic migrations; two-phase audit write; erasure and retention |
-| Egress, embeddings, grounding, metrics, fairness harness, reviews | Stub -- phases 9-14, see `docs/PERSON1_BUILD_PLAN.md` |
+| Fairness harness | **Real.** Per-group recall over a 5-group corpus, baseline vs current, persisted; `POST /api/fairness/run` |
+| Egress, embeddings, grounding, metrics, reviews | Stub -- phases 9-12, 14, see `docs/PERSON1_BUILD_PLAN.md` |
 
 ---
 
@@ -201,27 +202,62 @@ Enable per tenant.
 12-digit slice of a 19-digit card number, or an ISO date, is rejected. The
 Phase 0 stub got all three wrong.
 
-### The fairness gap, measured and closed (Phases 2-3)
+### Fairness of the PERSON detector -- measured, and the measurement corrected us (Phases 2, 3, 13)
 
-Same sentence template. Phase 2 measured this with `en_core_web_sm`; the
-finding held with `en_core_web_lg`:
+**The anecdote (Phase 2).** Same sentence template, stock spaCy NER:
 
 | Prompt | spaCy NER | India gazetteer | Result |
 |---|---|---|---|
 | Contact **John Smith** at john@example.com ... | caught, 0.85 | -- | PERSON |
 | Contact **Priya Ramaswamy** at priya@example.in ... | **missed** | caught, 0.88 | PERSON |
 
-Stock NER protects the Anglo name and misses the Indian one -- with the
-large model too. A privacy tool that protects some people's identities more
-reliably than others is an unfair system. The gazetteer in
-`config/india_names.yaml` (298 names across North, South, East, West,
-Muslim, Sikh, Christian and Parsi Indian naming) is what makes detection
-equitable, and it runs whether or not a model is loaded. Each finding names
-its engine (`via india.name_gazetteer` vs `via presidio.SpacyRecognizer`) so
-the dashboard can show *which* layer caught *whom*.
+That miss is real, and the gazetteer in `config/india_names.yaml` fixes it.
+It runs whether or not a model is loaded, and each finding names its engine
+(`via india.name_gazetteer` vs `via presidio.SpacyRecognizer`) so the
+dashboard shows *which* layer caught *whom*.
 
-The fairness harness (Phase 13) measures recall per name-origin group across
-a full corpus and publishes the before/after.
+**The corpus (Phase 13).** A single sentence is not a measurement. The
+harness runs five name-origin groups, 60 names each, through six identical
+templates -- 1,800 samples per configuration -- with the gazetteer off
+(baseline) and on (current), both on `en_core_web_lg`:
+
+| Group | Baseline recall | Current recall | Delta |
+|---|---|---|---|
+| Indian | 0.942 | 0.950 | +0.008 |
+| -- gazetteer-covered names | 0.980 | **1.000** | +0.020 |
+| -- held-out names (no gazetteer token) | 0.914 | 0.914 | 0 |
+| Anglo | 0.972 | 0.972 | 0 |
+| Arabic | 0.986 | 0.986 | 0 |
+| **East Asian** | **0.811** | **0.811** | 0 |
+| **African** | **0.833** | **0.833** | 0 |
+| Gap (best - worst) | 0.175 | 0.175 | **gap_closed = 0.0** |
+
+Precision is 1.00 in every cell -- the templates produce no false positives.
+
+**What the measurement says.** Over a full corpus the large model handles
+Indian names better than the anecdote suggested, and the gazetteer's lift is
+real but modest. The worst-served groups are East Asian and African, 17.5
+points below Arabic, and the India-focused gazetteer does nothing for them.
+The diagnosed causes are specific: hyphenated Korean given names (`Ji-woo
+Lee`, `Hyun-woo Choi`) and short names that collide with English words
+(`Thu Do`, `Hui He`, `Bo Ma`) for East Asian; Southern African and Igbo
+names (`Thandiwe Nkosi`, `Ifeoma Anozie`) under-represented in the model's
+training data for African. A partial catch -- spaCy tags `Lee` but not
+`Ji-woo Lee` -- counts as a miss, because redaction would leave `Ji-woo`
+visible.
+
+We publish this as measured. No corpus names were added to any gazetteer;
+measuring a gazetteer on names it contains would be circular, and the
+Indian group is split into covered and held-out for that reason. The next
+fairness fix belongs to East Asian and African names, sourced independently
+of the corpus -- that is in the debt ledger, not hidden.
+
+**Run it yourself.** `python eval/run_fairness.py` (or `--quick`), or
+`POST /api/fairness/run`; `GET /api/fairness/report` serves the latest
+persisted baseline and current with per-group deltas. The response carries a
+disclaimer: this is a fixed synthetic corpus, indicative of relative detector
+behaviour across groups, not a population sample or an absolute accuracy
+claim.
 
 ## India-specific identifiers (Phase 3)
 
@@ -448,7 +484,7 @@ app/
 config/             secret_patterns.yaml, pii_entities.yaml, india_names.yaml,
                     injection_rules.yaml, policies.yaml, routing.yaml (real);
                     pricing (later)
-eval/               fairness corpus + harness     (phase 13)
+eval/               name_corpus.yaml, run_fairness.py (real)
 tests/
 ```
 
@@ -486,3 +522,6 @@ its own terms:
 - The name gazetteer is a **floor, not a ceiling**: 298 names cannot cover
   every Indian name, and all-lowercase, ALL-CAPS, initial+surname and the
   tail of a hyphenated surname are documented misses in `tests/test_india_pii.py`.
+- **PERSON recall is measurably lower for East Asian and African names**
+  (0.81 and 0.83 vs 0.94-0.99 for other groups, Phase 13). The fix that
+  worked for Indian names has not yet been extended to them.
