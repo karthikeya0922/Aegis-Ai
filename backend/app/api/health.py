@@ -14,12 +14,13 @@ from app.config import settings
 from app.contracts.health import ComponentHealth, HealthResponse
 from app.security.injection import get_detector as get_injection_detector
 from app.security.pii_scanner import get_pii_scanner
+from app.security.policy_engine import get_policy_engine
 from app.stubs import STUB_MODE
 
 router = APIRouter(tags=["health"])
 
 _STARTED = time.monotonic()
-BUILD_PHASE = "phase-5-redactor"
+BUILD_PHASE = "phase-6-policy"
 
 
 def _pii_component() -> ComponentHealth:
@@ -54,7 +55,14 @@ def _components() -> list[ComponentHealth]:
                 "does not claim to catch novel attacks"
             ),
         ),
-        ComponentHealth(name="policy_engine", status=stub, detail="Phase 6"),
+        ComponentHealth(
+            name="policy_engine",
+            status="ok",
+            detail=(
+                f"config/policies.yaml v{get_policy_engine().policies.version}, "
+                f"profiles: {', '.join(get_policy_engine().policies.profiles)}; hot-reloaded"
+            ),
+        ),
         ComponentHealth(name="embeddings", status=stub, detail="Deterministic stub vectors until Phase 9"),
         ComponentHealth(name="grounding", status=stub, detail="NLI cross-encoder lands in Phase 10"),
         ComponentHealth(name="database", status=stub, detail="SQLAlchemy models land in Phase 8"),

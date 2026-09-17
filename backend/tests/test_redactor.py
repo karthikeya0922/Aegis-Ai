@@ -23,6 +23,7 @@ def det(
     placeholder: str = "[X_1]",
     category: DetectionCategory = DetectionCategory.PII,
     confidence: float = 0.9,
+    action: PolicyAction = PolicyAction.SANITIZE,
 ) -> Detection:
     return Detection(
         type=type_,
@@ -32,7 +33,7 @@ def det(
         start=start,
         end=end,
         message_index=mi,
-        action=PolicyAction.ALLOW,
+        action=action,
     )
 
 
@@ -358,3 +359,58 @@ def test_end_to_end_blocked_request_returns_original_messages():
     assert res.decision.value == "BLOCK"
     assert res.messages[0].content == "key AKIAIOSFODNN7EXAMPLE"
     assert res.vault == {"[AWS_KEY_1]": "AKIAIOSFODNN7EXAMPLE"}
+
+
+# ---------------------------------------------------------------------------
+# Action-aware redaction (Phase 6 integration)
+# ---------------------------------------------------------------------------
+
+
+def test_warn_action_is_reported_but_not_spliced(r):
+    """'warn' means flag, not redact. Offsets are kept; no placeholder."""
+    msgs = [user("mail john@example.com now")]
+    d = det("EMAIL_ADDRESS", 5, 21, placeholder="[EMAIL_1]", action=PolicyAction.WARN)
+    out = r.redact(msgs, [d])
+    assert out.messages[0].content == "mail john@example.com now"
+    assert out.vault == {}
+    assert out.replacements == 0
+    assert out.detections[0].placeholder is None
+    assert (out.detections[0].start, out.detections[0].end) == (5, 21)
+
+
+def test_block_action_is_numbered_but_not_spliced(r):
+    """A blocked finding gets a placeholder so the UI can show what would
+    have been redacted, but the text is left alone -- nothing is sent."""
+    msgs = [user("key AKIAIOSFODNN7EXAMPLE")]
+    d = det("AWS_ACCESS_KEY", 4, 24, placeholder="[AWS_KEY_1]",
+            category=DetectionCategory.SECRET, action=PolicyAction.BLOCK)
+    out = r.redact(msgs, [d])
+    assert out.messages[0].content == "key AKIAIOSFODNN7EXAMPLE"
+    assert out.vault == {"[AWS_KEY_1]": "AKIAIOSFODNN7EXAMPLE"}
+    assert out.detections[0].placeholder == "[AWS_KEY_1]"
+    assert out.replacements == 0
+
+
+def test_mixed_actions_in_one_request(r):
+    msgs = [user("a@x.io and b@y.io")]
+    dets = [
+        det("EMAIL_ADDRESS", 0, 6, placeholder="[EMAIL_1]", action=PolicyAction.SANITIZE),
+        det("EMAIL_ADDRESS", 11, 17, placeholder="[EMAIL_1]", action=PolicyAction.WARN),
+    ]
+    out = r.redact(msgs, dets)
+    assert out.messages[0].content == "[EMAIL_1] and b@y.io"
+    assert list(out.vault) == ["[EMAIL_1]"]
+
+
+def test_permissive_profile_end_to_end_does_not_redact():
+    """Regression: under a warn-only profile the outgoing text is unchanged."""
+    from app.contracts.inspect import InspectRequest
+    from app.stubs import stub_inspect
+
+    req = InspectRequest(request_id="req_t", policy_profile="permissive",
+                         messages=[user("mail john@example.com")])
+    res = stub_inspect(req)
+    assert res.decision.value == "WARN"
+    assert res.messages[0].content == "mail john@example.com"
+    assert res.counts.pii == 1
+    assert res.vault == {}

@@ -34,7 +34,7 @@ import re
 from dataclasses import dataclass, field
 
 from app.config import settings
-from app.contracts.common import Detection, DetectionCategory, Message
+from app.contracts.common import Detection, DetectionCategory, Message, PolicyAction
 from app.contracts.inspect import VaultPolicy
 from app.security.spans import resolve_overlaps, subtract_covered
 from app.utils.logging import get_logger
@@ -187,22 +187,53 @@ class Redactor:
             ttl_seconds=self.vault_ttl_seconds,
         )
 
-    def redact(self, messages: list[Message], detections: list[Detection]) -> RedactionResult:
-        resolved, dropped = self.resolve(detections)
-        numbered, vault, skipped = self.assign_placeholders(messages, resolved)
-        sanitised, per_msg = self.splice(messages, numbered)
+    # Which policy actions get a placeholder and a vault entry, and which are
+    # actually spliced into the outgoing text. A BLOCKed finding is numbered
+    # so the UI can show what *would* have been redacted, but the request is
+    # returned unmodified. A WARNed finding is reported with its offsets and
+    # no placeholder: "warn" means flag, not redact.
+    VAULT_ACTIONS = frozenset({PolicyAction.SANITIZE, PolicyAction.BLOCK})
+    SPLICE_ACTIONS = frozenset({PolicyAction.SANITIZE})
 
-        # Findings that were never redactable (no placeholder -- e.g. entropy
-        # warnings are not Detections and never reach here; but a Detection
-        # with placeholder=None is legal) are passed through untouched.
-        passthrough = [d for d in detections if not d.placeholder]
+    def redact(
+        self,
+        messages: list[Message],
+        detections: list[Detection],
+        *,
+        resolve: bool = True,
+    ) -> RedactionResult:
+        """Produce sanitised messages and the vault from actioned detections.
+
+        Call `resolve()` first and pass the result through the policy engine
+        so every detection carries its action; then call this with
+        resolve=False. Calling with resolve=True is the one-shot form used
+        when no policy pass is needed.
+        """
+        dropped = 0
+        # A detection with no placeholder was never redactable; it bypasses
+        # overlap resolution and is reported as-is.
+        unredactable = [d for d in detections if not d.placeholder]
+        if resolve:
+            detections, dropped = self.resolve(detections)
+
+        to_vault = [d for d in detections if d.placeholder and d.action in self.VAULT_ACTIONS]
+        others = [d for d in detections if d.placeholder and d.action not in self.VAULT_ACTIONS]
+        others += unredactable
+
+        numbered, vault, skipped = self.assign_placeholders(messages, to_vault)
+        to_splice = [d for d in numbered if d.action in self.SPLICE_ACTIONS]
+        sanitised, per_msg = self.splice(messages, to_splice)
+
+        # Findings that are not redacted under this policy are reported with
+        # their offsets and no placeholder.
+        passthrough = [d.model_copy(update={"placeholder": None}) for d in others]
 
         return RedactionResult(
             messages=sanitised,
             detections=sorted(numbered + passthrough, key=self._span),
             vault=vault,
             vault_policy=self.vault_policy(),
-            replacements=len(numbered),
+            replacements=len(to_splice),
             dropped_overlaps=dropped,
             skipped_invalid=skipped,
             per_message=per_msg,

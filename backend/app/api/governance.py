@@ -24,6 +24,7 @@ from app.contracts.governance import (
     ReviewDecisionResponse,
     ReviewListResponse,
 )
+from app.security.policy_engine import get_policy_engine
 from app.stubs import stub_fairness_report, stub_policy, stub_review_record, stub_reviews
 from app.utils.ids import override_token
 from app.utils.logging import get_logger
@@ -31,14 +32,9 @@ from app.utils.logging import get_logger
 router = APIRouter(prefix="/api", tags=["governance"])
 log = get_logger(__name__)
 
-# Rules that may never be appealed. A leaked credential is a fact, not a
-# judgement call, so there is nothing for a human to weigh.
-NON_APPEALABLE_RULES = {
-    "secrets.credentials",
-    "secrets.aws_credentials",
-    "secrets.database_credentials",
-    "secrets.private_keys",
-}
+# Appealability is a policy property, read from config/policies.yaml via the
+# engine -- never a hardcoded set here. A leaked credential is not appealable
+# because the policy says so, and a tenant may change that in the file.
 
 
 # ---------------------------------------------------------------------------
@@ -102,7 +98,7 @@ async def policy_history() -> PolicyHistoryResponse:
     ),
 )
 async def create_review(req: ReviewCreateRequest) -> ReviewCreateResponse:
-    if req.rule_fired in NON_APPEALABLE_RULES:
+    if req.rule_fired and not get_policy_engine().is_appealable(req.rule_fired):
         return ReviewCreateResponse(
             review=stub_review_record(req.request_id, req.user_justification),
             accepted=False,

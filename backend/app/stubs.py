@@ -59,6 +59,7 @@ from app.contracts.governance import (
 from app.security.entropy import scan as entropy_scan
 from app.security.injection import get_detector as get_injection_detector
 from app.security.pii_scanner import get_pii_scanner
+from app.security.policy_engine import get_policy_engine
 from app.security.redactor import get_redactor
 from app.security.secret_scanner import get_scanner
 from app.contracts.inspect import (
@@ -123,16 +124,12 @@ def stub_inspect(req: InspectRequest) -> InspectResponse:
     entropy_ms = round(entropy_ms * 1000.0, 3)
     pii_ms = round(pii_ms * 1000.0, 3)
 
-    # --- redaction (REAL as of Phase 5) -----------------------------------
-    # Cross-scanner precedence, global placeholder numbering, offset-safe
-    # splicing, and the vault map -- all in one place. The scanners' own
-    # per-call vault maps are discarded; values are sliced from the source.
+    # --- overlap resolution (Phase 5) -------------------------------------
+    # Cross-scanner precedence before policy sees anything, so the email-
+    # shaped fragment inside a DB URI never gets its own policy event.
     _t0 = time.perf_counter()
-    redaction = get_redactor().redact(req.messages, secrets + pii)
-    secrets = [d for d in redaction.detections if d.category is DetectionCategory.SECRET]
-    pii = [d for d in redaction.detections if d.category is DetectionCategory.PII]
-    vault = redaction.vault
-    redact_ms = round((time.perf_counter() - _t0) * 1000.0, 3)
+    resolved, dropped_overlaps = get_redactor().resolve(secrets + pii)
+    resolve_ms = time.perf_counter() - _t0
 
     # --- injection (REAL as of Phase 4) -----------------------------------
     # Only user and tool turns are scanned. The operator's own system prompt
@@ -144,46 +141,36 @@ def stub_inspect(req: InspectRequest) -> InspectResponse:
     injection = detector.analyze(injection_text)
     injection_ms = round((time.perf_counter() - _t0) * 1000.0, 3)
 
-    # --- decision ----------------------------------------------------------
-    override_applied = bool(req.override_token)
-    if injection.detected and not override_applied:
-        decision = Decision.BLOCK
-        block_reason = BlockReason(
-            code="PROMPT_INJECTION_BLOCKED",
-            message="Prompt injection pattern detected. Request blocked by Aegis.",
-            http_status=403,
-            rule_id=f"injection.{injection.matched_rules[0]}",
-            appealable=True,
-        )
-        explanation = (
-            detector.explain(injection)
-            + " This is a heuristic decision; you can request human review."
-        )
-    elif secrets:
-        decision = Decision.BLOCK
-        block_reason = BlockReason(
-            code="CREDENTIAL_LEAK_PREVENTED",
-            message="Sensitive credentials detected. Request blocked by Aegis.",
-            http_status=400,
-            rule_id="secrets.credentials",
-            appealable=False,
-        )
-        explanation = (
-            f"{len(secrets)} credential(s) were detected in this prompt and it was "
-            "not transmitted. Credential blocks are not appealable."
-        )
-    elif pii:
-        decision = Decision.SANITIZE
-        block_reason = None
-        kinds = sorted({d.type for d in pii})
-        explanation = (
-            f"{len(pii)} personal data item(s) ({', '.join(kinds)}) were replaced "
-            "with placeholders before transmission."
-        )
-    else:
-        decision = Decision.ALLOW
-        block_reason = None
-        explanation = "No sensitive data or injection patterns detected."
+    # --- policy (REAL as of Phase 6) ----------------------------------------
+    # The engine maps findings to actions from config/policies.yaml. Nothing
+    # here decides anything; `mode: strict` selects the strict profile, and
+    # an override token (verified for real in Phase 14) lifts only the
+    # appealable blocking rules.
+    profile = req.policy_profile or ("strict" if (req.mode or "").lower() == "strict" else None)
+    policy = get_policy_engine().evaluate(
+        resolved,
+        entropy,
+        injection,
+        profile=profile,
+        override=bool(req.override_token),
+        injection_summary=detector.explain(injection) if injection.matched_rules else None,
+    )
+    decision = policy.decision
+    block_reason = policy.block_reason
+    explanation = policy.explanation
+    override_applied = policy.override_applied
+
+    # --- redaction (REAL as of Phase 5) -----------------------------------
+    # Splices only what policy said to SANITIZE. BLOCKed findings are
+    # numbered so the UI can show what would have been redacted; WARNed
+    # findings are reported with offsets and no placeholder.
+    _t0 = time.perf_counter()
+    redaction = get_redactor().redact(req.messages, policy.detections, resolve=False)
+    redaction.dropped_overlaps = dropped_overlaps
+    secrets = [d for d in redaction.detections if d.category is DetectionCategory.SECRET]
+    pii = [d for d in redaction.detections if d.category is DetectionCategory.PII]
+    vault = redaction.vault
+    redact_ms = round((resolve_ms + time.perf_counter() - _t0) * 1000.0, 3)
 
     # --- routing hint ------------------------------------------------------
     words = len(text.split())
@@ -197,7 +184,7 @@ def stub_inspect(req: InspectRequest) -> InspectResponse:
         complexity, reasons = Complexity.HIGH, reasons + ["reasoning_markers"]
 
     # --- cache hint --------------------------------------------------------
-    cacheable = not secrets and not injection.detected
+    cacheable = decision is not Decision.BLOCK and not secrets
     cache = CacheHint(
         cacheable=cacheable,
         reason=None if cacheable else "sensitive_content",
@@ -255,8 +242,13 @@ def stub_inspect(req: InspectRequest) -> InspectResponse:
             status=StageStatus.BLOCKED
             if decision is Decision.BLOCK
             else StageStatus.SUCCESS,
-            duration_ms=0.1,
-            detail=f"decision={decision.value}",
+            duration_ms=policy.duration_ms,
+            detail=(
+                f"profile={policy.profile} v{policy.policy_version} decision={decision.value}"
+                + (f" rules={','.join(policy.rules_fired)}" if policy.rules_fired else "")
+                + (" override=applied" if policy.override_applied else "")
+                + (" override=refused" if policy.override_refused else "")
+            ),
         ),
     ]
 
@@ -267,19 +259,14 @@ def stub_inspect(req: InspectRequest) -> InspectResponse:
 
     return InspectResponse(
         request_id=req.request_id,
-        policy_version=1,
+        policy_version=policy.policy_version,
         decision=decision,
         block_reason=block_reason,
         messages=out_messages,
         detections=DetectionBundle(
             pii=pii, secrets=secrets, entropy=entropy, injection=injection
         ),
-        counts=DetectionCounts(
-            pii=len(pii),
-            secrets=len(secrets),
-            entropy=len(entropy),
-            injection=1 if injection.detected else 0,
-        ),
+        counts=DetectionCounts(**policy.counts),
         vault=vault if req.options.return_vault else {},
         vault_policy=redaction.vault_policy,
         cache=cache,
