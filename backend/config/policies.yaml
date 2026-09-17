@@ -1,0 +1,150 @@
+# Aegis policy configuration.
+#
+# Detection and policy are separate layers. Scanners report what they found
+# (type, confidence, offsets); this file decides what happens. Changing a
+# tenant from "sanitise PII" to "block PII" is an edit here, not a deploy.
+#
+# Keys
+#   A finding is matched against the MOST SPECIFIC key that exists, falling
+#   back to its family:
+#     pii.<ENTITY_TYPE>        e.g. pii.IN_AADHAAR      -> pii
+#     secrets.<category>       e.g. secrets.private_keys -> secrets
+#     prompt_injection
+#     high_entropy_strings
+#
+# Fields
+#   action       allow | warn | sanitize | block
+#   appealable   may a blocked user request human review? (Requirement 1)
+#   code         error code the Gateway returns on block
+#   http_status  status the Gateway returns on block
+#   priority     when several rules block, the highest priority supplies
+#                the block reason (code, status, appealability)
+#   threshold    prompt_injection only: score at or above which it blocks.
+#                Overrides AEGIS_INJECTION_THRESHOLD when set
+#   note         free text, surfaced in /api/policies
+#
+# Precedence across findings: block > sanitize > warn > allow. One blocking
+# finding blocks the request; sanitised findings are still redacted on a
+# blocked request's detections for the audit record.
+#
+# An appealable block can be lifted by an approved override token. A
+# non-appealable block cannot -- a leaked credential is a fact, not a
+# judgement call, and the fix is to rotate it.
+
+version: 1
+default_profile: default
+
+profiles:
+
+  default:
+    description: >
+      Sanitise personal data, block credentials and injection, warn on
+      unrecognised high-entropy strings. The right default for an internal
+      assistant where users paste real work.
+    rules:
+      pii:
+        action: sanitize
+        appealable: true
+        priority: 10
+        note: Replaced with placeholders; rehydrated for the end user on egress.
+
+      pii.IN_AADHAAR:
+        action: sanitize
+        note: Same action as pii; listed so the audit log names the specific rule.
+
+      secrets:
+        action: block
+        appealable: false
+        code: CREDENTIAL_LEAK_PREVENTED
+        http_status: 400
+        priority: 90
+        note: Not appealable. Rotate the credential and resubmit without it.
+
+      secrets.generic_credentials:
+        action: sanitize
+        appealable: true
+        priority: 20
+        note: >
+          The low-confidence "api_key = ..." pattern fires on documentation
+          and fixtures. Sanitise rather than block; strict profile blocks.
+
+      secrets.tokens:
+        action: block
+        appealable: true
+        code: CREDENTIAL_LEAK_PREVENTED
+        http_status: 400
+        priority: 80
+        note: >
+          JWTs and bearer tokens are short-lived by design and are sometimes
+          pasted deliberately for debugging. Blocked, but a human may lift it.
+
+      prompt_injection:
+        action: block
+        appealable: true
+        code: PROMPT_INJECTION_BLOCKED
+        http_status: 403
+        priority: 100
+        threshold: 0.75
+        note: Heuristic. Always appealable because a heuristic can be wrong.
+
+      high_entropy_strings:
+        action: warn
+        priority: 1
+        note: Entropy is a supporting signal and never blocks on its own.
+
+  strict:
+    extends: default
+    description: >
+      Everything that is sanitised by default is blocked instead. For
+      regulated workloads where no personal data may reach a provider at all,
+      even as a placeholder-mapped shape.
+    rules:
+      pii:
+        action: block
+        appealable: true
+        code: PII_BLOCKED
+        http_status: 400
+        priority: 50
+
+      pii.IN_AADHAAR:
+        action: block
+        appealable: false
+        code: PII_BLOCKED
+        http_status: 400
+        priority: 60
+        note: A government identity number is never appealable under strict.
+
+      secrets.generic_credentials:
+        action: block
+        appealable: true
+        code: CREDENTIAL_LEAK_PREVENTED
+        http_status: 400
+        priority: 70
+
+      secrets.tokens:
+        action: block
+        appealable: false
+        priority: 85
+
+      prompt_injection:
+        action: block
+        threshold: 0.60
+
+  permissive:
+    extends: default
+    description: >
+      Detection without enforcement. Everything is allowed through and
+      annotated. For evaluating the scanners against real traffic before
+      turning enforcement on -- the audit log still records every finding.
+    rules:
+      pii:
+        action: warn
+      secrets:
+        action: warn
+        appealable: true
+      secrets.generic_credentials:
+        action: allow
+      secrets.tokens:
+        action: warn
+      prompt_injection:
+        action: warn
