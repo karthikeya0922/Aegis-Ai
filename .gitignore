@@ -1,0 +1,45 @@
+# --- Secrets: never commit ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*_rsa
+*_ed25519
+credentials.json
+service-account*.json
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+
+# --- Databases / local state ---
+*.db
+*.sqlite3
+dump.rdb
+
+# --- Node / Next.js (Person 2) ---
+node_modules/
+.next/
+out/
+.turbo/
+npm-debug.log*
+yarn-error.log*
+
+# --- Models / large artifacts ---
+*.bin
+*.safetensors
+.cache/
+models/
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.idea/
+*.swp

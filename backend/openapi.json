@@ -1,0 +1,3770 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Aegis Inspector",
+    "description": "\nThe inspection and governance engine behind the **Aegis** Zero-Trust\nResponsible AI Gateway.\n\nThis service decides whether a prompt may be transmitted, screens model\nresponses on the way back, and records the platform's decision history. It is\nconsumed by the Aegis Gateway, never by end clients directly.\n\n### What this service does not claim\n\n* Detection is **heuristic and incomplete**. Prompt-injection defence covers\n  known OWASP LLM01 patterns and is bypassable by obfuscation.\n* Grounded Response Verification is a **support score**, not a guarantee of\n  factual correctness.\n* Energy and CO2 figures are **estimates** from configurable assumptions, not\n  measurements.\n* Audit output is **transaction evidence** supporting a deployer's own\n  record-keeping. It is not a conformity assessment and does not establish\n  legal compliance.\n",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/inspect": {
+      "post": {
+        "tags": [
+          "inspection"
+        ],
+        "summary": "Inspect an outbound prompt and return a policy decision",
+        "description": "Stateless. Returns ALLOW / SANITIZE / WARN / BLOCK plus the sanitized messages, the placeholder-to-original vault map, cache and routing hints, and measured per-stage timings.\n\nAlways returns HTTP 200 -- a BLOCK is a *decision*, not a transport error. The Gateway is responsible for translating `block_reason.http_status` into the status code the client sees.",
+        "operationId": "inspect_inspect_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InspectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InspectResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/inspect/egress": {
+      "post": {
+        "tags": [
+          "inspection"
+        ],
+        "summary": "Screen a model response before it reaches the user",
+        "description": "Runs harm and bias screening, and grounded verification when `reference_context` is supplied. Returns PASS / ANNOTATE / REPLACE.",
+        "operationId": "inspect_egress_inspect_egress_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EgressRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EgressResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/verify": {
+      "post": {
+        "tags": [
+          "inspection"
+        ],
+        "summary": "Grounded Response Verification (standalone)",
+        "description": "Compares an answer against a reference document using sentence-level claim extraction and NLI entailment. This is a heuristic support score, not a guarantee of factual correctness.",
+        "operationId": "verify_verify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/embed": {
+      "post": {
+        "tags": [
+          "embeddings"
+        ],
+        "summary": "Embed text for the semantic cache",
+        "description": "Returns L2-normalised vectors so the Gateway's cosine search is a plain dot product. Assert `dim` against your Redis index on startup.",
+        "operationId": "embed_embed_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmbedRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmbedResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/audit/events": {
+      "post": {
+        "tags": [
+          "audit"
+        ],
+        "summary": "Record one finalized request",
+        "description": "Called by the Gateway after a response completes, including after a stream ends. Idempotent on `request_id`.\n\nA failed audit write must never fail the user's request -- the Gateway should fire-and-forget and increment its own `audit_write_failures` counter.\n\n`user_ref` is hashed on arrival and the raw value is discarded. The model has no field for prompt text, keys or passwords, so they cannot be persisted even by accident.",
+        "operationId": "write_audit_event_audit_events_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuditEventRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditEventResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/audit/events": {
+      "get": {
+        "tags": [
+          "audit"
+        ],
+        "summary": "Paginated decision log",
+        "operationId": "list_audit_events_api_audit_events_get",
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "default",
+              "title": "Tenant Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "policy_action",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Policy Action"
+            }
+          },
+          {
+            "name": "since_hours",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 8760,
+              "minimum": 1,
+              "default": 24,
+              "title": "Since Hours"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditEventPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/audit/report": {
+      "get": {
+        "tags": [
+          "audit"
+        ],
+        "summary": "Structured audit export",
+        "description": "Returns structured sections the Gateway renders. Carries a disclaimer stating that this is transaction evidence supporting a deployer's own obligations, not a conformity assessment.",
+        "operationId": "audit_report_api_audit_report_get",
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "default",
+              "title": "Tenant Id"
+            }
+          },
+          {
+            "name": "since_hours",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 8760,
+              "minimum": 1,
+              "default": 168,
+              "title": "Since Hours"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditReport"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/policies": {
+      "get": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Current policy config",
+        "operationId": "get_policies_api_policies_get",
+        "parameters": [
+          {
+            "name": "profile",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Profile"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolicyResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Update policy, creating a new immutable version",
+        "description": "Policy changes are themselves auditable. Each update writes a new `policy_version` row; previous versions are never mutated, so any past decision can be replayed against the rules that were in force.",
+        "operationId": "put_policies_api_policies_put",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PolicyUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolicyResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/policies/history": {
+      "get": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Policy version history",
+        "operationId": "policy_history_api_policies_history_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolicyHistoryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reviews": {
+      "post": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Appeal an automated block",
+        "description": "Aegis makes automated decisions that affect people, which makes Aegis itself subject to the oversight principle it enforces. Any appealable block can be contested here with a written justification.",
+        "operationId": "create_review_api_reviews_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewCreateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Review queue",
+        "operationId": "list_reviews_api_reviews_get",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ReviewStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reviews/{review_id}/decision": {
+      "post": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Human approves or denies an appeal",
+        "description": "Approval mints a short-lived, single-use override token scoped to the one `request_id` under review. The Gateway replays that request with the token; `/inspect` honours it once and records the override.",
+        "operationId": "decide_review_api_reviews__review_id__decision_post",
+        "parameters": [
+          {
+            "name": "review_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Review Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewDecisionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewDecisionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/fairness/report": {
+      "get": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Detector recall across population groups",
+        "description": "Reports measured PII-detector recall per name-origin group, and the gap between the best- and worst-served group.\n\nA privacy tool that protects some people's identities more reliably than others is an unfair system. Aegis measures its own gap and publishes it, including the baseline where it was worse.\n\nReturns nulls until Phase 13 -- the numbers are measured, never assumed.",
+        "operationId": "fairness_report_api_fairness_report_get",
+        "parameters": [
+          {
+            "name": "detector",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "pii.person",
+              "title": "Detector"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FairnessReportResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Service health and subsystem readiness",
+        "operationId": "health_api_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/metrics": {
+      "get": {
+        "tags": [
+          "metrics"
+        ],
+        "summary": "Aggregate platform metrics",
+        "operationId": "metrics_api_metrics_get",
+        "parameters": [
+          {
+            "name": "window_hours",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 8760,
+              "minimum": 1,
+              "default": 24,
+              "title": "Window Hours"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/metrics/security": {
+      "get": {
+        "tags": [
+          "metrics"
+        ],
+        "summary": "Security and oversight counters",
+        "operationId": "security_metrics_api_metrics_security_get",
+        "parameters": [
+          {
+            "name": "window_hours",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 8760,
+              "minimum": 1,
+              "default": 24,
+              "title": "Window Hours"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SecurityMetricsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/metrics/sustainability": {
+      "get": {
+        "tags": [
+          "metrics"
+        ],
+        "summary": "Cache efficiency and estimated environmental figures",
+        "description": "Energy and CO2 values are **estimates**, derived from configurable per-token assumptions and a grid intensity factor -- not measurements. The `basis` and `disclaimer` fields must be surfaced in the UI wherever these numbers appear.",
+        "operationId": "sustainability_metrics_api_metrics_sustainability_get",
+        "parameters": [
+          {
+            "name": "window_hours",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 8760,
+              "minimum": 1,
+              "default": 24,
+              "title": "Window Hours"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SustainabilityMetricsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/metrics/providers": {
+      "get": {
+        "tags": [
+          "metrics"
+        ],
+        "summary": "Per-provider health and failover telemetry",
+        "operationId": "provider_metrics_api_metrics_providers_get",
+        "parameters": [
+          {
+            "name": "window_hours",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 8760,
+              "minimum": 1,
+              "default": 24,
+              "title": "Window Hours"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderMetricsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AuditEventPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AuditEventRecord"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "AuditEventPage"
+      },
+      "AuditEventRecord": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id"
+          },
+          "tenant_id": {
+            "type": "string",
+            "title": "Tenant Id"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "policy_action": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Policy Action"
+          },
+          "rules_fired": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Rules Fired"
+          },
+          "pii_count": {
+            "type": "integer",
+            "title": "Pii Count",
+            "default": 0
+          },
+          "secret_count": {
+            "type": "integer",
+            "title": "Secret Count",
+            "default": 0
+          },
+          "injection_detected": {
+            "type": "boolean",
+            "title": "Injection Detected",
+            "default": false
+          },
+          "cache_hit": {
+            "type": "boolean",
+            "title": "Cache Hit",
+            "default": false
+          },
+          "failover_used": {
+            "type": "boolean",
+            "title": "Failover Used",
+            "default": false
+          },
+          "grounding_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grounding Score"
+          },
+          "latency_total_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latency Total Ms"
+          },
+          "total_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Tokens"
+          },
+          "estimated_cost_usd": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimated Cost Usd"
+          },
+          "review_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "request_id",
+          "tenant_id",
+          "timestamp"
+        ],
+        "title": "AuditEventRecord",
+        "description": "Read-side projection. Deliberately narrower than the write model."
+      },
+      "AuditEventRequest": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "title": "Request Id"
+          },
+          "tenant_id": {
+            "type": "string",
+            "title": "Tenant Id",
+            "default": "default"
+          },
+          "user_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Ref"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "routed_complexity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Routed Complexity"
+          },
+          "latency_total_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latency Total Ms"
+          },
+          "latency_inspect_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latency Inspect Ms"
+          },
+          "latency_provider_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latency Provider Ms"
+          },
+          "input_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Tokens"
+          },
+          "output_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Tokens"
+          },
+          "total_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Tokens"
+          },
+          "cache_hit": {
+            "type": "boolean",
+            "title": "Cache Hit",
+            "default": false
+          },
+          "cache_similarity": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cache Similarity"
+          },
+          "pii_detected": {
+            "type": "boolean",
+            "title": "Pii Detected",
+            "default": false
+          },
+          "pii_count": {
+            "type": "integer",
+            "title": "Pii Count",
+            "default": 0
+          },
+          "pii_types": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Pii Types"
+          },
+          "secret_detected": {
+            "type": "boolean",
+            "title": "Secret Detected",
+            "default": false
+          },
+          "secret_count": {
+            "type": "integer",
+            "title": "Secret Count",
+            "default": 0
+          },
+          "secret_types": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Secret Types"
+          },
+          "injection_detected": {
+            "type": "boolean",
+            "title": "Injection Detected",
+            "default": false
+          },
+          "injection_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Injection Score"
+          },
+          "policy_action": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Decision"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "policy_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Policy Version"
+          },
+          "rules_fired": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Rules Fired"
+          },
+          "failover_used": {
+            "type": "boolean",
+            "title": "Failover Used",
+            "default": false
+          },
+          "failover_from": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failover From"
+          },
+          "failover_to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failover To"
+          },
+          "egress_flagged": {
+            "type": "boolean",
+            "title": "Egress Flagged",
+            "default": false
+          },
+          "egress_categories": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Egress Categories"
+          },
+          "grounding_enabled": {
+            "type": "boolean",
+            "title": "Grounding Enabled",
+            "default": false
+          },
+          "grounding_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grounding Score"
+          },
+          "grounding_status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GroundingStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "estimated_cost_usd": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimated Cost Usd"
+          },
+          "estimated_savings_usd": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimated Savings Usd"
+          },
+          "estimated_energy_wh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimated Energy Wh"
+          },
+          "estimated_co2_g": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimated Co2 G"
+          },
+          "review_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id"
+        ],
+        "title": "AuditEventRequest"
+      },
+      "AuditEventResponse": {
+        "properties": {
+          "stored": {
+            "type": "boolean",
+            "title": "Stored"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id"
+          },
+          "duplicate": {
+            "type": "boolean",
+            "title": "Duplicate",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "stored",
+          "request_id"
+        ],
+        "title": "AuditEventResponse"
+      },
+      "AuditReport": {
+        "properties": {
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          },
+          "window_start": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Window Start"
+          },
+          "window_end": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Window End"
+          },
+          "tenant_id": {
+            "type": "string",
+            "title": "Tenant Id"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/AuditReportSection"
+            },
+            "type": "array",
+            "title": "Sections"
+          },
+          "disclaimer": {
+            "type": "string",
+            "title": "Disclaimer"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "generated_at",
+          "tenant_id",
+          "sections",
+          "disclaimer"
+        ],
+        "title": "AuditReport"
+      },
+      "AuditReportSection": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "requirement": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requirement"
+          },
+          "rows": {
+            "items": {
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Rows"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "title": "AuditReportSection"
+      },
+      "BiasResult": {
+        "properties": {
+          "flagged": {
+            "type": "boolean",
+            "title": "Flagged",
+            "default": false
+          },
+          "signals": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Signals"
+          },
+          "score": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Score",
+            "default": 0.0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "BiasResult"
+      },
+      "BlockReason": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "http_status": {
+            "type": "integer",
+            "title": "Http Status",
+            "default": 400
+          },
+          "rule_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rule Id"
+          },
+          "appealable": {
+            "type": "boolean",
+            "title": "Appealable",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "BlockReason"
+      },
+      "CacheHint": {
+        "properties": {
+          "cacheable": {
+            "type": "boolean",
+            "title": "Cacheable",
+            "default": true
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "semantic_guards": {
+            "$ref": "#/components/schemas/SemanticGuards"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "CacheHint"
+      },
+      "ClaimVerdict": {
+        "properties": {
+          "claim": {
+            "type": "string",
+            "title": "Claim"
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "SUPPORTED",
+              "UNSUPPORTED",
+              "CONTRADICTED"
+            ],
+            "title": "Verdict"
+          },
+          "score": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Score"
+          },
+          "evidence": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "claim",
+          "verdict",
+          "score"
+        ],
+        "title": "ClaimVerdict"
+      },
+      "Complexity": {
+        "type": "string",
+        "enum": [
+          "LOW",
+          "MEDIUM",
+          "HIGH"
+        ],
+        "title": "Complexity"
+      },
+      "ComponentHealth": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "degraded",
+              "unavailable",
+              "stub"
+            ],
+            "title": "Status"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "status"
+        ],
+        "title": "ComponentHealth"
+      },
+      "CostStats": {
+        "properties": {
+          "estimated_spend_usd": {
+            "type": "number",
+            "title": "Estimated Spend Usd",
+            "default": 0.0
+          },
+          "estimated_saved_usd": {
+            "type": "number",
+            "title": "Estimated Saved Usd",
+            "default": 0.0
+          },
+          "basis": {
+            "type": "string",
+            "title": "Basis"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "basis"
+        ],
+        "title": "CostStats"
+      },
+      "Decision": {
+        "type": "string",
+        "enum": [
+          "ALLOW",
+          "SANITIZE",
+          "WARN",
+          "BLOCK"
+        ],
+        "title": "Decision"
+      },
+      "Detection": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "category": {
+            "$ref": "#/components/schemas/DetectionCategory"
+          },
+          "placeholder": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Placeholder"
+          },
+          "confidence": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence"
+          },
+          "start": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Start"
+          },
+          "end": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "End"
+          },
+          "message_index": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Message Index",
+            "default": 0
+          },
+          "recognizer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recognizer"
+          },
+          "pattern": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pattern"
+          },
+          "action": {
+            "$ref": "#/components/schemas/PolicyAction",
+            "default": "allow"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "type",
+          "category",
+          "confidence",
+          "start",
+          "end"
+        ],
+        "title": "Detection",
+        "description": "A single finding.\n\nDeliberately carries no raw matched value. The original text lives only in\nthe vault map, which the Gateway treats as secret-grade and never logs."
+      },
+      "DetectionBundle": {
+        "properties": {
+          "pii": {
+            "items": {
+              "$ref": "#/components/schemas/Detection"
+            },
+            "type": "array",
+            "title": "Pii"
+          },
+          "secrets": {
+            "items": {
+              "$ref": "#/components/schemas/Detection"
+            },
+            "type": "array",
+            "title": "Secrets"
+          },
+          "entropy": {
+            "items": {
+              "$ref": "#/components/schemas/EntropyFinding"
+            },
+            "type": "array",
+            "title": "Entropy"
+          },
+          "injection": {
+            "$ref": "#/components/schemas/InjectionFinding"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "DetectionBundle"
+      },
+      "DetectionCategory": {
+        "type": "string",
+        "enum": [
+          "PII",
+          "SECRET",
+          "ENTROPY",
+          "INJECTION"
+        ],
+        "title": "DetectionCategory"
+      },
+      "DetectionCounts": {
+        "properties": {
+          "pii": {
+            "type": "integer",
+            "title": "Pii",
+            "default": 0
+          },
+          "secrets": {
+            "type": "integer",
+            "title": "Secrets",
+            "default": 0
+          },
+          "entropy": {
+            "type": "integer",
+            "title": "Entropy",
+            "default": 0
+          },
+          "injection": {
+            "type": "integer",
+            "title": "Injection",
+            "default": 0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "DetectionCounts"
+      },
+      "EgressAction": {
+        "type": "string",
+        "enum": [
+          "PASS",
+          "ANNOTATE",
+          "REPLACE"
+        ],
+        "title": "EgressAction"
+      },
+      "EgressRequest": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "title": "Request Id"
+          },
+          "tenant_id": {
+            "type": "string",
+            "title": "Tenant Id",
+            "default": "default"
+          },
+          "response_text": {
+            "type": "string",
+            "title": "Response Text"
+          },
+          "reference_context": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference Context"
+          },
+          "checks": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "harm",
+                "bias",
+                "grounding"
+              ]
+            },
+            "type": "array",
+            "title": "Checks"
+          },
+          "policy_profile": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Policy Profile"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "response_text"
+        ],
+        "title": "EgressRequest"
+      },
+      "EgressResponse": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "title": "Request Id"
+          },
+          "safety": {
+            "$ref": "#/components/schemas/SafetyResult"
+          },
+          "bias": {
+            "$ref": "#/components/schemas/BiasResult"
+          },
+          "grounding": {
+            "$ref": "#/components/schemas/GroundingResult"
+          },
+          "action": {
+            "$ref": "#/components/schemas/EgressAction",
+            "default": "PASS"
+          },
+          "replacement_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Replacement Text"
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation",
+            "default": ""
+          },
+          "pipeline": {
+            "items": {
+              "$ref": "#/components/schemas/PipelineStage"
+            },
+            "type": "array",
+            "title": "Pipeline"
+          },
+          "total_duration_ms": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Total Duration Ms",
+            "default": 0.0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id"
+        ],
+        "title": "EgressResponse"
+      },
+      "EmbedRequest": {
+        "properties": {
+          "texts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Texts"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "normalize": {
+            "type": "boolean",
+            "title": "Normalize",
+            "default": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "texts"
+        ],
+        "title": "EmbedRequest"
+      },
+      "EmbedResponse": {
+        "properties": {
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "dim": {
+            "type": "integer",
+            "title": "Dim"
+          },
+          "normalized": {
+            "type": "boolean",
+            "title": "Normalized"
+          },
+          "vectors": {
+            "items": {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            "type": "array",
+            "title": "Vectors"
+          },
+          "duration_ms": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Duration Ms"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "model",
+          "dim",
+          "normalized",
+          "vectors",
+          "duration_ms"
+        ],
+        "title": "EmbedResponse"
+      },
+      "EntropyFinding": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "HIGH_ENTROPY_STRING",
+            "title": "Type",
+            "default": "HIGH_ENTROPY_STRING"
+          },
+          "category": {
+            "$ref": "#/components/schemas/DetectionCategory",
+            "default": "ENTROPY"
+          },
+          "entropy": {
+            "type": "number",
+            "title": "Entropy"
+          },
+          "length": {
+            "type": "integer",
+            "title": "Length"
+          },
+          "confidence": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence"
+          },
+          "start": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Start"
+          },
+          "end": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "End"
+          },
+          "message_index": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Message Index",
+            "default": 0
+          },
+          "action": {
+            "$ref": "#/components/schemas/PolicyAction",
+            "default": "warn"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "entropy",
+          "length",
+          "confidence",
+          "start",
+          "end"
+        ],
+        "title": "EntropyFinding"
+      },
+      "FairnessGroupResult": {
+        "properties": {
+          "group": {
+            "type": "string",
+            "title": "Group"
+          },
+          "sample_size": {
+            "type": "integer",
+            "title": "Sample Size"
+          },
+          "detected": {
+            "type": "integer",
+            "title": "Detected"
+          },
+          "recall": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Recall"
+          },
+          "precision": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Precision"
+          },
+          "f1": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "F1"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "group",
+          "sample_size",
+          "detected",
+          "recall"
+        ],
+        "title": "FairnessGroupResult"
+      },
+      "FairnessReportResponse": {
+        "properties": {
+          "detector": {
+            "type": "string",
+            "title": "Detector"
+          },
+          "baseline": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FairnessRun"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "current": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FairnessRun"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "gap_closed": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gap Closed"
+          },
+          "method": {
+            "type": "string",
+            "title": "Method"
+          },
+          "disclaimer": {
+            "type": "string",
+            "title": "Disclaimer",
+            "default": "Recall measured against a fixed synthetic name corpus, not a representative population sample. Indicative of relative detector behaviour across groups, not an absolute accuracy claim."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "detector",
+          "method"
+        ],
+        "title": "FairnessReportResponse"
+      },
+      "FairnessRun": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          },
+          "run_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Run At"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "detector": {
+            "type": "string",
+            "title": "Detector"
+          },
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/FairnessGroupResult"
+            },
+            "type": "array",
+            "title": "Groups"
+          },
+          "best_group_recall": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Best Group Recall"
+          },
+          "worst_group_recall": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Worst Group Recall"
+          },
+          "recall_gap": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recall Gap"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "run_id",
+          "run_at",
+          "label",
+          "detector"
+        ],
+        "title": "FairnessRun"
+      },
+      "GroundingResult": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": false
+          },
+          "claims": {
+            "type": "integer",
+            "title": "Claims",
+            "default": 0
+          },
+          "supported": {
+            "type": "integer",
+            "title": "Supported",
+            "default": 0
+          },
+          "unsupported": {
+            "type": "integer",
+            "title": "Unsupported",
+            "default": 0
+          },
+          "contradicted": {
+            "type": "integer",
+            "title": "Contradicted",
+            "default": 0
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "status": {
+            "$ref": "#/components/schemas/GroundingStatus",
+            "default": "SKIPPED"
+          },
+          "unsupported_claims": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Unsupported Claims"
+          },
+          "claim_detail": {
+            "items": {
+              "$ref": "#/components/schemas/ClaimVerdict"
+            },
+            "type": "array",
+            "title": "Claim Detail"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "GroundingResult"
+      },
+      "GroundingStatus": {
+        "type": "string",
+        "enum": [
+          "GROUNDED",
+          "REVIEW",
+          "UNGROUNDED",
+          "SKIPPED"
+        ],
+        "title": "GroundingStatus"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "service": {
+            "type": "string",
+            "title": "Service"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "degraded",
+              "unavailable"
+            ],
+            "title": "Status"
+          },
+          "phase": {
+            "type": "string",
+            "title": "Phase",
+            "description": "Which build phase this deployment implements"
+          },
+          "degraded_reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Degraded Reasons"
+          },
+          "components": {
+            "items": {
+              "$ref": "#/components/schemas/ComponentHealth"
+            },
+            "type": "array",
+            "title": "Components"
+          },
+          "uptime_seconds": {
+            "type": "number",
+            "title": "Uptime Seconds",
+            "default": 0.0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "service",
+          "version",
+          "status",
+          "phase"
+        ],
+        "title": "HealthResponse"
+      },
+      "InjectionFinding": {
+        "properties": {
+          "detected": {
+            "type": "boolean",
+            "title": "Detected",
+            "default": false
+          },
+          "score": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Score",
+            "default": 0.0
+          },
+          "matched_rules": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Matched Rules"
+          },
+          "categories": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Categories"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "InjectionFinding"
+      },
+      "InspectOptions": {
+        "properties": {
+          "return_vault": {
+            "type": "boolean",
+            "title": "Return Vault",
+            "default": true
+          },
+          "return_explanation": {
+            "type": "boolean",
+            "title": "Return Explanation",
+            "default": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "InspectOptions"
+      },
+      "InspectRequest": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "title": "Request Id"
+          },
+          "tenant_id": {
+            "type": "string",
+            "title": "Tenant Id",
+            "default": "default"
+          },
+          "user_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Ref"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/Message"
+            },
+            "type": "array",
+            "title": "Messages"
+          },
+          "mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mode"
+          },
+          "policy_profile": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Policy Profile"
+          },
+          "locale_hints": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Locale Hints"
+          },
+          "override_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Override Token"
+          },
+          "options": {
+            "$ref": "#/components/schemas/InspectOptions"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "messages"
+        ],
+        "title": "InspectRequest"
+      },
+      "InspectResponse": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "title": "Request Id"
+          },
+          "policy_version": {
+            "type": "integer",
+            "title": "Policy Version",
+            "default": 1
+          },
+          "decision": {
+            "$ref": "#/components/schemas/Decision"
+          },
+          "block_reason": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BlockReason"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/Message"
+            },
+            "type": "array",
+            "title": "Messages"
+          },
+          "detections": {
+            "$ref": "#/components/schemas/DetectionBundle"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/DetectionCounts"
+          },
+          "vault": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Vault"
+          },
+          "vault_policy": {
+            "$ref": "#/components/schemas/VaultPolicy"
+          },
+          "cache": {
+            "$ref": "#/components/schemas/CacheHint"
+          },
+          "routing_hint": {
+            "$ref": "#/components/schemas/RoutingHint"
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation",
+            "default": ""
+          },
+          "override_applied": {
+            "type": "boolean",
+            "title": "Override Applied",
+            "default": false
+          },
+          "pipeline": {
+            "items": {
+              "$ref": "#/components/schemas/PipelineStage"
+            },
+            "type": "array",
+            "title": "Pipeline"
+          },
+          "total_duration_ms": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Total Duration Ms",
+            "default": 0.0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "decision",
+          "messages"
+        ],
+        "title": "InspectResponse"
+      },
+      "LatencyStats": {
+        "properties": {
+          "p50_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P50 Ms"
+          },
+          "p95_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P95 Ms"
+          },
+          "p99_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P99 Ms"
+          },
+          "mean_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mean Ms"
+          },
+          "inspector_overhead_p50_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inspector Overhead P50 Ms"
+          },
+          "inspector_overhead_p95_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inspector Overhead P95 Ms"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "LatencyStats"
+      },
+      "Message": {
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "system",
+              "user",
+              "assistant",
+              "tool"
+            ],
+            "title": "Role"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "role",
+          "content"
+        ],
+        "title": "Message"
+      },
+      "MetricsResponse": {
+        "properties": {
+          "window_hours": {
+            "type": "integer",
+            "title": "Window Hours"
+          },
+          "total_requests": {
+            "type": "integer",
+            "title": "Total Requests",
+            "default": 0
+          },
+          "blocked_requests": {
+            "type": "integer",
+            "title": "Blocked Requests",
+            "default": 0
+          },
+          "sanitized_requests": {
+            "type": "integer",
+            "title": "Sanitized Requests",
+            "default": 0
+          },
+          "latency": {
+            "$ref": "#/components/schemas/LatencyStats"
+          },
+          "tokens": {
+            "$ref": "#/components/schemas/TokenStats"
+          },
+          "cost": {
+            "$ref": "#/components/schemas/CostStats"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "window_hours",
+          "cost"
+        ],
+        "title": "MetricsResponse"
+      },
+      "PipelineStage": {
+        "properties": {
+          "stage": {
+            "type": "string",
+            "title": "Stage"
+          },
+          "status": {
+            "$ref": "#/components/schemas/StageStatus"
+          },
+          "duration_ms": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Duration Ms"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "stage",
+          "status",
+          "duration_ms"
+        ],
+        "title": "PipelineStage",
+        "description": "One executed stage. `duration_ms` is always measured, never estimated."
+      },
+      "PolicyAction": {
+        "type": "string",
+        "enum": [
+          "allow",
+          "sanitize",
+          "warn",
+          "block"
+        ],
+        "title": "PolicyAction"
+      },
+      "PolicyHistoryResponse": {
+        "properties": {
+          "versions": {
+            "items": {
+              "$ref": "#/components/schemas/PolicyVersionSummary"
+            },
+            "type": "array",
+            "title": "Versions"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "PolicyHistoryResponse"
+      },
+      "PolicyResponse": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "profile": {
+            "type": "string",
+            "title": "Profile"
+          },
+          "available_profiles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Available Profiles"
+          },
+          "yaml_body": {
+            "type": "string",
+            "title": "Yaml Body"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "version",
+          "profile",
+          "yaml_body"
+        ],
+        "title": "PolicyResponse"
+      },
+      "PolicyUpdateRequest": {
+        "properties": {
+          "yaml_body": {
+            "type": "string",
+            "title": "Yaml Body"
+          },
+          "author_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Author Ref"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "yaml_body"
+        ],
+        "title": "PolicyUpdateRequest"
+      },
+      "PolicyVersionSummary": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "diff_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Diff Summary"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "version",
+          "created_at"
+        ],
+        "title": "PolicyVersionSummary"
+      },
+      "ProviderMetricsResponse": {
+        "properties": {
+          "window_hours": {
+            "type": "integer",
+            "title": "Window Hours"
+          },
+          "providers": {
+            "items": {
+              "$ref": "#/components/schemas/ProviderStat"
+            },
+            "type": "array",
+            "title": "Providers"
+          },
+          "failover_events": {
+            "type": "integer",
+            "title": "Failover Events",
+            "default": 0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "window_hours"
+        ],
+        "title": "ProviderMetricsResponse"
+      },
+      "ProviderStat": {
+        "properties": {
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "requests": {
+            "type": "integer",
+            "title": "Requests",
+            "default": 0
+          },
+          "failures": {
+            "type": "integer",
+            "title": "Failures",
+            "default": 0
+          },
+          "failover_in": {
+            "type": "integer",
+            "title": "Failover In",
+            "default": 0
+          },
+          "failover_out": {
+            "type": "integer",
+            "title": "Failover Out",
+            "default": 0
+          },
+          "latency_p50_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latency P50 Ms"
+          },
+          "last_seen": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "provider"
+        ],
+        "title": "ProviderStat"
+      },
+      "ReviewCreateRequest": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "title": "Request Id"
+          },
+          "tenant_id": {
+            "type": "string",
+            "title": "Tenant Id",
+            "default": "default"
+          },
+          "user_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Ref"
+          },
+          "original_decision": {
+            "$ref": "#/components/schemas/Decision"
+          },
+          "rule_fired": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rule Fired"
+          },
+          "user_justification": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "User Justification"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "original_decision",
+          "user_justification"
+        ],
+        "title": "ReviewCreateRequest"
+      },
+      "ReviewCreateResponse": {
+        "properties": {
+          "review": {
+            "$ref": "#/components/schemas/ReviewRecord"
+          },
+          "accepted": {
+            "type": "boolean",
+            "title": "Accepted"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "review",
+          "accepted"
+        ],
+        "title": "ReviewCreateResponse"
+      },
+      "ReviewDecisionRequest": {
+        "properties": {
+          "approve": {
+            "type": "boolean",
+            "title": "Approve"
+          },
+          "reviewer_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewer Ref"
+          },
+          "reviewer_note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewer Note"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "approve"
+        ],
+        "title": "ReviewDecisionRequest"
+      },
+      "ReviewDecisionResponse": {
+        "properties": {
+          "review": {
+            "$ref": "#/components/schemas/ReviewRecord"
+          },
+          "override_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Override Token"
+          },
+          "override_expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Override Expires At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "review"
+        ],
+        "title": "ReviewDecisionResponse"
+      },
+      "ReviewListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewRecord"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "default": 0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ReviewListResponse"
+      },
+      "ReviewRecord": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id"
+          },
+          "tenant_id": {
+            "type": "string",
+            "title": "Tenant Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "original_decision": {
+            "$ref": "#/components/schemas/Decision"
+          },
+          "rule_fired": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rule Fired"
+          },
+          "user_justification": {
+            "type": "string",
+            "title": "User Justification"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ReviewStatus"
+          },
+          "reviewer_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewer Note"
+          },
+          "decided_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decided At"
+          },
+          "override_expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Override Expires At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "request_id",
+          "tenant_id",
+          "created_at",
+          "original_decision",
+          "user_justification",
+          "status"
+        ],
+        "title": "ReviewRecord"
+      },
+      "ReviewStatus": {
+        "type": "string",
+        "enum": [
+          "PENDING",
+          "APPROVED",
+          "DENIED"
+        ],
+        "title": "ReviewStatus"
+      },
+      "RoutingHint": {
+        "properties": {
+          "complexity": {
+            "$ref": "#/components/schemas/Complexity",
+            "default": "MEDIUM"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reasons"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "RoutingHint"
+      },
+      "RuleCount": {
+        "properties": {
+          "rule_id": {
+            "type": "string",
+            "title": "Rule Id"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "rule_id",
+          "count"
+        ],
+        "title": "RuleCount"
+      },
+      "SafetyResult": {
+        "properties": {
+          "flagged": {
+            "type": "boolean",
+            "title": "Flagged",
+            "default": false
+          },
+          "categories": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Categories"
+          },
+          "score": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Score",
+            "default": 0.0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "SafetyResult"
+      },
+      "SecurityMetricsResponse": {
+        "properties": {
+          "window_hours": {
+            "type": "integer",
+            "title": "Window Hours"
+          },
+          "pii_detections": {
+            "type": "integer",
+            "title": "Pii Detections",
+            "default": 0
+          },
+          "secret_detections": {
+            "type": "integer",
+            "title": "Secret Detections",
+            "default": 0
+          },
+          "injection_blocks": {
+            "type": "integer",
+            "title": "Injection Blocks",
+            "default": 0
+          },
+          "credential_blocks": {
+            "type": "integer",
+            "title": "Credential Blocks",
+            "default": 0
+          },
+          "egress_flags": {
+            "type": "integer",
+            "title": "Egress Flags",
+            "default": 0
+          },
+          "reviews_pending": {
+            "type": "integer",
+            "title": "Reviews Pending",
+            "default": 0
+          },
+          "reviews_approved": {
+            "type": "integer",
+            "title": "Reviews Approved",
+            "default": 0
+          },
+          "reviews_denied": {
+            "type": "integer",
+            "title": "Reviews Denied",
+            "default": 0
+          },
+          "top_rules": {
+            "items": {
+              "$ref": "#/components/schemas/RuleCount"
+            },
+            "type": "array",
+            "title": "Top Rules"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "window_hours"
+        ],
+        "title": "SecurityMetricsResponse"
+      },
+      "SemanticGuards": {
+        "properties": {
+          "negations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Negations"
+          },
+          "numbers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Numbers"
+          },
+          "entities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Entities"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "SemanticGuards",
+        "description": "Markers the Gateway must match exactly before serving a cache hit.\n\nCosine similarity handles negation and numeric swaps poorly: \"is X safe\nduring pregnancy\" and \"is X unsafe during pregnancy\" embed very close\ntogether. Serving one from the other is a safety failure, not a perf win."
+      },
+      "StageStatus": {
+        "type": "string",
+        "enum": [
+          "success",
+          "warning",
+          "blocked",
+          "skipped",
+          "error",
+          "hit",
+          "miss"
+        ],
+        "title": "StageStatus"
+      },
+      "SustainabilityMetricsResponse": {
+        "properties": {
+          "window_hours": {
+            "type": "integer",
+            "title": "Window Hours"
+          },
+          "cache_hit_rate": {
+            "type": "number",
+            "title": "Cache Hit Rate",
+            "default": 0.0
+          },
+          "cache_hits": {
+            "type": "integer",
+            "title": "Cache Hits",
+            "default": 0
+          },
+          "cache_misses": {
+            "type": "integer",
+            "title": "Cache Misses",
+            "default": 0
+          },
+          "estimated_energy_wh": {
+            "type": "number",
+            "title": "Estimated Energy Wh",
+            "default": 0.0
+          },
+          "estimated_co2_g": {
+            "type": "number",
+            "title": "Estimated Co2 G",
+            "default": 0.0
+          },
+          "estimated_energy_avoided_wh": {
+            "type": "number",
+            "title": "Estimated Energy Avoided Wh",
+            "default": 0.0
+          },
+          "estimated_co2_avoided_g": {
+            "type": "number",
+            "title": "Estimated Co2 Avoided G",
+            "default": 0.0
+          },
+          "basis": {
+            "type": "string",
+            "title": "Basis"
+          },
+          "disclaimer": {
+            "type": "string",
+            "title": "Disclaimer",
+            "default": "Estimated, not measured. Derived from configurable per-token energy assumptions and a regional grid intensity factor."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "window_hours",
+          "basis"
+        ],
+        "title": "SustainabilityMetricsResponse"
+      },
+      "TokenStats": {
+        "properties": {
+          "input_tokens": {
+            "type": "integer",
+            "title": "Input Tokens",
+            "default": 0
+          },
+          "output_tokens": {
+            "type": "integer",
+            "title": "Output Tokens",
+            "default": 0
+          },
+          "total_tokens": {
+            "type": "integer",
+            "title": "Total Tokens",
+            "default": 0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "TokenStats"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "VaultPolicy": {
+        "properties": {
+          "rehydrate": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Rehydrate"
+          },
+          "never_rehydrate": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Never Rehydrate"
+          },
+          "ttl_seconds": {
+            "type": "integer",
+            "title": "Ttl Seconds",
+            "default": 300
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "VaultPolicy"
+      },
+      "VerifyRequest": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "title": "Request Id"
+          },
+          "answer": {
+            "type": "string",
+            "title": "Answer"
+          },
+          "reference_context": {
+            "type": "string",
+            "title": "Reference Context"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "answer",
+          "reference_context"
+        ],
+        "title": "VerifyRequest",
+        "description": "Standalone grounding check -- POST /verify."
+      },
+      "VerifyResponse": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "title": "Request Id"
+          },
+          "grounding": {
+            "$ref": "#/components/schemas/GroundingResult"
+          },
+          "pipeline": {
+            "items": {
+              "$ref": "#/components/schemas/PipelineStage"
+            },
+            "type": "array",
+            "title": "Pipeline"
+          },
+          "total_duration_ms": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Total Duration Ms",
+            "default": 0.0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id",
+          "grounding"
+        ],
+        "title": "VerifyResponse"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "inspection",
+      "description": "Ingress decisions and egress screening."
+    },
+    {
+      "name": "embeddings",
+      "description": "Vectors for the Gateway's semantic cache."
+    },
+    {
+      "name": "audit",
+      "description": "Decision history. Write path and read APIs."
+    },
+    {
+      "name": "metrics",
+      "description": "Aggregates for the dashboard."
+    },
+    {
+      "name": "governance",
+      "description": "Policy versioning, human review of automated blocks, and measured detector fairness."
+    },
+    {
+      "name": "health",
+      "description": "Subsystem readiness."
+    }
+  ]
+}

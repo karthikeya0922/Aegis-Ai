@@ -1,0 +1,191 @@
+"""Aegis Inspector -- FastAPI application entrypoint.
+
+This service is the absolute authority on whether a prompt is safe. It is
+stateless: the same input always yields the same verdict. All session state
+(the token vault, the semantic cache) belongs to the Gateway's Redis.
+
+Run: uvicorn app.main:app --reload --port 8000
+"""
+
+from __future__ import annotations
+
+import time
+from contextlib import asynccontextmanager
+from typing import AsyncIterator
+
+from fastapi import FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+from app.api import audit, embed, governance, health, inspect
+from app.config import settings
+from app.utils.ids import request_id as new_request_id
+from app.utils.logging import configure_logging, get_logger
+
+configure_logging()
+log = get_logger(__name__)
+
+DESCRIPTION = """
+The inspection and governance engine behind the **Aegis** Zero-Trust
+Responsible AI Gateway.
+
+This service decides whether a prompt may be transmitted, screens model
+responses on the way back, and records the platform's decision history. It is
+consumed by the Aegis Gateway, never by end clients directly.
+
+### What this service does not claim
+
+* Detection is **heuristic and incomplete**. Prompt-injection defence covers
+  known OWASP LLM01 patterns and is bypassable by obfuscation.
+* Grounded Response Verification is a **support score**, not a guarantee of
+  factual correctness.
+* Energy and CO2 figures are **estimates** from configurable assumptions, not
+  measurements.
+* Audit output is **transaction evidence** supporting a deployer's own
+  record-keeping. It is not a conformity assessment and does not establish
+  legal compliance.
+"""
+
+TAGS_METADATA = [
+    {"name": "inspection", "description": "Ingress decisions and egress screening."},
+    {"name": "embeddings", "description": "Vectors for the Gateway's semantic cache."},
+    {"name": "audit", "description": "Decision history. Write path and read APIs."},
+    {"name": "metrics", "description": "Aggregates for the dashboard."},
+    {
+        "name": "governance",
+        "description": (
+            "Policy versioning, human review of automated blocks, and measured "
+            "detector fairness."
+        ),
+    },
+    {"name": "health", "description": "Subsystem readiness."},
+]
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    log.info(
+        "%s v%s starting (phase=%s, env=%s)",
+        settings.service_name,
+        settings.version,
+        health.BUILD_PHASE,
+        settings.environment,
+    )
+    if settings.warm_models_on_startup:
+        log.info("model warm-up requested (no-op until Phase 2)")
+    yield
+    log.info("%s shutting down", settings.service_name)
+
+
+app = FastAPI(
+    title="Aegis Inspector",
+    description=DESCRIPTION,
+    version=settings.version,
+    openapi_tags=TAGS_METADATA,
+    lifespan=lifespan,
+    docs_url="/docs",
+    redoc_url="/redoc",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origin_list,
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "X-Request-Id"],
+)
+
+
+@app.middleware("http")
+async def request_context(request: Request, call_next):
+    """Attach a request ID, enforce the body size limit, add security headers."""
+    rid = request.headers.get("X-Request-Id") or new_request_id()
+    request.state.request_id = rid
+
+    declared = request.headers.get("content-length")
+    if declared and declared.isdigit() and int(declared) > settings.max_request_bytes:
+        return JSONResponse(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            content={
+                "error": {
+                    "code": "REQUEST_TOO_LARGE",
+                    "message": (
+                        f"Request body exceeds {settings.max_request_bytes} bytes."
+                    ),
+                    "request_id": rid,
+                }
+            },
+        )
+
+    started = time.perf_counter()
+    response = await call_next(request)
+    elapsed_ms = (time.perf_counter() - started) * 1000.0
+
+    response.headers["X-Request-Id"] = rid
+    response.headers["X-Inspector-Duration-Ms"] = f"{elapsed_ms:.2f}"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_handler(request: Request, exc: RequestValidationError):
+    """Contract violations report *where* they occurred, never the payload.
+
+    Echoing the offending body back would defeat the point of a service whose
+    job is to keep sensitive values out of logs and error channels.
+    """
+    fields = [".".join(str(p) for p in e.get("loc", [])) for e in exc.errors()]
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={
+            "error": {
+                "code": "CONTRACT_VIOLATION",
+                "message": "Request did not match the documented contract.",
+                "fields": fields[:20],
+                "request_id": getattr(request.state, "request_id", None),
+            }
+        },
+    )
+
+
+@app.exception_handler(Exception)
+async def unhandled_handler(request: Request, exc: Exception):
+    rid = getattr(request.state, "request_id", None)
+    log.exception("unhandled error request_id=%s type=%s", rid, type(exc).__name__)
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "error": {
+                "code": "INTERNAL_ERROR",
+                "message": "The inspector failed to process this request.",
+                "request_id": rid,
+            }
+        },
+    )
+
+
+app.include_router(inspect.router)
+app.include_router(embed.router)
+app.include_router(audit.router)
+app.include_router(governance.router)
+app.include_router(health.router)
+
+# metrics router carries its own /api/metrics prefix
+from app.api import metrics  # noqa: E402
+
+app.include_router(metrics.router)
+
+
+@app.get("/", include_in_schema=False)
+async def root() -> dict[str, str]:
+    return {
+        "service": settings.service_name,
+        "version": settings.version,
+        "phase": health.BUILD_PHASE,
+        "docs": "/docs",
+        "openapi": "/openapi.json",
+    }
