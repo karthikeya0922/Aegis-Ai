@@ -1,0 +1,13 @@
+# Core gateway (installed)
+fastapi
+uvicorn[standard]
+httpx
+pydantic
+pydantic-settings
+python-dotenv
+sse-starlette
+redis
+sqlalchemy
+aiosqlite
+pytest
+pytest-asyncio

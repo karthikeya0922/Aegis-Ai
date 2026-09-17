@@ -1,0 +1,15 @@
+# Aegis response-path grounding config (Phase 4).
+#
+# Loaded by `frontend/src/lib/gateway/grounding.ts`. The fallback text is a GATEWAY
+# concern, not the engine's: when POST /internal/verify comes back with
+# `grounding.status === "block"`, the gateway substitutes this text for the
+# response body instead of whatever `final_text` the engine returned — never the
+# engine's own copy, so it stays consistent even if the engine's wording changes.
+fallback_text: >-
+  I cannot verify this claim against verified documentation.
+
+# Hard deadline (ms) for POST /internal/verify. If the engine hasn't answered by
+# then, the gateway fails closed on VERIFICATION ONLY: it still returns the
+# provider's text to the client (never blocks response delivery on this), but
+# marks grounding_status "unverified" in telemetry instead of claiming "pass".
+verify_timeout_ms: 5000

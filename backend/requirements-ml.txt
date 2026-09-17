@@ -1,0 +1,7 @@
+# Local ML / heuristics engine (NOT installed yet — install when the phase needs it)
+# pip install -r requirements-ml.txt
+presidio-analyzer
+presidio-anonymizer
+spacy
+sentence-transformers
+reportlab

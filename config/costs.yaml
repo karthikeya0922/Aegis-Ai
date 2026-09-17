@@ -1,0 +1,26 @@
+prices:
+  # per 1M tokens
+  "meta-llama/Llama-3.3-70B-Instruct-Turbo":
+    in: 0.50
+    out: 0.80
+  gpt-4o:
+    in: 5.00
+    out: 15.00
+  gpt-4o-mini:
+    in: 0.15
+    out: 0.60
+  llama-3.3-70b-versatile:
+    in: 0.59
+    out: 0.79
+  llama3.1:
+    in: 0.0
+    out: 0.0
+  glm-4.6:
+    in: 0.0
+    out: 0.0
+
+assumptions:
+  # Estimated carbon footprint: kWh per token
+  energy_kwh_per_1k_tokens: 0.0003
+  # Estimated gCO2eq per kWh
+  carbon_g_co2_per_kwh: 400

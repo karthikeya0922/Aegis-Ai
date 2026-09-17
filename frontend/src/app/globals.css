@@ -1,0 +1,314 @@
+@import "tailwindcss";
+@config "../../tailwind.config.ts";
+
+/* =========================================================================
+   Aegis design tokens
+   Extracted verbatim from the Phase 5 design files:
+     - Aegis Dashboard.dc.html        (app shell, panels, charts, tables)
+     - Aegis Landing Cosmic.dc.html   (marketing shell, glow buttons, cards)
+     - uploads/aurora-background.html (starfield / aurora canvas)
+   Every value below is a literal copy from those files. Nothing normalised,
+   nothing rounded, nothing "improved".
+   ========================================================================= */
+
+:root {
+  /* ---------------------------------------------------------------- canvas */
+  --aegis-bg: #000000;              /* dashboard body */
+  --aegis-bg-cosmic: #05060a;       /* landing + aurora canvas */
+  --aegis-bg-card-solid: #050507;   /* opaque guardrail card */
+  --aegis-bg-well: #060608;         /* donut hole / inspector cell */
+  --aegis-bg-inspector: rgba(6, 6, 8, 0.9);
+  --aegis-bg-chrome: rgba(10, 10, 12, 0.72);
+
+  /* --------------------------------------------------------------- surfaces */
+  --aegis-surface: rgba(255, 255, 255, 0.03);        /* panel / sidebar */
+  --aegis-surface-inset: rgba(255, 255, 255, 0.02);  /* card inside a panel */
+  --aegis-surface-input: rgba(255, 255, 255, 0.04);
+  --aegis-surface-pill: rgba(255, 255, 255, 0.06);   /* landing nav pill */
+  --aegis-surface-active: rgba(255, 255, 255, 0.07); /* active sidebar item */
+  --aegis-surface-toggle: rgba(255, 255, 255, 0.1);  /* selected range button */
+  --aegis-surface-track: rgba(255, 255, 255, 0.08);  /* meter / donut rest */
+
+  /* ---------------------------------------------------------------- borders */
+  --aegis-border-faint: rgba(255, 255, 255, 0.06);
+  --aegis-border-subtle: rgba(255, 255, 255, 0.08);
+  --aegis-border: rgba(255, 255, 255, 0.1);
+  --aegis-border-card: rgba(255, 255, 255, 0.12);
+  --aegis-border-strong: rgba(255, 255, 255, 0.14);
+  --aegis-border-pill: rgba(255, 255, 255, 0.16);
+  --aegis-border-cta: rgba(255, 255, 255, 0.18);
+  --aegis-border-cta-lg: rgba(255, 255, 255, 0.2);
+  --aegis-border-focus: rgba(255, 255, 255, 0.28);
+  --aegis-border-hover: rgba(255, 255, 255, 0.3);
+
+  /* ------------------------------------------------------------------- text */
+  --aegis-text: #ffffff;
+  --aegis-text-90: rgba(255, 255, 255, 0.9);
+  --aegis-text-85: rgba(255, 255, 255, 0.85);
+  --aegis-text-80: rgba(255, 255, 255, 0.8);
+  --aegis-text-78: rgba(255, 255, 255, 0.78);
+  --aegis-text-75: rgba(255, 255, 255, 0.75);
+  --aegis-text-70: rgba(255, 255, 255, 0.7);
+  --aegis-text-65: rgba(255, 255, 255, 0.65);
+  --aegis-text-62: rgba(255, 255, 255, 0.62);
+  --aegis-text-60: rgba(255, 255, 255, 0.6);
+  --aegis-text-58: rgba(255, 255, 255, 0.58);
+  --aegis-text-55: rgba(255, 255, 255, 0.55);
+  --aegis-text-50: rgba(255, 255, 255, 0.5);
+  --aegis-text-45: rgba(255, 255, 255, 0.45);
+  --aegis-text-40: rgba(255, 255, 255, 0.4);
+  --aegis-text-35: rgba(255, 255, 255, 0.35); /* ::placeholder */
+
+  /* ------------------------------------------------------------------ brand */
+  --aegis-orange: #ff8a00;
+  --aegis-blue: #0175ff;
+  --aegis-purple: #7b3ff2;
+  --aegis-logo-gradient: linear-gradient(180deg, #ff8a00, #0175ff);
+  --aegis-avatar-gradient: linear-gradient(135deg, #ff8a00, #0175ff);
+
+  /* --------------------------------------------- status / series semantics
+     One colour per meaning, reused across every chart, badge and table.      */
+  --status-clean: #22c55e;   /* allow · breaker CLOSED · healthy */
+  --status-warn: #f59e0b;    /* sanitize warn · breaker HALF_OPEN · placeholder token */
+  --status-block: #ef4444;   /* block · breaker OPEN · injection */
+  --status-info: #0175ff;    /* allowed series · PII */
+  --status-sanitize: #7b3ff2;/* sanitized series · secrets */
+  --status-cost: #ff8a00;    /* spend avoided · cache */
+  --status-idle: rgba(255, 255, 255, 0.4); /* "not run" / no data */
+
+  /* ------------------------------------------------------------- KPI orbs */
+  --orb-cost: rgba(255, 138, 0, 0.22);
+  --orb-block: rgba(239, 68, 68, 0.2);
+  --orb-sanitize: rgba(123, 63, 242, 0.22);
+  --orb-info: rgba(1, 117, 255, 0.22);
+
+  /* ------------------------------------------------------------- chart ink */
+  --chart-grid: rgba(255, 255, 255, 0.07);
+  --chart-grid-dash: 3 6;
+  --chart-axis: rgba(255, 255, 255, 0.4);
+  --chart-stroke-width: 2.4px;
+
+  /* ------------------------------------------------------- type: families */
+  --font-sans: var(--font-inter), Inter, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), "JetBrains Mono", monospace;
+
+  /* ---------------------------------------------------------- type: sizes */
+  --text-2xs: 10.5px;   /* axis ticks, version string */
+  --text-xs: 11px;      /* breaker badge */
+  --text-xs-plus: 11.5px;
+  --text-sm: 12px;
+  --text-sm-plus: 12.5px;
+  --text-base: 13px;
+  --text-base-plus: 13.5px;
+  --text-md: 14px;
+  --text-md-plus: 14.5px;
+  --text-lg: 15px;
+  --text-lg-plus: 15.5px;
+  --text-xl: 16px;
+  --text-2xl: 18px;
+  --text-3xl: 20px;     /* panel h2 */
+  --text-4xl: 22px;
+  --text-5xl: 24px;     /* page h1 */
+  --text-6xl: 26px;
+  --text-7xl: 27px;     /* KPI number */
+  --text-8xl: 44px;     /* 403 glyph */
+  --text-display: clamp(44px, 7.4vw, 96px);
+  --text-display-sm: clamp(30px, 4.4vw, 52px);
+
+  /* -------------------------------------------------------- type: metrics */
+  --tracking-logo: 0.2em;
+  --tracking-mono-label: 0.16em;
+  --tracking-caps: 0.08em;
+  --tracking-caps-tight: 0.06em;
+  --tracking-tight: -0.02em;
+  --tracking-tighter: -0.035em;
+  --tracking-tightest: -0.045em;
+  --leading-tight: 0.98;
+  --leading-heading: 1.06;
+  --leading-nav: 1.25;
+  --leading-body: 1.6;
+  --leading-mono: 1.7;
+  --leading-mono-loose: 1.9;
+
+  /* ---------------------------------------------------------------- radii */
+  --radius-dot: 2px;      /* sidebar nav square */
+  --radius-chip: 3px;     /* legend swatch */
+  --radius-sm: 10px;      /* pipeline row */
+  --radius-md: 12px;      /* nav item, KPI orb */
+  --radius-lg: 18px;      /* inset card */
+  --radius-xl: 22px;      /* panel */
+  --radius-2xl: 26px;     /* guardrail card */
+  --radius-full: 999px;
+  --radius-circle: 50%;
+
+  /* -------------------------------------------------------------- spacing */
+  --space-1: 3px;
+  --space-2: 4px;
+  --space-3: 5px;
+  --space-4: 6px;
+  --space-5: 7px;
+  --space-6: 8px;
+  --space-7: 9px;
+  --space-8: 10px;
+  --space-9: 11px;
+  --space-10: 12px;
+  --space-11: 14px;
+  --space-12: 16px;
+  --space-13: 18px;
+  --space-14: 20px;
+  --space-15: 22px;
+  --space-16: 24px;
+  --space-17: 26px;
+  --space-18: 28px;
+  --space-19: 30px;
+  --space-20: 32px;
+  --space-21: 38px;
+  --space-22: 40px;
+  --space-23: 60px;
+
+  /* ------------------------------------------------------------- geometry */
+  --sidebar-w: 232px;
+  --content-max: 1460px;
+  --content-max-marketing: 1180px;
+  --hero-max: 1100px;
+  --panel-min: 420px;      /* auto-fit minmax for the main grid */
+  --card-min: 240px;       /* provider card grid */
+  --kpi-min: 150px;
+  --guardrail-min: 300px;
+  --inspector-min: 230px;
+  --chart-h: 210px;
+  --donut-size: 158px;
+  --donut-hole: 118px;
+  --search-w: 280px;
+
+  /* -------------------------------------------------------------- shadows */
+  --shadow-cta: 0 0 28px rgba(1, 117, 255, 0.45), 0 0 14px rgba(255, 138, 0, 0.25);
+  --shadow-cta-lg: 0 0 40px rgba(1, 117, 255, 0.5), 0 0 20px rgba(255, 138, 0, 0.3);
+  --shadow-chrome: 0 -10px 90px rgba(1, 117, 255, 0.18);
+  --shadow-planet: inset 0 18px 90px rgba(0, 0, 0, 0.95), 0 -6px 90px rgba(120, 170, 255, 0.18);
+  --shadow-eclipse: 0 0 70px 20px rgba(0, 0, 0, 0.9) inset;
+  --shadow-arc: 0 -20px 60px 10px rgba(255, 255, 255, 0.15);
+  --shadow-403: 0 0 30px rgba(239, 68, 68, 0.8);
+  --text-shadow-hero: 0 2px 20px rgba(0, 0, 0, 0.85), 0 0 8px rgba(0, 0, 0, 0.7);
+
+  /* ----------------------------------------------------------------- blur */
+  --blur-panel: 20px;   /* sidebar + panels */
+  --blur-pill: 18px;    /* landing nav pill */
+  --blur-badge: 14px;
+  --blur-chrome: 24px;
+  --blur-shaft: 22px;
+  --blur-horizon: 34px;
+  --blur-aurora: 40px;
+  --blur-orb-card: 70px;
+  --blur-orb-page: 150px;
+
+  /* --------------------------------------------------- ambient orb layout */
+  --orb-opacity: 0.16;
+  --orb-a-size: 560px;
+  --orb-b-size: 620px;
+
+  /* ------------------------------------------------------------ motion */
+  --dur-drift-a: 42s;
+  --dur-drift-b: 48s;
+  --dur-pulse: 2s;
+  --dur-twinkle: 6s;
+  --dur-rim: 9s;
+  --dur-float: 14s;
+  --dur-float-slow: 18s;
+  --dur-horizon: 22s;
+  --dur-spin: 40s;
+  --dur-limb: 40s;
+  --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
+  --stage-stagger: 80ms; /* inspector stage reveal cadence */
+}
+
+/* =========================================================================
+   Base — copied from the design files' <style> blocks
+   ========================================================================= */
+
+body {
+  margin: 0;
+  background: var(--aegis-bg);
+  color: var(--aegis-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
+}
+
+a {
+  color: var(--aegis-text);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--aegis-text-75);
+}
+
+::placeholder {
+  color: var(--aegis-text-35);
+}
+
+/* =========================================================================
+   Keyframes — verbatim from the design files
+   ========================================================================= */
+
+@keyframes drift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(3%, 2%, 0) scale(1.1); }
+}
+
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+@keyframes twinkle {
+  from { opacity: 0.6; }
+  to { opacity: 1; }
+}
+
+@keyframes horizonGlow {
+  0%, 100% { opacity: 0.85; transform: scaleY(1); }
+  50% { opacity: 1; transform: scaleY(1.05); }
+}
+
+@keyframes rimBreathe {
+  0%, 100% { opacity: 0.88; }
+  50% { opacity: 1; }
+}
+
+@keyframes limbTurn {
+  0%, 100% { transform: rotate(-0.7deg); }
+  50% { transform: rotate(0.7deg); }
+}
+
+@keyframes curtain {
+  0%, 100% { transform: translateX(0) scaleY(1); opacity: 0.85; }
+  50% { transform: translateX(3%) scaleY(1.06); opacity: 1; }
+}
+
+@keyframes shaftSway {
+  0%, 100% { transform: translateX(0) scaleX(1); }
+  50% { transform: translateX(-1.5%) scaleX(1.03); }
+}
+
+@keyframes spinSlow {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes floatY {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* Stage cards fade up as the pipeline reports them (Phase 5 inspector). */
+@keyframes stageIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+  }
+}
