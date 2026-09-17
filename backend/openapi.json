@@ -621,7 +621,7 @@
           "governance"
         ],
         "summary": "Appeal an automated block",
-        "description": "Aegis makes automated decisions that affect people, which makes Aegis itself subject to the oversight principle it enforces. Any appealable block can be contested here with a written justification.",
+        "description": "Aegis makes automated decisions that affect people, which makes Aegis itself subject to the oversight principle it enforces. Any appealable block can be contested here with a written justification.\n\nRefused, with the reason, when the rule is not appealable under the current policy (credential leaks) or when the audit log shows the request was not blocked. One pending review per request; a repeat returns the existing one.",
         "operationId": "create_review_api_reviews_post",
         "requestBody": {
           "required": true,
@@ -680,6 +680,22 @@
             }
           },
           {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tenant Id"
+            }
+          },
+          {
             "name": "limit",
             "in": "query",
             "required": false,
@@ -689,6 +705,17 @@
               "minimum": 1,
               "default": 50,
               "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
             }
           }
         ],
@@ -716,13 +743,55 @@
         }
       }
     },
+    "/api/reviews/{review_id}": {
+      "get": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "One review",
+        "operationId": "get_review_api_reviews__review_id__get",
+        "parameters": [
+          {
+            "name": "review_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Review Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewRecord"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/reviews/{review_id}/decision": {
       "post": {
         "tags": [
           "governance"
         ],
         "summary": "Human approves or denies an appeal",
-        "description": "Approval mints a short-lived, single-use override token scoped to the one `request_id` under review. The Gateway replays that request with the token; `/inspect` honours it once and records the override.",
+        "description": "Approval mints a short-lived, single-use override token scoped to the one `request_id` under review. The token is returned in this response exactly once and stored hashed. The Gateway replays the same `request_id` with `override_token` set; `/inspect` lifts the appealable block, records the override, and consumes the token.\n\nReviewer identity (`reviewer_ref`) is stored as a salted hash. Authentication of reviewers is Phase 16.",
         "operationId": "decide_review_api_reviews__review_id__decision_post",
         "parameters": [
           {

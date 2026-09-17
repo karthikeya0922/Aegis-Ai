@@ -265,15 +265,17 @@ Even the large model misses the Indian name in this template. The gazetteer catc
 
 *Requirement 1. Do not cut this.*
 
-- [ ] `POST /api/reviews` — user appeals a block with a justification
-- [ ] `GET /api/reviews` — queue with filters
-- [ ] `POST /api/reviews/{id}/decision` — approve/deny with a reviewer note
-- [ ] Approval mints a short-TTL, single-use `override_token` scoped to one `request_id`
-- [ ] Token verification wired back into `/inspect`
-- [ ] Non-appealable rules (credentials) reject appeals with a clear reason
-- [ ] `tests/test_reviews.py` — full lifecycle, token replay rejection, scope violation
+- [x] `POST /api/reviews` — user appeals a block with a justification
+- [x] `GET /api/reviews` — queue with filters
+- [x] `POST /api/reviews/{id}/decision` — approve/deny with a reviewer note
+- [x] Approval mints a short-TTL, single-use `override_token` scoped to one `request_id`
+- [x] Token verification wired back into `/inspect`
+- [x] Non-appealable rules (credentials) reject appeals with a clear reason
+- [x] `tests/test_reviews.py` — full lifecycle, token replay rejection, scope violation
 
 ---
+
+**DONE** -- `app/reviews/service.py`, 24 tests plus the API lifecycle. Appeals persist to `review_request` and link back to the audit row. Approval mints a token once and stores only its hash. `ReviewOverrideVerifier` is the pipeline default: approved, scoped to one request_id, unexpired, single-use, consumed only when it actually lifted a block. A valid injection-override token still cannot lift a credential block in the same request. Verified live: block -> appeal -> approve -> replay lifts -> replay again refused ("token already used").
 
 ## Phase 15 — Policies API & Versioning
 
@@ -316,10 +318,11 @@ sweep's checklist. Add to it whenever something is hardcoded to keep moving.
 | Honorific list | `pii_scanner.py` regex | YAML | sweep |
 | `_LEADING_STOP` overlaps `contact_cues` | `india_recognizers.py` / `india_names.yaml` | one list | sweep |
 | Health component list maintained by hand | `api/health.py` | derived from a scanner registry | Phase 16 |
+| Reviewer identity is a free-text `reviewer_ref`, unauthenticated | `api/governance.py` | reviewer role + auth; RBAC is Person 2's gateway concern, the Inspector should at least require a shared secret | Phase 16 |
 | `BUILD_PHASE` string bumped by hand | `api/health.py` | derived from git tag or version | Phase 16 |
 | ~~Scanners run on joined text; `message_index` always 0~~ | `stubs.py` | per-message scan, real offsets | **done, Phase 5** |
-| In-memory review records | `api/governance.py` | `review_request` table (exists as of Phase 8) | Phase 14 |
-| `PermissiveOverrideVerifier` accepts any `ovr_` token | `security/pipeline.py` | verify against `review_request`: single-use, scoped, unexpired | Phase 14 |
+| ~~In-memory review records~~ | `api/governance.py` | `review_request` table | **done, Phase 14** |
+| ~~`PermissiveOverrideVerifier` accepts any `ovr_` token~~ | `security/pipeline.py` | `ReviewOverrideVerifier` is the default; permissive kept for tests only | **done, Phase 14** |
 | Deterministic hash "embeddings" | `api/embed.py` | sentence-transformers | Phase 9 |
 | Fixed 8/10 grounding result | `stubs.py` | NLI cross-encoder | Phase 10 |
 | Egress always PASS | `stubs.py` | harm/bias screen | Phase 11 |

@@ -7,7 +7,7 @@ This service is the absolute authority on whether a prompt is safe. It is
 **stateless** -- the same input always yields the same verdict. All session
 state (token vault, semantic cache) belongs to Person 2's Gateway and its Redis.
 
-**Current build phase: Phase 13 (fairness harness).** The whole ingress path is real, every decision is on file, and the detector's fairness is measured. Every endpoint
+**Current build phase: Phase 14 (human review).** The whole ingress path is real, every decision is on file, the detector's fairness is measured, and automated blocks are contestable. Every endpoint
 is live and contract-valid. `GET /api/health` reports exactly which subsystems
 are real and which are still stubs.
 
@@ -23,7 +23,8 @@ are real and which are still stubs.
 | Pipeline | **Real.** `security/pipeline.py`: ten measured stages, config-driven routing and cache hints, pluggable override verifier |
 | Database | **Real.** SQLite by default, Postgres by `DATABASE_URL`; Alembic migrations; two-phase audit write; erasure and retention |
 | Fairness harness | **Real.** Per-group recall over a 5-group corpus, baseline vs current, persisted; `POST /api/fairness/run` |
-| Egress, embeddings, grounding, metrics, reviews | Stub -- phases 9-12, 14, see `docs/PERSON1_BUILD_PLAN.md` |
+| Human review | **Real.** Appeals persisted; override tokens hashed, single-use, request-scoped, expiring; verified in the pipeline |
+| Egress, embeddings, grounding, metrics | Stub -- phases 9-12, see `docs/PERSON1_BUILD_PLAN.md` |
 
 ---
 
@@ -455,6 +456,40 @@ is counted, logged, and never changes the user's response.
 | `POST /api/audit/erase-subject` | right to erasure |
 | `POST /api/audit/purge` | retention window |
 
+## Human review (Phase 14)
+
+Aegis makes automated decisions that affect people, which makes Aegis
+itself subject to the oversight principle it enforces (Requirement 1). Any
+appealable block can be contested, and a human can lift it.
+
+```text
+blocked user  POST /api/reviews {request_id, justification}      -> PENDING
+reviewer      POST /api/reviews/{id}/decision {approve, note}    -> APPROVED, token returned ONCE
+gateway       POST /inspect  (same request_id, override_token)   -> block lifted, override recorded
+gateway       POST /inspect  (same token again)                  -> refused: token already used
+```
+
+**What a token cannot do**, each with a test:
+
+- be forged -- unknown tokens are refused; the stored value is a SHA-256
+  hash and the raw token is never in any row
+- be reused -- consumed on the first request it actually lifts; presenting
+  it on a request that was not blocked does *not* spend it
+- be redirected -- scoped to one `request_id`; presenting it against another
+  is a scope violation, refused and logged
+- outlive its window -- `AEGIS_OVERRIDE_TOKEN_TTL_SECONDS`, default 900
+- lift what policy says is not appealable -- a valid injection-override
+  token in a request that also contains a credential leaves the credential
+  block in place, and the block reason names it
+
+**What cannot be appealed**: rules the policy marks `appealable: false`
+(credential leaks by default), and requests the audit log shows were not
+blocked. Both are refused with the reason. One pending review per request.
+
+Requester and reviewer identities are stored as salted hashes. Reviewer
+authentication is Phase 16 (RBAC lives in the Gateway; the Inspector will
+require a shared secret on the decision endpoint).
+
 ### Entropy is a supporting signal
 
 `H(X) = -sum p(x) log2 p(x)` over string literals. A UUID, a git SHA and a
@@ -478,6 +513,8 @@ app/
                     india_recognizers.py, injection.py, redactor.py,
                     policy_engine.py, pipeline.py, spans.py (all real)
   audit/            database.py, models.py, service.py (real); metrics.py (phase 12)
+  reviews/          service.py -- appeals, decisions, ReviewOverrideVerifier (real)
+  fairness/         harness.py -- per-group recall, baseline vs current (real)
   verification/     grounded response checking    (phase 10)
   utils/            ids, timing, redacting logger
   stubs.py          only the subsystems not yet shipped (phases 8-14)
