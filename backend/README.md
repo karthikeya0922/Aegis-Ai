@@ -7,9 +7,18 @@ This service is the absolute authority on whether a prompt is safe. It is
 **stateless** -- the same input always yields the same verdict. All session
 state (token vault, semantic cache) belongs to Person 2's Gateway and its Redis.
 
-**Current build phase: Phase 0 (contract).** Every endpoint is live and
-contract-valid; the detection logic behind them is stubbed. `GET /api/health`
-reports exactly which subsystems are still stubs.
+**Current build phase: Phase 1 (secret scanner + entropy).** Every endpoint
+is live and contract-valid. `GET /api/health` reports exactly which subsystems
+are real and which are still stubs.
+
+| Subsystem | Status |
+|---|---|
+| Secret scanner | **Real.** 25 config-driven patterns in `config/secret_patterns.yaml`, overlap-resolved, entropy-weighted confidence |
+| Entropy scanner | **Real.** Shannon entropy over candidate literals; warn-only by design |
+| PII scanner | Stub (Phase 2) |
+| Injection detector | Stub (Phase 4) |
+| Policy engine | Stub (Phase 6) |
+| Everything else | Stub -- see `docs/PERSON1_BUILD_PLAN.md` |
 
 ---
 
@@ -134,6 +143,43 @@ curl -s localhost:8000/inspect -H 'Content-Type: application/json' -d '{
 
 ---
 
+## What the secret scanner does (Phase 1)
+
+Patterns live in `config/secret_patterns.yaml` -- adding a provider is a
+config change, not a code change. Each finding carries:
+
+- `type` -- e.g. `AWS_ACCESS_KEY`, `DATABASE_CREDENTIAL`, `PRIVATE_KEY`
+- `confidence` -- base score for the pattern, nudged by Shannon entropy of the
+  matched value (bounded to +/-0.10 so entropy can never drive the verdict)
+- `pattern` -- the rule ID that fired, for the audit log and the UI
+- `placeholder` -- e.g. `[AWS_KEY_1]`; the raw value goes only into `vault`
+
+**Overlap resolution.** `Bearer <jwt>` matches two rules; a DB URI matches
+the URI rule and the generic-password rule. One finding per span: longest
+match wins, confidence breaks ties.
+
+**Validators.** A JWT must base64-decode to a JSON header with `alg`, so
+`abc.def.ghi` is not a token. Documentation placeholders
+(`your_password_here`, `<YOUR_API_KEY>`, `changeme`) are rejected.
+
+**AWS's example key is still caught.** `AKIAIOSFODNN7EXAMPLE` has real key
+shape. Treating it as safe because it says EXAMPLE is exactly the reasoning
+that leaks production keys.
+
+**Known misses, documented in `tests/test_secrets.py`:** base64-encoded keys,
+whitespace-split keys, delimiter-obfuscated keys, credentials stated in prose.
+These feed the limitations panel in the UI.
+
+### Entropy is a supporting signal
+
+`H(X) = -sum p(x) log2 p(x)` over string literals. A UUID, a git SHA and a
+base64 thumbnail all score high, so entropy is used in exactly two ways: as a
+confidence modifier on a pattern that already fired, and as a standalone
+**warn** for unrecognised high-entropy strings. It never blocks on its own --
+`tests/test_entropy.py::test_entropy_findings_never_block` enforces that.
+
+---
+
 ## Layout
 
 ```text
@@ -142,12 +188,13 @@ app/
   main.py           app, middleware, error envelopes
   contracts/        Pydantic models -- the seam with Person 2
   api/              route handlers
-  security/         scanners + policy engine      (phases 1-7)
+  security/         secret_scanner.py, entropy.py (real)
+                    pii, injection, redactor, policy (phases 2-7)
   audit/            SQLAlchemy models + metrics   (phases 8, 12)
   verification/     grounded response checking    (phase 10)
   utils/            ids, timing, redacting logger
   stubs.py          phase 0 keyword-reactive stubs
-config/             patterns, rules, policies, pricing assumptions
+config/             secret_patterns.yaml (real); rules, policies, pricing (later)
 eval/               fairness corpus + harness     (phase 13)
 tests/
 ```

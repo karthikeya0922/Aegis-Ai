@@ -36,20 +36,20 @@ P10 Grounding ──> P11 Egress Screen ─────────────�
 
 *Goal: Person 2 can build against a real HTTP surface within the hour.*
 
-- [ ] `backend/` scaffold per the directory structure
-- [ ] `requirements.txt` split into base and ML extras so the service boots before models download
-- [ ] `app/config.py` — pydantic-settings, every threshold from `.env`, no magic numbers in code
-- [ ] `app/contracts/` — Pydantic models for **every** request and response in spec §4
-- [ ] `app/main.py` — FastAPI app, CORS, request-ID middleware, exception handlers
-- [ ] All 16 endpoints stubbed, returning contract-valid fixed JSON
-- [ ] `app/utils/ids.py` (request IDs), `timing.py` (stage stopwatch), `logging.py` (**redacting formatter**)
-- [ ] `GET /api/health` reporting model-load and DB status
-- [ ] `scripts/export_openapi.py` → `openapi.json` for Person 2
-- [ ] `Dockerfile` + `.dockerignore`
-- [ ] `.env.example`
-- [ ] `tests/test_contract.py` — every stub validates against its Pydantic model
+- [x] `backend/` scaffold per the directory structure
+- [x] `requirements.txt` split into base and ML extras so the service boots before models download
+- [x] `app/config.py` — pydantic-settings, every threshold from `.env`, no magic numbers in code
+- [x] `app/contracts/` — Pydantic models for **every** request and response in spec §4
+- [x] `app/main.py` — FastAPI app, CORS, request-ID middleware, exception handlers
+- [x] All 16 endpoints stubbed, returning contract-valid fixed JSON
+- [x] `app/utils/ids.py` (request IDs), `timing.py` (stage stopwatch), `logging.py` (**redacting formatter**)
+- [x] `GET /api/health` reporting model-load and DB status
+- [x] `scripts/export_openapi.py` → `openapi.json` for Person 2
+- [x] `Dockerfile` + `.dockerignore`
+- [x] `.env.example`
+- [x] `tests/test_contract.py` — every stub validates against its Pydantic model
 
-**Exit:** `uvicorn app.main:app` serves all endpoints; `openapi.json` handed to Person 2.
+**Exit:** `uvicorn app.main:app` serves all endpoints; `openapi.json` handed to Person 2. **DONE.**
 
 ---
 
@@ -57,17 +57,17 @@ P10 Grounding ──> P11 Egress Screen ─────────────�
 
 *No ML dependency. Fastest path to a real demo moment.*
 
-- [ ] `config/secret_patterns.yaml` — patterns are data, never hardcoded
-- [ ] AWS `AKIA`/`ASIA`, GitHub `ghp_`/`github_pat_`, OpenAI `sk-`, Slack, Stripe
-- [ ] JWT three-segment structural match + `Bearer eyJ`
-- [ ] PEM private keys (RSA / OPENSSH / generic / EC)
-- [ ] DB URIs with embedded credentials: postgres, mysql, mongodb, redis, mssql
-- [ ] `app/security/entropy.py` — Shannon entropy over candidate literals
-- [ ] Entropy is a **confidence modifier only**, never an independent finding that blocks
-- [ ] Per-match confidence scoring (prefix match + charset + length + entropy)
-- [ ] `tests/test_secrets.py`, `tests/test_entropy.py` incl. false-positive corpus (UUIDs, git SHAs, base64 images)
+- [x] `config/secret_patterns.yaml` — patterns are data, never hardcoded
+- [x] AWS `AKIA`/`ASIA`, GitHub `ghp_`/`github_pat_`, OpenAI `sk-`, Slack, Stripe
+- [x] JWT three-segment structural match + `Bearer eyJ`
+- [x] PEM private keys (RSA / OPENSSH / generic / EC)
+- [x] DB URIs with embedded credentials: postgres, mysql, mongodb, redis, mssql
+- [x] `app/security/entropy.py` — Shannon entropy over candidate literals
+- [x] Entropy is a **confidence modifier only**, never an independent finding that blocks
+- [x] Per-match confidence scoring (prefix match + charset + length + entropy)
+- [x] `tests/test_secrets.py`, `tests/test_entropy.py` incl. false-positive corpus (UUIDs, git SHAs, base64 images)
 
-**Exit:** demo scenario 1 (credential leak) detects correctly.
+**Exit:** demo scenario 1 (credential leak) detects correctly. **DONE** -- 25 patterns, overlap resolution, JWT + placeholder validators, scanner warm-up at startup, 84 tests.
 
 ---
 

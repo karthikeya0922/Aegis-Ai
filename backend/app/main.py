@@ -72,6 +72,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         health.BUILD_PHASE,
         settings.environment,
     )
+
+    # Compile the secret patterns now rather than on the first request. Without
+    # this the first /inspect pays ~15ms to build 25 regexes, which shows up as
+    # a misleading latency spike on the first call of a demo.
+    from app.security.secret_scanner import get_scanner
+
+    scanner = get_scanner()
+    log.info("secret scanner ready (%d patterns, v%d)", len(scanner.patterns), scanner.version)
+
     if settings.warm_models_on_startup:
         log.info("model warm-up requested (no-op until Phase 2)")
     yield

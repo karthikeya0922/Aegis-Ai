@@ -17,6 +17,7 @@ whether a deployment is still serving stubs.
 from __future__ import annotations
 
 import re
+import time
 from datetime import datetime, timedelta, timezone
 
 from app.contracts.audit import (
@@ -55,6 +56,8 @@ from app.contracts.governance import (
     ReviewListResponse,
     ReviewRecord,
 )
+from app.security.entropy import scan as entropy_scan
+from app.security.secret_scanner import get_scanner
 from app.contracts.inspect import (
     CacheHint,
     DetectionBundle,
@@ -79,9 +82,7 @@ from app.contracts.metrics import (
 
 STUB_MODE = True
 
-# --- crude triggers, replaced by real scanners in phases 1-4 ---------------
-_AWS = re.compile(r"\b(AKIA|ASIA)[0-9A-Z]{16}\b")
-_DB_URI = re.compile(r"\b(postgres|postgresql|mysql|mongodb)://[^\s:]+:[^\s@]+@")
+# --- crude triggers still awaiting their real scanners (phases 2 and 4) ----
 _EMAIL = re.compile(r"\b[\w.+-]+@[\w-]+\.[\w.]+\b")
 _PHONE = re.compile(r"(?:\+?\d{1,3}[-.\s]?)?(?:\d{3}[-.\s]?){2}\d{4}\b")
 _INJECTION = re.compile(
@@ -105,42 +106,19 @@ def stub_inspect(req: InspectRequest) -> InspectResponse:
     vault: dict[str, str] = {}
     sanitized = text
 
-    # --- secrets (block path) ---------------------------------------------
-    for i, m in enumerate(_AWS.finditer(text), start=1):
-        ph = f"[AWS_KEY_{i}]"
-        secrets.append(
-            Detection(
-                type="AWS_ACCESS_KEY",
-                category=DetectionCategory.SECRET,
-                placeholder=ph,
-                confidence=0.95,
-                start=m.start(),
-                end=m.end(),
-                pattern="akia_prefix",
-                action=PolicyAction.BLOCK,
-                recognizer="stub.aws",
-            )
-        )
-        vault[ph] = m.group(0)
-        sanitized = sanitized.replace(m.group(0), ph)
+    # --- secrets (REAL as of Phase 1) -------------------------------------
+    _t0 = time.perf_counter()
+    secret_detections, secret_vault = get_scanner().scan(text)
+    secrets.extend(secret_detections)
+    vault.update(secret_vault)
+    for placeholder, original in secret_vault.items():
+        sanitized = sanitized.replace(original, placeholder)
+    secret_ms = round((time.perf_counter() - _t0) * 1000.0, 3)
 
-    for i, m in enumerate(_DB_URI.finditer(text), start=1):
-        ph = f"[DB_URI_{i}]"
-        secrets.append(
-            Detection(
-                type="DATABASE_CREDENTIAL",
-                category=DetectionCategory.SECRET,
-                placeholder=ph,
-                confidence=0.97,
-                start=m.start(),
-                end=m.end(),
-                pattern="uri_with_credentials",
-                action=PolicyAction.BLOCK,
-                recognizer="stub.db_uri",
-            )
-        )
-        vault[ph] = m.group(0)
-        sanitized = sanitized.replace(m.group(0), ph)
+    # --- entropy (REAL as of Phase 1; warn-only by design) ----------------
+    _t0 = time.perf_counter()
+    entropy.extend(entropy_scan(text))
+    entropy_ms = round((time.perf_counter() - _t0) * 1000.0, 3)
 
     # --- PII (sanitize path) ----------------------------------------------
     for i, m in enumerate(_EMAIL.finditer(text), start=1):
@@ -277,10 +255,15 @@ def stub_inspect(req: InspectRequest) -> InspectResponse:
         PipelineStage(
             stage="secret_scanner",
             status=StageStatus.WARNING if secrets else StageStatus.SUCCESS,
-            duration_ms=0.2,
+            duration_ms=secret_ms,
             detail=f"{len(secrets)} finding(s)" if secrets else None,
         ),
-        PipelineStage(stage="entropy_scanner", status=StageStatus.SUCCESS, duration_ms=0.1),
+        PipelineStage(
+            stage="entropy_scanner",
+            status=StageStatus.WARNING if entropy else StageStatus.SUCCESS,
+            duration_ms=entropy_ms,
+            detail=f"{len(entropy)} high-entropy string(s)" if entropy else None,
+        ),
         PipelineStage(
             stage="injection_detector",
             status=StageStatus.BLOCKED if injection.detected else StageStatus.SUCCESS,

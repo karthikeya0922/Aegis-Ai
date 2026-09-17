@@ -17,15 +17,15 @@ from app.stubs import STUB_MODE
 router = APIRouter(tags=["health"])
 
 _STARTED = time.monotonic()
-BUILD_PHASE = "phase-0-contract"
+BUILD_PHASE = "phase-1-secrets-entropy"
 
 
 def _components() -> list[ComponentHealth]:
     stub = "stub" if STUB_MODE else "ok"
     return [
         ComponentHealth(name="pii_scanner", status=stub, detail="Presidio + spaCy lands in Phase 2"),
-        ComponentHealth(name="secret_scanner", status=stub, detail="Real patterns land in Phase 1"),
-        ComponentHealth(name="entropy_scanner", status=stub, detail="Phase 1"),
+        ComponentHealth(name="secret_scanner", status="ok", detail="25 config-driven patterns, overlap-resolved"),
+        ComponentHealth(name="entropy_scanner", status="ok", detail="Shannon entropy, warn-only by design"),
         ComponentHealth(name="injection_detector", status=stub, detail="Phase 4"),
         ComponentHealth(name="policy_engine", status=stub, detail="Phase 6"),
         ComponentHealth(name="embeddings", status=stub, detail="Deterministic stub vectors until Phase 9"),

@@ -331,10 +331,27 @@ def test_fairness_report_returns_nulls_not_invented_numbers():
 
 
 def test_health_reports_stub_subsystems_honestly():
+    """Health must never overstate what a deployment actually implements.
+
+    Phase-agnostic on purpose: the phase string advances every time we ship
+    one, but the honesty requirement does not change.
+    """
     res = HealthResponse.model_validate(client.get("/api/health").json())
-    assert res.phase == "phase-0-contract"
-    assert res.status == "degraded"
-    assert any(c.status == "stub" for c in res.components)
+    assert res.phase.startswith("phase-")
+    stubbed = [c.name for c in res.components if c.status == "stub"]
+    if stubbed:
+        assert res.status == "degraded"
+        assert res.degraded_reasons, "degraded status must say why"
+    else:
+        assert res.status == "ok"
+
+
+def test_health_marks_shipped_subsystems_as_real():
+    """Phase 1 shipped these two. They must no longer claim to be stubs."""
+    res = HealthResponse.model_validate(client.get("/api/health").json())
+    by_name = {c.name: c.status for c in res.components}
+    assert by_name["secret_scanner"] == "ok"
+    assert by_name["entropy_scanner"] == "ok"
 
 
 # ---------------------------------------------------------------------------
