@@ -43,12 +43,13 @@ entities:
     placeholder: PERSON
     threshold: 0.65
     enabled: true
-    engine: presidio
+    engine: both
     sensitivity: high
     note: >
-      Requires NER. In regex-only (degraded) mode a narrow honorific heuristic
-      ("Dr. Priya Ramaswamy") runs at low confidence and is labelled as such.
-      Phase 3 adds a name gazetteer to lift recall on non-Anglo names.
+      Produced by spaCy NER when loaded, and always by the Indian name
+      gazetteer (config/india_names.yaml) -- which exists because NER was
+      measured to catch "John Smith" and miss "Priya Ramaswamy" in the same
+      sentence. In degraded mode a narrow honorific heuristic also runs.
 
   IP_ADDRESS:
     placeholder: IP
@@ -71,6 +72,40 @@ entities:
     enabled: true
     engine: both
     sensitivity: high
+
+  # --- India-specific (always-on engine, works without any model) ----------
+
+  IN_AADHAAR:
+    placeholder: AADHAAR
+    threshold: 0.80
+    enabled: true
+    engine: india
+    sensitivity: high
+    note: 12 digits, first digit 2-9, Verhoeff checksum. Random 12-digit numbers do not match.
+
+  IN_PAN:
+    placeholder: PAN
+    threshold: 0.60
+    enabled: true
+    engine: india
+    sensitivity: high
+    note: AAAAA9999A. Confidence is higher when the 4th letter is a valid holder type.
+
+  IN_IFSC:
+    placeholder: IFSC
+    threshold: 0.55
+    enabled: true
+    engine: india
+    sensitivity: medium
+    note: Bank routing code, not a personal identifier alone, but pairs with account numbers.
+
+  IN_UPI_ID:
+    placeholder: UPI
+    threshold: 0.80
+    enabled: true
+    engine: india
+    sensitivity: high
+    note: handle@psp against a known-PSP list. No TLD -- that is what separates it from an email.
 
   IBAN_CODE:
     placeholder: IBAN

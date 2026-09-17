@@ -7,7 +7,7 @@ This service is the absolute authority on whether a prompt is safe. It is
 **stateless** -- the same input always yields the same verdict. All session
 state (token vault, semantic cache) belongs to Person 2's Gateway and its Redis.
 
-**Current build phase: Phase 2 (PII scanner).** Every endpoint
+**Current build phase: Phase 3 (India recognisers).** Every endpoint
 is live and contract-valid. `GET /api/health` reports exactly which subsystems
 are real and which are still stubs.
 
@@ -16,6 +16,7 @@ are real and which are still stubs.
 | Secret scanner | **Real.** 25 config-driven patterns in `config/secret_patterns.yaml`, overlap-resolved, entropy-weighted confidence |
 | Entropy scanner | **Real.** Shannon entropy over candidate literals; warn-only by design |
 | PII scanner | **Real.** Presidio + spaCy NER with an always-on regex engine for structured identifiers; Luhn-validated cards; degrades to regex-only and says so if no model is installed |
+| India engine | **Real.** Aadhaar (Verhoeff), PAN, IFSC, UPI, Indian mobile, and a 298-name gazetteer that closes the measured PERSON recall gap. Always on -- no model required |
 | Injection detector | Stub (Phase 4) |
 | Policy engine | Stub (Phase 6) |
 | Everything else | Stub -- see `docs/PERSON1_BUILD_PLAN.md` |
@@ -197,18 +198,37 @@ Enable per tenant.
 12-digit slice of a 19-digit card number, or an ISO date, is rejected. The
 Phase 0 stub got all three wrong.
 
-### Measured fairness baseline (feeds Phase 3)
+### The fairness gap, measured and closed (Phases 2-3)
 
-Same sentence template, `en_core_web_sm`:
+Same sentence template. Phase 2 measured this with `en_core_web_sm`; the
+finding held with `en_core_web_lg`:
 
-| Prompt | PERSON detected |
-|---|---|
-| Contact **John Smith** at john@example.com ... | yes (0.85) |
-| Contact **Priya Ramaswamy** at priya@example.in ... | **no** |
+| Prompt | spaCy NER | India gazetteer | Result |
+|---|---|---|---|
+| Contact **John Smith** at john@example.com ... | caught, 0.85 | -- | PERSON |
+| Contact **Priya Ramaswamy** at priya@example.in ... | **missed** | caught, 0.88 | PERSON |
 
-The detector currently protects the Anglo name and misses the Indian one.
-That is the gap the India recognisers and name gazetteer (Phase 3) exist to
-close, and the fairness harness (Phase 13) measures across a full corpus.
+Stock NER protects the Anglo name and misses the Indian one -- with the
+large model too. A privacy tool that protects some people's identities more
+reliably than others is an unfair system. The gazetteer in
+`config/india_names.yaml` (298 names across North, South, East, West,
+Muslim, Sikh, Christian and Parsi Indian naming) is what makes detection
+equitable, and it runs whether or not a model is loaded. Each finding names
+its engine (`via india.name_gazetteer` vs `via presidio.SpacyRecognizer`) so
+the dashboard can show *which* layer caught *whom*.
+
+The fairness harness (Phase 13) measures recall per name-origin group across
+a full corpus and publishes the before/after.
+
+## India-specific identifiers (Phase 3)
+
+| Type | Validation | Why it matters |
+|---|---|---|
+| `IN_AADHAAR` | 12 digits, first digit 2-9, **Verhoeff checksum** | A random 12-digit number does not match. Verhoeff catches adjacent transpositions, which Luhn does not |
+| `IN_PAN` | `AAAAA9999A`, 4th letter must be a valid holder type (P/C/H/F/A/T/B/L/J/G) | Rejects look-alikes; scores lower on an unknown holder type |
+| `IN_IFSC` | `AAAA0XXXXXX`, checked against a known bank-code list | High confidence on a known bank, still reported on an unknown one |
+| `IN_UPI_ID` | `handle@psp` against a known-PSP list | No TLD -- that is what separates it from an email |
+| Indian mobile | 10 digits starting 6-9, optional `+91`/`0` | A bare number inside a longer digit run is rejected |
 
 ### Entropy is a supporting signal
 
@@ -228,13 +248,15 @@ app/
   main.py           app, middleware, error envelopes
   contracts/        Pydantic models -- the seam with Person 2
   api/              route handlers
-  security/         secret_scanner.py, entropy.py, pii_scanner.py, spans.py (real)
+  security/         secret_scanner.py, entropy.py, pii_scanner.py,
+                    india_recognizers.py, spans.py (real)
                     injection, redactor, policy (phases 4-7)
   audit/            SQLAlchemy models + metrics   (phases 8, 12)
   verification/     grounded response checking    (phase 10)
   utils/            ids, timing, redacting logger
   stubs.py          phase 0 keyword-reactive stubs
-config/             secret_patterns.yaml, pii_entities.yaml (real); rules, policies, pricing (later)
+config/             secret_patterns.yaml, pii_entities.yaml, india_names.yaml (real);
+                    rules, policies, pricing (later)
 eval/               fairness corpus + harness     (phase 13)
 tests/
 ```
@@ -270,6 +292,6 @@ its own terms:
   legal compliance.
 - Fairness recall is measured against a **fixed synthetic corpus**, not a
   representative population sample.
-- NER recall on non-Anglo names is **measurably lower** with the stock spaCy
-  model (see the Phase 2 baseline above). Until Phase 3 lands, PERSON
-  detection is not equitable across name origins.
+- The name gazetteer is a **floor, not a ceiling**: 298 names cannot cover
+  every Indian name, and all-lowercase, ALL-CAPS, initial+surname and the
+  tail of a hyphenated surname are documented misses in `tests/test_india_pii.py`.

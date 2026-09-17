@@ -18,7 +18,7 @@ from app.stubs import STUB_MODE
 router = APIRouter(tags=["health"])
 
 _STARTED = time.monotonic()
-BUILD_PHASE = "phase-2-pii"
+BUILD_PHASE = "phase-3-india-recognizers"
 
 
 def _pii_component() -> ComponentHealth:
@@ -31,7 +31,10 @@ def _pii_component() -> ComponentHealth:
     return ComponentHealth(
         name="pii_scanner",
         status="ok",
-        detail=f"Presidio + spaCy {ph['spacy_model']}, {len(ph['entities_enabled'])} entity types",
+        detail=(
+            f"Presidio + spaCy {ph['spacy_model']}, {len(ph['entities_enabled'])} entity types, "
+            f"India engine with {ph['india_gazetteer_names']}-name gazetteer"
+        ),
     )
 
 

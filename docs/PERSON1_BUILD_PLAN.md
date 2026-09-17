@@ -97,17 +97,26 @@ The detector protects the Anglo name and misses the Indian one. This is the gap 
 
 *Requirement 5 groundwork. This is the differentiator.*
 
-- [ ] `app/security/india_recognizers.py`
-- [ ] **Aadhaar** — 12 digits + **Verhoeff checksum** validation (rejects random 12-digit numbers)
-- [ ] **PAN** — `[A-Z]{5}[0-9]{4}[A-Z]` with 4th-char entity-type validation
-- [ ] **IFSC** — `[A-Z]{4}0[A-Z0-9]{6}`
-- [ ] **UPI VPA** — `handle@bank` against a known-PSP list
-- [ ] **Indian mobile** — `+91` / `0` prefixed, leading digit 6-9
-- [ ] **Indian name gazetteer** to lift spaCy NER recall on Indian names
-- [ ] Register all as Presidio custom recognizers
-- [ ] `tests/test_india_pii.py` — valid, invalid-checksum, and near-miss cases
+- [x] `app/security/india_recognizers.py`
+- [x] **Aadhaar** — 12 digits + **Verhoeff checksum** validation (rejects random 12-digit numbers)
+- [x] **PAN** — `[A-Z]{5}[0-9]{4}[A-Z]` with 4th-char entity-type validation
+- [x] **IFSC** — `[A-Z]{4}0[A-Z0-9]{6}`
+- [x] **UPI VPA** — `handle@bank` against a known-PSP list
+- [x] **Indian mobile** — `+91` / `0` prefixed, leading digit 6-9
+- [x] **Indian name gazetteer** to lift spaCy NER recall on Indian names
+- [x] ~~Register all as Presidio custom recognizers~~ Implemented as an **always-on engine** instead -- a strict superset. Presidio-only recognisers would vanish in degraded mode, which is exactly when a fallback matters most
+- [x] `tests/test_india_pii.py` — valid, invalid-checksum, and near-miss cases
 
-**Exit:** demo scenario 3 detects `Priya Ramaswamy` and an Aadhaar number.
+**Exit:** demo scenario 3 detects `Priya Ramaswamy` and an Aadhaar number. **DONE** -- 61 tests, 298-name gazetteer, Verhoeff-validated Aadhaar, PAN holder-type check, IFSC bank list, UPI PSP list.
+
+**The gap is closed, and the finding got stronger.** With `en_core_web_lg` now installed:
+
+| Prompt | spaCy lg | Gazetteer | Result |
+|---|---|---|---|
+| `Contact John Smith at ...` | caught, 0.85 | -- | PERSON |
+| `Contact Priya Ramaswamy at ...` | **still missed** | caught, 0.88 | PERSON |
+
+Even the large model misses the Indian name in this template. This is not a small-model artifact. The gazetteer is what makes detection equitable, and it works with no model loaded at all.
 
 ---
 

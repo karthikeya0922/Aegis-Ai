@@ -105,6 +105,10 @@ _PHONE = re.compile(
     r"\d{2,5}(?:[\s.\-]\d{2,5}){1,3}"   # 2-4 digit groups, separated
     r"(?![\w\-])"
 )
+# 12 digits in 4-4-4 groups is the Aadhaar layout. Whether or not the
+# checksum passes, it is not a phone number.
+_AADHAAR_SHAPED = re.compile(r"\d{4}[ \-]\d{4}[ \-]\d{4}")
+
 # Separator-joined digit groups that are dates, not phones.
 _DATE_LIKE = re.compile(
     r"^(?:\d{4}[-./]\d{1,2}[-./]\d{1,2}|\d{1,2}[-./]\d{1,2}[-./]\d{2,4})$"
@@ -216,6 +220,8 @@ class RegexEngine:
                 continue  # a slice of a card number or long numeric ID
             if _DATE_LIKE.match(raw.strip()):
                 continue  # 2024-03-15 is a date
+            if _AADHAAR_SHAPED.fullmatch(raw.strip()):
+                continue  # 4-4-4 grouping is Aadhaar-shaped; the Aadhaar rule owns it
             # Something with a + or parentheses is a phone with high confidence;
             # a plain "555-123-4567" is likely but not certain.
             conf = 0.85 if ("+" in raw or "(" in raw) else 0.70
@@ -289,6 +295,9 @@ class PIIScanner:
             config_path or PII_CONFIG_PATH
         )
         self._regex = RegexEngine()
+        from app.security.india_recognizers import IndiaEngine  # noqa: WPS433 - circular
+
+        self._india = IndiaEngine()
         self._presidio: PresidioEngine | None = None
         self._presidio_attempted = False
         self._lock = threading.Lock()
@@ -378,6 +387,8 @@ class PIIScanner:
     # -- detection ------------------------------------------------------------
 
     def _presidio_entities(self) -> list[str]:
+        """Entity types Presidio is asked for. India-engine and regex-only
+        types are produced locally and never requested from Presidio."""
         return [
             name
             for name, cfg in self.entities.items()
@@ -388,6 +399,7 @@ class PIIScanner:
         """Raw matches from every available engine, filtered and overlap-resolved."""
         self._try_load_presidio()
         raw: list[PIIMatch] = self._regex.find(text, message_index)
+        raw.extend(self._india.find(text, message_index))
         if self._presidio is not None:
             raw.extend(self._presidio.find(text, message_index, self._presidio_entities()))
 
@@ -396,8 +408,10 @@ class PIIScanner:
             cfg = self.entities.get(m.type)
             if cfg is None or not cfg.enabled:
                 continue
-            if cfg.engine == "presidio" and m.recognizer.startswith("regex.") and self._presidio:
-                # NER is loaded; the honorific heuristic is a fallback only.
+            if m.recognizer == "regex.honorific_name" and self._presidio is not None:
+                # NER is loaded; the honorific heuristic is a degraded-mode
+                # fallback only. The gazetteer is NOT dropped -- it exists
+                # precisely because NER under-serves Indian names.
                 continue
             if m.confidence < cfg.threshold:
                 continue
@@ -455,6 +469,7 @@ class PIIScanner:
             "spacy_model": self.spacy_model,
             "entities_enabled": sorted(n for n, c in self.entities.items() if c.enabled),
             "config_version": self.version,
+            "india_gazetteer_names": len(self._india.gazetteer.all_names),
         }
 
 
