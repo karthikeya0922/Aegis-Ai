@@ -167,16 +167,16 @@ Even the large model misses the Indian name in this template. This is not a smal
 
 *Replace the Phase 0 stub with the orchestrated pipeline.*
 
-- [ ] Stage runner with **measured** per-stage `duration_ms`
-- [ ] Order: PII → secrets → entropy → injection → policy → redact
-- [ ] `routing_hint` complexity classifier (length, reasoning markers, code presence, question type)
-- [ ] `cache.semantic_guards` extraction — negation tokens, numbers, named entities
-- [ ] `cache.cacheable` false when secrets present
-- [ ] Plain-language `explanation` generator (Requirement 4)
-- [ ] `override_token` verification path (accepts an approved review)
-- [ ] `tests/test_inspect.py` — end-to-end for all six demo scenarios
+- [x] Stage runner with **measured** per-stage `duration_ms`
+- [x] Order: PII → secrets → entropy → injection → policy → redact
+- [x] `routing_hint` complexity classifier (length, reasoning markers, code presence, question type)
+- [x] `cache.semantic_guards` extraction — negation tokens, numbers, named entities
+- [x] `cache.cacheable` false when secrets present
+- [x] Plain-language `explanation` generator (Requirement 4)
+- [x] `override_token` verification path (accepts an approved review)
+- [x] `tests/test_inspect.py` — end-to-end for all six demo scenarios
 
-**Exit:** Person 2 swaps the stub for the real thing with no contract change.
+**Exit:** Person 2 swaps the stub for the real thing with no contract change. **DONE** -- `security/pipeline.py` on the Phase 0 `StageRecorder`; ten measured stages in a fixed order; 26 end-to-end tests over the demo scenarios. `stub_inspect`, `STUB_MODE` and `stub_policy` deleted. Four ledger rows struck. One added: the permissive override verifier, replaced in Phase 14.
 
 ---
 
@@ -302,10 +302,10 @@ sweep's checklist. Add to it whenever something is hardcoded to keep moving.
 |---|---|---|---|
 | ~~Decision if/else chain (secrets->BLOCK, pii->SANITIZE)~~ | `stubs.py` | `config/policies.yaml` | **done, Phase 6** |
 | ~~`NON_APPEALABLE_RULES` set~~ | `api/governance.py` | derived from `policies.yaml` `appealable` flags | **done, Phase 6** |
-| Routing complexity thresholds (20 / 120 words) | `stubs.py` | `config/routing.yaml` | Phase 7 |
-| Negation / number regex for `semantic_guards` | `stubs.py` | config | Phase 7 |
-| `STUB_MODE = True` flag, misleading now | `stubs.py` | gone | Phase 7 |
-| Whole-request `stubs.py` orchestration | `stubs.py` | `security/pipeline.py` with `StageRecorder` | Phase 7 |
+| ~~Routing complexity thresholds (20 / 120 words)~~ | `stubs.py` | `config/routing.yaml` | **done, Phase 7** |
+| ~~Negation / number regex for `semantic_guards`~~ | `stubs.py` | `config/routing.yaml` | **done, Phase 7** |
+| ~~`STUB_MODE = True` flag, misleading now~~ | `stubs.py` | gone | **done, Phase 7** |
+| ~~Whole-request `stubs.py` orchestration~~ | `stubs.py` | `security/pipeline.py` with `StageRecorder` | **done, Phase 7** |
 | `_KNOWN_BANK_CODES`, `_UPI_PSPS` | `india_recognizers.py` | YAML, per "patterns are data" | sweep |
 | Honorific list | `pii_scanner.py` regex | YAML | sweep |
 | `_LEADING_STOP` overlaps `contact_cues` | `india_recognizers.py` / `india_names.yaml` | one list | sweep |
@@ -313,6 +313,7 @@ sweep's checklist. Add to it whenever something is hardcoded to keep moving.
 | `BUILD_PHASE` string bumped by hand | `api/health.py` | derived from git tag or version | Phase 16 |
 | ~~Scanners run on joined text; `message_index` always 0~~ | `stubs.py` | per-message scan, real offsets | **done, Phase 5** |
 | In-memory review records | `api/governance.py` | `review_request` table | Phase 8 / 14 |
+| `PermissiveOverrideVerifier` accepts any `ovr_` token | `security/pipeline.py` | verify against `review_request`: single-use, scoped, unexpired | Phase 14 |
 | Deterministic hash "embeddings" | `api/embed.py` | sentence-transformers | Phase 9 |
 | Fixed 8/10 grounding result | `stubs.py` | NLI cross-encoder | Phase 10 |
 | Egress always PASS | `stubs.py` | harm/bias screen | Phase 11 |

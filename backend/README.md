@@ -7,7 +7,7 @@ This service is the absolute authority on whether a prompt is safe. It is
 **stateless** -- the same input always yields the same verdict. All session
 state (token vault, semantic cache) belongs to Person 2's Gateway and its Redis.
 
-**Current build phase: Phase 6 (policy engine).** Every endpoint
+**Current build phase: Phase 7 (pipeline).** The whole ingress path is real. Every endpoint
 is live and contract-valid. `GET /api/health` reports exactly which subsystems
 are real and which are still stubs.
 
@@ -20,7 +20,8 @@ are real and which are still stubs.
 | Injection detector | **Real.** Heuristic Prompt-Injection Defense: 27 config-driven rules across 6 OWASP LLM01 categories, five de-obfuscation passes, base64 payloads decoded and rescanned. Does not claim to catch novel attacks |
 | Redactor | **Real.** Global placeholder numbering, offset-safe splicing, cross-scanner precedence, vault policy that never rehydrates secrets |
 | Policy engine | **Real.** `config/policies.yaml`, three profiles with inheritance, hot-reloaded. Contains no detection logic |
-| Everything else | Stub -- see `docs/PERSON1_BUILD_PLAN.md` |
+| Pipeline | **Real.** `security/pipeline.py`: ten measured stages, config-driven routing and cache hints, pluggable override verifier |
+| Egress, embeddings, grounding, database, metrics, fairness harness, reviews | Stub -- phases 8-14, see `docs/PERSON1_BUILD_PLAN.md` |
 
 ---
 
@@ -350,6 +351,36 @@ not redact.
 
 **Entropy can never block**, even if the file says so.
 
+## The pipeline (Phase 7)
+
+`/inspect` is `security/pipeline.py`. Ten stages in a fixed order, each
+inside a `StageRecorder` block so its duration is measured by construction:
+
+```text
+secret_scanner -> entropy_scanner -> pii_scanner -> overlap_resolution
+  -> injection_detector -> override_verification -> policy_engine
+  -> redactor -> routing_hint -> cache_hint
+```
+
+A stage that does not run is recorded as skipped, never omitted. After
+warm-up the whole path answers in about 10ms, of which spaCy is ~9.
+
+**Routing hint** (`config/routing.yaml`): word-count bands, reasoning
+markers ("explain why", "step by step"), code presence (LOW -> MEDIUM;
+large blocks -> HIGH) and multi-part questions. Every reason that fired is
+reported. The Inspector does not route -- it emits LOW / MEDIUM / HIGH and
+the Gateway maps that to a provider, so no model name appears here.
+
+**Cache hint.** A blocked request, a request with a credential, and -- by
+default -- a request with personal data are not cacheable
+(`AEGIS_CACHE_ALLOW_PII` overrides the last). Guards are negation words,
+numbers, and capitalised tokens outside any detection span, so a detected
+name can never reach the cache index. The `reason` vocabulary is documented
+on the `CacheHint` contract.
+
+**Override verification** is pluggable. The Phase 7 verifier accepts any
+well-formed `ovr_` token; Phase 14 checks it against the review table.
+
 ### Entropy is a supporting signal
 
 `H(X) = -sum p(x) log2 p(x)` over string literals. A UUID, a git SHA and a
@@ -370,14 +401,14 @@ app/
   api/              route handlers
   security/         secret_scanner.py, entropy.py, pii_scanner.py,
                     india_recognizers.py, injection.py, redactor.py,
-                    policy_engine.py, spans.py (real)
-                    pipeline orchestration (phase 7)
+                    policy_engine.py, pipeline.py, spans.py (all real)
   audit/            SQLAlchemy models + metrics   (phases 8, 12)
   verification/     grounded response checking    (phase 10)
   utils/            ids, timing, redacting logger
-  stubs.py          phase 0 keyword-reactive stubs
+  stubs.py          only the subsystems not yet shipped (phases 8-14)
 config/             secret_patterns.yaml, pii_entities.yaml, india_names.yaml,
-                    injection_rules.yaml, policies.yaml (real); pricing (later)
+                    injection_rules.yaml, policies.yaml, routing.yaml (real);
+                    pricing (later)
 eval/               fairness corpus + harness     (phase 13)
 tests/
 ```
