@@ -16,6 +16,7 @@ from app.contracts.egress import (
     VerifyResponse,
 )
 from app.contracts.inspect import InspectRequest, InspectResponse
+from app.audit.service import record_inspection
 from app.security.pipeline import get_pipeline
 from app.stubs import stub_egress
 from app.utils.logging import get_logger
@@ -40,7 +41,11 @@ log = get_logger(__name__)
 )
 async def inspect(req: InspectRequest) -> InspectResponse:
     # The pipeline logs its own summary line with the request id.
-    return get_pipeline().run(req)
+    result = get_pipeline().run(req)
+    # The Inspector's half of the audit row. Fire-and-forget: a database
+    # failure is counted and logged and never changes the response.
+    record_inspection(req, result)
+    return result
 
 
 @router.post(

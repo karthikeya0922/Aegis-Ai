@@ -73,6 +73,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         settings.environment,
     )
 
+    # Tables first: the audit write path runs on every /inspect.
+    from app.audit.database import init_db
+
+    init_db()
+
     # Compile the secret patterns now rather than on the first request. Without
     # this the first /inspect pays ~15ms to build 25 regexes, which shows up as
     # a misleading latency spike on the first call of a demo.

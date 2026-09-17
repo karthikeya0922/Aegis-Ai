@@ -12,6 +12,8 @@ from fastapi import APIRouter
 
 from app.config import settings
 from app.contracts.health import ComponentHealth, HealthResponse
+from app.audit import database as audit_db
+from app.audit import service as audit_service
 from app.security.injection import get_detector as get_injection_detector
 from app.security.pii_scanner import get_pii_scanner
 from app.security.policy_engine import get_policy_engine
@@ -19,7 +21,7 @@ from app.security.policy_engine import get_policy_engine
 router = APIRouter(tags=["health"])
 
 _STARTED = time.monotonic()
-BUILD_PHASE = "phase-7-pipeline"
+BUILD_PHASE = "phase-8-database"
 
 
 def _pii_component() -> ComponentHealth:
@@ -35,6 +37,21 @@ def _pii_component() -> ComponentHealth:
         detail=(
             f"Presidio + spaCy {ph['spacy_model']}, {len(ph['entities_enabled'])} entity types, "
             f"India engine with {ph['india_gazetteer_names']}-name gazetteer"
+        ),
+    )
+
+
+def _database_component() -> ComponentHealth:
+    if not audit_db.ping():
+        return ComponentHealth(name="database", status="unavailable", detail="ping failed")
+    st = audit_service.stats()
+    return ComponentHealth(
+        name="database",
+        status="ok",
+        detail=(
+            f"{audit_db.backend_name()}, {audit_service.count_rows()} audit row(s); "
+            f"writes: {st.inspections_recorded} inspections, {st.events_upserted} events, "
+            f"{st.failures} failure(s)"
         ),
     )
 
@@ -64,7 +81,7 @@ def _components() -> list[ComponentHealth]:
         ),
         ComponentHealth(name="embeddings", status=stub, detail="Deterministic stub vectors until Phase 9"),
         ComponentHealth(name="grounding", status=stub, detail="NLI cross-encoder lands in Phase 10"),
-        ComponentHealth(name="database", status=stub, detail="SQLAlchemy models land in Phase 8"),
+        _database_component(),
         ComponentHealth(name="fairness_harness", status=stub, detail="Phase 13"),
         ComponentHealth(name="review_api", status=stub, detail="Phase 14"),
     ]

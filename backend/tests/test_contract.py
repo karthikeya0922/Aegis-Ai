@@ -263,6 +263,51 @@ def test_audit_read_endpoints():
     assert "not a conformity assessment" in report.disclaimer
 
 
+def test_audit_round_trip_through_the_api():
+    """inspect -> row exists -> gateway finalizes -> listed -> erased."""
+    rid = "req_contract_rt"
+    r = client.post("/inspect", json={
+        "request_id": rid, "user_ref": "subject-42",
+        "messages": [{"role": "user", "content": "mail john@example.com"}],
+    })
+    assert r.status_code == 200
+
+    rec = client.get(f"/api/requests/{rid}")
+    assert rec.status_code == 200
+    body = rec.json()
+    assert body["policy_action"] == "SANITIZE" and body["pii_count"] == 1
+    assert body["provider"] is None, "gateway has not finalized yet"
+
+    fin = client.post("/audit/events", json={
+        "request_id": rid, "provider": "openai", "model": "gpt-4o-mini", "total_tokens": 77,
+    })
+    assert fin.json() == {"stored": True, "request_id": rid, "duplicate": False}
+    assert client.post("/audit/events", json={"request_id": rid}).json()["duplicate"] is True
+
+    body = client.get(f"/api/requests/{rid}").json()
+    assert body["provider"] == "openai" and body["total_tokens"] == 77
+
+    page = AuditEventPage.model_validate(client.get("/api/audit/events?limit=5").json())
+    assert any(i.request_id == rid for i in page.items)
+
+    # The raw identifier is never returned or stored; erasure works by hash.
+    assert "subject-42" not in rec.text and "subject-42" not in fin.text
+    erased = client.post("/api/audit/erase-subject", json={"user_ref": "subject-42"})
+    assert erased.json()["deleted"] >= 1
+    assert client.get(f"/api/requests/{rid}").status_code == 404
+
+
+def test_unknown_request_is_404():
+    assert client.get("/api/requests/req_does_not_exist").status_code == 404
+
+
+def test_purge_endpoint():
+    r = client.post("/api/audit/purge?retention_days=3650")
+    assert r.status_code == 200
+    assert r.json()["retention_days"] == 3650
+    assert r.json()["deleted"] >= 0
+
+
 def test_metrics_endpoints_carry_a_basis():
     m = MetricsResponse.model_validate(client.get("/api/metrics").json())
     assert m.cost.basis, "cost figures must name their assumption"
