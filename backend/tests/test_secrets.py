@@ -48,9 +48,21 @@ def _joined(*parts: str) -> str:
     return "".join(parts)
 
 
-# Assembled at import time; never a single literal in source.
+# Assembled at import time; never a single literal in source. GitHub's
+# post-push scanner flagged three of these after the first push (ASIA key,
+# Google key, Atlas URI) even though none is real, so every provider-prefixed
+# fixture gets the same treatment rather than waiting for the next alert.
+AWS_TEMP_KEY = _joined("ASIA", "Y34FZKBO", "KMUTVV7A")
+GCP_KEY = _joined("AIza", "SyDaGmWKa4JsXZ", "HjVkoHuTfP1cKcs8rTVMg")
+GITHUB_PAT = _joined("ghp_", "16C7e42F292c6912", "E7710c838347Ae178B4a")
+GITHUB_OAUTH = _joined("gho_", "16C7e42F292c6912", "E7710c838347Ae178B4a")
+GITLAB_PAT = _joined("glpat-", "ABCdefGHIj", "klMNOpqrST")
+ANTHROPIC_KEY = _joined("sk-ant-", "api03-", "abcdefghijklmnopqrstuvwxyz123456")
+HF_TOKEN = _joined("hf_", "ABCdefGHIjklMNOpqr", "STuvwXYZ01234567")
 SLACK_TOKEN = _joined("xoxb-", "123456789012-", "1234567890123-", "AbCdEfGhIjKlMnOpQrStUvWx")
 STRIPE_KEY = _joined("sk_", "live_", "4eC39HqLyjWDarjtT1zdp7dc")
+NPM_TOKEN = _joined("npm_", "ABCdefGHIjklMNOpqr", "STuvwXYZ0123456789")
+MONGO_ATLAS_URI = _joined("mongodb", "+srv://", "svc", ":", "S3cr3tV4lue", "@", "cluster0", ".mongodb.net/test")
 
 
 @pytest.fixture(scope="module")
@@ -72,16 +84,16 @@ def types_in(scanner: SecretScanner, text: str) -> set[str]:
     ("label", "text", "expected_type"),
     [
         ("aws access key", "AKIAIOSFODNN7EXAMPLE", "AWS_ACCESS_KEY"),
-        ("aws temp key", "ASIAY34FZKBOKMUTVV7A", "AWS_ACCESS_KEY"),
-        ("gcp key", "AIzaSyDaGmWKa4JsXZHjVkoHuTfP1cKcs8rTVMg", "GCP_API_KEY"),
-        ("github classic", "ghp_16C7e42F292c6912E7710c838347Ae178B4a", "GITHUB_TOKEN"),
-        ("github oauth", "gho_16C7e42F292c6912E7710c838347Ae178B4a", "GITHUB_TOKEN"),
-        ("gitlab pat", "glpat-ABCdefGHIjklMNOpqrST", "GITLAB_TOKEN"),
-        ("anthropic", "sk-ant-api03-abcdefghijklmnopqrstuvwxyz123456", "ANTHROPIC_API_KEY"),
-        ("huggingface", "hf_ABCdefGHIjklMNOpqrSTuvwXYZ01234567", "HUGGINGFACE_TOKEN"),
+        ("aws temp key", AWS_TEMP_KEY, "AWS_ACCESS_KEY"),
+        ("gcp key", GCP_KEY, "GCP_API_KEY"),
+        ("github classic", GITHUB_PAT, "GITHUB_TOKEN"),
+        ("github oauth", GITHUB_OAUTH, "GITHUB_TOKEN"),
+        ("gitlab pat", GITLAB_PAT, "GITLAB_TOKEN"),
+        ("anthropic", ANTHROPIC_KEY, "ANTHROPIC_API_KEY"),
+        ("huggingface", HF_TOKEN, "HUGGINGFACE_TOKEN"),
         ("slack", SLACK_TOKEN, "SLACK_TOKEN"),
         ("stripe", STRIPE_KEY, "STRIPE_SECRET_KEY"),
-        ("npm", "npm_ABCdefGHIjklMNOpqrSTuvwXYZ0123456789", "NPM_TOKEN"),
+        ("npm", NPM_TOKEN, "NPM_TOKEN"),
         ("jwt", VALID_JWT, "JWT"),
         ("pem key", PEM_KEY, "PRIVATE_KEY"),
     ],
@@ -96,7 +108,7 @@ def test_detects_credential(scanner, label, text, expected_type):
         "postgres://admin:SecretPassword@db.internal:5432/users",
         "postgresql://u:p4ssw0rd!@10.0.0.5:5432/prod",
         "mysql://root:Tr0ub4dor@mysql.example.com/app",
-        "mongodb+srv://svc:S3cr3tV4lue@cluster0.mongodb.net/test",
+        MONGO_ATLAS_URI,
         "redis://default:Rd1sP4ssw0rd@cache.internal:6379",
     ],
 )
@@ -225,11 +237,11 @@ def test_repeated_secret_reuses_one_placeholder(scanner):
 
 
 def test_detections_never_carry_the_raw_secret(scanner):
-    secrets = ["AKIAIOSFODNN7EXAMPLE", "SecretPassword", "ghp_16C7e42F292c6912E7710c838347Ae178B4a"]
+    secrets = ["AKIAIOSFODNN7EXAMPLE", "SecretPassword", GITHUB_PAT]
     text = (
         "AKIAIOSFODNN7EXAMPLE "
         "postgres://admin:SecretPassword@db.internal:5432/users "
-        "ghp_16C7e42F292c6912E7710c838347Ae178B4a"
+        + GITHUB_PAT
     )
     detections, vault = scanner.scan(text)
     serialized = "".join(d.model_dump_json() for d in detections)
