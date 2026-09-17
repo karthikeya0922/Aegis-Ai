@@ -57,7 +57,9 @@ from app.contracts.governance import (
     ReviewRecord,
 )
 from app.security.entropy import scan as entropy_scan
+from app.security.pii_scanner import get_pii_scanner
 from app.security.secret_scanner import get_scanner
+from app.security.spans import subtract_covered
 from app.contracts.inspect import (
     CacheHint,
     DetectionBundle,
@@ -82,14 +84,11 @@ from app.contracts.metrics import (
 
 STUB_MODE = True
 
-# --- crude triggers still awaiting their real scanners (phases 2 and 4) ----
-_EMAIL = re.compile(r"\b[\w.+-]+@[\w-]+\.[\w.]+\b")
-_PHONE = re.compile(r"(?:\+?\d{1,3}[-.\s]?)?(?:\d{3}[-.\s]?){2}\d{4}\b")
+# --- crude trigger still awaiting its real scanner (phase 4) ---------------
 _INJECTION = re.compile(
     r"(?i)(ignore (all )?previous instructions|disregard (the )?system prompt"
     r"|reveal your system prompt|developer mode|\bDAN\b|jailbreak)"
 )
-_PERSON = re.compile(r"\b[A-Z][a-z]{2,}\s+[A-Z][a-z]{2,}\b")
 
 
 def _now() -> datetime:
@@ -120,57 +119,24 @@ def stub_inspect(req: InspectRequest) -> InspectResponse:
     entropy.extend(entropy_scan(text))
     entropy_ms = round((time.perf_counter() - _t0) * 1000.0, 3)
 
-    # --- PII (sanitize path) ----------------------------------------------
-    for i, m in enumerate(_EMAIL.finditer(text), start=1):
-        ph = f"[EMAIL_{i}]"
-        pii.append(
-            Detection(
-                type="EMAIL",
-                category=DetectionCategory.PII,
-                placeholder=ph,
-                confidence=0.98,
-                start=m.start(),
-                end=m.end(),
-                action=PolicyAction.SANITIZE,
-                recognizer="stub.email",
-            )
-        )
-        vault[ph] = m.group(0)
-        sanitized = sanitized.replace(m.group(0), ph)
-
-    for i, m in enumerate(_PHONE.finditer(text), start=1):
-        ph = f"[PHONE_{i}]"
-        pii.append(
-            Detection(
-                type="PHONE_NUMBER",
-                category=DetectionCategory.PII,
-                placeholder=ph,
-                confidence=0.85,
-                start=m.start(),
-                end=m.end(),
-                action=PolicyAction.SANITIZE,
-                recognizer="stub.phone",
-            )
-        )
-        vault[ph] = m.group(0)
-        sanitized = sanitized.replace(m.group(0), ph)
-
-    for i, m in enumerate(_PERSON.finditer(text), start=1):
-        ph = f"[PERSON_{i}]"
-        pii.append(
-            Detection(
-                type="PERSON",
-                category=DetectionCategory.PII,
-                placeholder=ph,
-                confidence=0.72,
-                start=m.start(),
-                end=m.end(),
-                action=PolicyAction.SANITIZE,
-                recognizer="stub.person",
-            )
-        )
-        vault[ph] = m.group(0)
-        sanitized = sanitized.replace(m.group(0), ph)
+    # --- PII (REAL as of Phase 2) -----------------------------------------
+    _t0 = time.perf_counter()
+    pii_detections, pii_vault = get_pii_scanner().scan(text)
+    # A finding that sits inside a secret span (the email-shaped fragment of
+    # a DB URI) is noise: the secret scanner already owns that text.
+    pii_detections = subtract_covered(
+        pii_detections,
+        secrets,
+        span_candidate=lambda d: (d.message_index, d.start, d.end),
+        span_covering=lambda d: (d.message_index, d.start, d.end),
+    )
+    kept_placeholders = {d.placeholder for d in pii_detections}
+    pii_vault = {k: v for k, v in pii_vault.items() if k in kept_placeholders}
+    pii.extend(pii_detections)
+    vault.update(pii_vault)
+    for placeholder, original in pii_vault.items():
+        sanitized = sanitized.replace(original, placeholder)
+    pii_ms = round((time.perf_counter() - _t0) * 1000.0, 3)
 
     # --- injection (403 path) ---------------------------------------------
     inj_hits = [m.group(0).lower() for m in _INJECTION.finditer(text)]
@@ -249,7 +215,7 @@ def stub_inspect(req: InspectRequest) -> InspectResponse:
         PipelineStage(
             stage="pii_scanner",
             status=StageStatus.WARNING if pii else StageStatus.SUCCESS,
-            duration_ms=0.4,
+            duration_ms=pii_ms,
             detail=f"{len(pii)} finding(s)" if pii else None,
         ),
         PipelineStage(

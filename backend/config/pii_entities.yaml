@@ -1,0 +1,133 @@
+# Aegis PII entity configuration.
+#
+# One entry per entity type the scanner may report. Thresholds are per-entity
+# because recognisers differ wildly in precision: an email regex is nearly
+# certain, a PERSON tag from NER is a statistical guess.
+#
+# Fields
+#   placeholder   redaction prefix, e.g. EMAIL -> [EMAIL_1]
+#   threshold     minimum confidence to report (0-1). Findings below this are
+#                 dropped before they reach the policy engine
+#   enabled       false = never reported, even if a recogniser finds it
+#   engine        which engines may produce this type:
+#                   regex     always available, no model download
+#                   presidio  requires Presidio + a spaCy model
+#                   both      regex fallback plus Presidio when available
+#   sensitivity   informational tag surfaced in the UI and audit log:
+#                   high      direct identifier or financial/health data
+#                   medium    quasi-identifier
+#                   low       contextual, rarely sensitive alone
+#
+# The scanner reports; the policy engine (phase 6) decides what to do with
+# each type. Nothing here maps to an action.
+
+version: 1
+
+entities:
+
+  EMAIL_ADDRESS:
+    placeholder: EMAIL
+    threshold: 0.60
+    enabled: true
+    engine: both
+    sensitivity: high
+
+  PHONE_NUMBER:
+    placeholder: PHONE
+    threshold: 0.50
+    enabled: true
+    engine: both
+    sensitivity: high
+
+  PERSON:
+    placeholder: PERSON
+    threshold: 0.65
+    enabled: true
+    engine: presidio
+    sensitivity: high
+    note: >
+      Requires NER. In regex-only (degraded) mode a narrow honorific heuristic
+      ("Dr. Priya Ramaswamy") runs at low confidence and is labelled as such.
+      Phase 3 adds a name gazetteer to lift recall on non-Anglo names.
+
+  IP_ADDRESS:
+    placeholder: IP
+    threshold: 0.60
+    enabled: true
+    engine: both
+    sensitivity: medium
+
+  CREDIT_CARD:
+    placeholder: CARD
+    threshold: 0.70
+    enabled: true
+    engine: both
+    sensitivity: high
+    note: Luhn-validated. A 16-digit number that fails the checksum is not a card.
+
+  US_SSN:
+    placeholder: SSN
+    threshold: 0.60
+    enabled: true
+    engine: both
+    sensitivity: high
+
+  IBAN_CODE:
+    placeholder: IBAN
+    threshold: 0.70
+    enabled: true
+    engine: presidio
+    sensitivity: high
+
+  LOCATION:
+    placeholder: LOCATION
+    threshold: 0.70
+    enabled: false
+    engine: presidio
+    sensitivity: medium
+    note: >
+      Disabled by default. spaCy NER tags every geographic name -- "What is
+      the capital of France?" yields LOCATION=France, and redacting it would
+      destroy the prompt. A country or city in an ordinary question is not
+      personal data. Enable per tenant for workloads where street addresses
+      are the concern, and pair it with a `warn` rather than `sanitize`
+      policy (phase 6).
+
+  NRP:
+    placeholder: NRP
+    threshold: 0.75
+    enabled: true
+    engine: presidio
+    sensitivity: high
+    note: Nationality, religious or political group. High threshold -- NER is noisy here.
+
+  MEDICAL_LICENSE:
+    placeholder: MEDICAL_LICENSE
+    threshold: 0.70
+    enabled: true
+    engine: presidio
+    sensitivity: high
+
+  DATE_TIME:
+    placeholder: DATE
+    threshold: 0.85
+    enabled: false
+    engine: presidio
+    sensitivity: low
+    note: >
+      Disabled by default. Dates appear in nearly every benign prompt and are
+      rarely identifying on their own. Enable per-tenant for DOB-sensitive
+      workloads.
+
+  URL:
+    placeholder: URL
+    threshold: 0.90
+    enabled: false
+    engine: presidio
+    sensitivity: low
+
+# Presidio recognisers to exclude entirely. These produce far more noise than
+# signal on general prompts.
+presidio_disabled_recognizers:
+  - UrlRecognizer
+  - DateRecognizer

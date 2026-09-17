@@ -73,14 +73,23 @@ P10 Grounding ──> P11 Egress Screen ─────────────�
 
 ## Phase 2 — PII Scanner
 
-- [ ] Presidio `AnalyzerEngine` + spaCy `en_core_web_lg`, **lazy-loaded singleton**
-- [ ] Entities: PERSON, EMAIL, PHONE, IP, LOCATION, CREDIT_CARD, US_SSN, DATE_TIME, MEDICAL_LICENSE, NRP
-- [ ] **Graceful degradation** — if models are absent, fall back to regex-only and report `degraded: true` in `/api/health`
-- [ ] Confidence threshold configurable per entity type
-- [ ] Overlapping-span resolution (longest match wins, higher confidence breaks ties)
-- [ ] `tests/test_pii.py` — email, phone, name, IP, card, plus negative cases
+- [x] Presidio `AnalyzerEngine` + spaCy `en_core_web_lg`, **lazy-loaded singleton**
+- [x] Entities: PERSON, EMAIL, PHONE, IP, LOCATION, CREDIT_CARD, US_SSN, DATE_TIME, MEDICAL_LICENSE, NRP
+- [x] **Graceful degradation** — if models are absent, fall back to regex-only and report `degraded: true` in `/api/health`
+- [x] Confidence threshold configurable per entity type
+- [x] Overlapping-span resolution (longest match wins, higher confidence breaks ties)
+- [x] `tests/test_pii.py` — email, phone, name, IP, card, plus negative cases
 
-**Exit:** demo scenario 2 (PII sanitize) detects 3 entities.
+**Exit:** demo scenario 2 (PII sanitize) detects 3 entities. **DONE** -- Presidio + spaCy with regex fallback, Luhn-validated cards, 47 tests, inference warm-up (first request 110ms -> 12ms).
+
+**Measured baseline for Phase 3 / Requirement 5.** Identical sentence template, `en_core_web_sm`:
+
+| Prompt | PERSON detected |
+|---|---|
+| `Contact John Smith at john@example.com ...` | yes, 0.85 |
+| `Contact Priya Ramaswamy at priya@example.in ...` | **no** |
+
+The detector protects the Anglo name and misses the Indian one. This is the gap Phase 3 closes and Phase 13 measures across a full corpus. Recorded here so the before/after is honest.
 
 ---
 

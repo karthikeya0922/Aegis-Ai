@@ -7,7 +7,7 @@ This service is the absolute authority on whether a prompt is safe. It is
 **stateless** -- the same input always yields the same verdict. All session
 state (token vault, semantic cache) belongs to Person 2's Gateway and its Redis.
 
-**Current build phase: Phase 1 (secret scanner + entropy).** Every endpoint
+**Current build phase: Phase 2 (PII scanner).** Every endpoint
 is live and contract-valid. `GET /api/health` reports exactly which subsystems
 are real and which are still stubs.
 
@@ -15,7 +15,7 @@ are real and which are still stubs.
 |---|---|
 | Secret scanner | **Real.** 25 config-driven patterns in `config/secret_patterns.yaml`, overlap-resolved, entropy-weighted confidence |
 | Entropy scanner | **Real.** Shannon entropy over candidate literals; warn-only by design |
-| PII scanner | Stub (Phase 2) |
+| PII scanner | **Real.** Presidio + spaCy NER with an always-on regex engine for structured identifiers; Luhn-validated cards; degrades to regex-only and says so if no model is installed |
 | Injection detector | Stub (Phase 4) |
 | Policy engine | Stub (Phase 6) |
 | Everything else | Stub -- see `docs/PERSON1_BUILD_PLAN.md` |
@@ -170,6 +170,46 @@ that leaks production keys.
 whitespace-split keys, delimiter-obfuscated keys, credentials stated in prose.
 These feed the limitations panel in the UI.
 
+## What the PII scanner does (Phase 2)
+
+Two engines behind one interface, configured in `config/pii_entities.yaml`:
+
+- **regex** -- always on, no model needed. Email, phone, IPv4/IPv6, US SSN,
+  and credit cards with a **Luhn checksum** (a 16-digit number that fails
+  the checksum is not a card).
+- **Presidio + spaCy** -- adds the unstructured entities: PERSON, NRP,
+  IBAN, MEDICAL_LICENSE. Loaded once at startup with a full-recogniser
+  warm-up so the first request does not pay ~100ms of lazy initialisation.
+
+**Graceful degradation.** If Presidio or the spaCy model is absent the
+scanner runs regex-only, `/api/health` reports `pii_scanner: degraded` with
+the reason, and PERSON detection is honestly unavailable rather than quietly
+skipped. The scanner checks `spacy.util.is_package()` *before* handing a
+model name to Presidio -- Presidio would otherwise try to download 400MB in
+the request path.
+
+**Disabled by default, on purpose.** `LOCATION` (spaCy tags every country
+and city -- redacting "France" from "What is the capital of France?" would
+destroy the prompt) and `DATE_TIME` (appears in nearly every benign prompt).
+Enable per tenant.
+
+**False-positive guards that matter.** A phone match inside a UUID, or a
+12-digit slice of a 19-digit card number, or an ISO date, is rejected. The
+Phase 0 stub got all three wrong.
+
+### Measured fairness baseline (feeds Phase 3)
+
+Same sentence template, `en_core_web_sm`:
+
+| Prompt | PERSON detected |
+|---|---|
+| Contact **John Smith** at john@example.com ... | yes (0.85) |
+| Contact **Priya Ramaswamy** at priya@example.in ... | **no** |
+
+The detector currently protects the Anglo name and misses the Indian one.
+That is the gap the India recognisers and name gazetteer (Phase 3) exist to
+close, and the fairness harness (Phase 13) measures across a full corpus.
+
 ### Entropy is a supporting signal
 
 `H(X) = -sum p(x) log2 p(x)` over string literals. A UUID, a git SHA and a
@@ -188,13 +228,13 @@ app/
   main.py           app, middleware, error envelopes
   contracts/        Pydantic models -- the seam with Person 2
   api/              route handlers
-  security/         secret_scanner.py, entropy.py (real)
-                    pii, injection, redactor, policy (phases 2-7)
+  security/         secret_scanner.py, entropy.py, pii_scanner.py, spans.py (real)
+                    injection, redactor, policy (phases 4-7)
   audit/            SQLAlchemy models + metrics   (phases 8, 12)
   verification/     grounded response checking    (phase 10)
   utils/            ids, timing, redacting logger
   stubs.py          phase 0 keyword-reactive stubs
-config/             secret_patterns.yaml (real); rules, policies, pricing (later)
+config/             secret_patterns.yaml, pii_entities.yaml (real); rules, policies, pricing (later)
 eval/               fairness corpus + harness     (phase 13)
 tests/
 ```
@@ -230,3 +270,6 @@ its own terms:
   legal compliance.
 - Fairness recall is measured against a **fixed synthetic corpus**, not a
   representative population sample.
+- NER recall on non-Anglo names is **measurably lower** with the stock spaCy
+  model (see the Phase 2 baseline above). Until Phase 3 lands, PERSON
+  detection is not equitable across name origins.

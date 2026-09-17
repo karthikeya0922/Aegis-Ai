@@ -81,8 +81,21 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     scanner = get_scanner()
     log.info("secret scanner ready (%d patterns, v%d)", len(scanner.patterns), scanner.version)
 
+    # The PII scanner is warmed unconditionally: loading a spaCy model takes
+    # several seconds and must not land on the first request of a demo. If
+    # Presidio or the model is absent this returns instantly in regex-only
+    # mode, and /api/health reports the degradation.
+    from app.security.pii_scanner import get_pii_scanner
+
+    pii = get_pii_scanner()
+    pii.warm()
+    if pii.degraded:
+        log.warning("pii scanner DEGRADED: %s", pii.degraded_reason)
+    else:
+        log.info("pii scanner ready (engine=%s, spaCy=%s)", pii.engine, pii.spacy_model)
+
     if settings.warm_models_on_startup:
-        log.info("model warm-up requested (no-op until Phase 2)")
+        log.info("model warm-up requested (embeddings/NLI: no-op until Phase 9)")
     yield
     log.info("%s shutting down", settings.service_name)
 

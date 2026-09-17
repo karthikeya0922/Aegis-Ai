@@ -32,6 +32,7 @@ import yaml
 from app.config import settings
 from app.contracts.common import Detection, DetectionCategory, PolicyAction
 from app.security.entropy import entropy_confidence_modifier, shannon_entropy
+from app.security.spans import resolve_overlaps
 
 # ---------------------------------------------------------------------------
 # Validators
@@ -197,37 +198,12 @@ class SecretScanner:
 
     @staticmethod
     def _resolve_overlaps(matches: list[SecretMatch]) -> list[SecretMatch]:
-        """Keep the strongest finding per overlapping span.
-
-        Several patterns legitimately fire on the same text -- a JWT inside a
-        Bearer header, a password inside a database URI. Reporting all of them
-        would inflate the count and produce nested placeholders. Longest match
-        wins; confidence breaks a tie.
-        """
-        ordered = sorted(
+        """One finding per overlapping span -- see app.security.spans."""
+        return resolve_overlaps(
             matches,
-            key=lambda m: (m.start, -(m.end - m.start), -m.confidence),
+            span=lambda m: (m.message_index, m.start, m.end),
+            score=lambda m: m.confidence,
         )
-        kept: list[SecretMatch] = []
-        for candidate in ordered:
-            overlapping = next(
-                (
-                    k
-                    for k in kept
-                    if k.message_index == candidate.message_index
-                    and candidate.start < k.end
-                    and k.start < candidate.end
-                ),
-                None,
-            )
-            if overlapping is None:
-                kept.append(candidate)
-                continue
-            cand_len = candidate.end - candidate.start
-            keep_len = overlapping.end - overlapping.start
-            if (cand_len, candidate.confidence) > (keep_len, overlapping.confidence):
-                kept[kept.index(overlapping)] = candidate
-        return sorted(kept, key=lambda m: m.start)
 
     # -- public API --------------------------------------------------------
 

@@ -12,18 +12,33 @@ from fastapi import APIRouter
 
 from app.config import settings
 from app.contracts.health import ComponentHealth, HealthResponse
+from app.security.pii_scanner import get_pii_scanner
 from app.stubs import STUB_MODE
 
 router = APIRouter(tags=["health"])
 
 _STARTED = time.monotonic()
-BUILD_PHASE = "phase-1-secrets-entropy"
+BUILD_PHASE = "phase-2-pii"
+
+
+def _pii_component() -> ComponentHealth:
+    """Honest about which engine is running. regex-only is *degraded*, not ok."""
+    ph = get_pii_scanner().health()
+    if ph["degraded"]:
+        return ComponentHealth(
+            name="pii_scanner", status="degraded", detail=ph["degraded_reason"]
+        )
+    return ComponentHealth(
+        name="pii_scanner",
+        status="ok",
+        detail=f"Presidio + spaCy {ph['spacy_model']}, {len(ph['entities_enabled'])} entity types",
+    )
 
 
 def _components() -> list[ComponentHealth]:
     stub = "stub" if STUB_MODE else "ok"
     return [
-        ComponentHealth(name="pii_scanner", status=stub, detail="Presidio + spaCy lands in Phase 2"),
+        _pii_component(),
         ComponentHealth(name="secret_scanner", status="ok", detail="25 config-driven patterns, overlap-resolved"),
         ComponentHealth(name="entropy_scanner", status="ok", detail="Shannon entropy, warn-only by design"),
         ComponentHealth(name="injection_detector", status=stub, detail="Phase 4"),
@@ -44,14 +59,18 @@ def _components() -> list[ComponentHealth]:
 async def health() -> HealthResponse:
     components = _components()
     stubbed = [c.name for c in components if c.status == "stub"]
+    degraded = [c for c in components if c.status == "degraded"]
+    reasons: list[str] = []
+    if stubbed:
+        reasons.append(f"{len(stubbed)} subsystem(s) still serving Phase 0 stubs")
+    for c in degraded:
+        reasons.append(f"{c.name}: {c.detail}")
     return HealthResponse(
         service=settings.service_name,
         version=settings.version,
-        status="degraded" if stubbed else "ok",
+        status="degraded" if (stubbed or degraded) else "ok",
         phase=BUILD_PHASE,
-        degraded_reasons=(
-            [f"{len(stubbed)} subsystem(s) still serving Phase 0 stubs"] if stubbed else []
-        ),
+        degraded_reasons=reasons,
         components=components,
         uptime_seconds=round(time.monotonic() - _STARTED, 2),
     )
