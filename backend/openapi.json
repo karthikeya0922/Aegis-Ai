@@ -372,6 +372,7 @@
           "governance"
         ],
         "summary": "Current policy config",
+        "description": "The live policy file, as the engine currently holds it.\n\nReturns the YAML verbatim so an operator can see exactly what is in\nforce, plus the resolved profile name and the available profiles.",
         "operationId": "get_policies_api_policies_get",
         "parameters": [
           {

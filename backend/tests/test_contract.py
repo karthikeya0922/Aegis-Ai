@@ -270,9 +270,26 @@ def test_metrics_endpoints_carry_a_basis():
 
 
 def test_policies_endpoints():
-    PolicyResponse.model_validate(client.get("/api/policies").json())
-    r = client.put("/api/policies", json={"yaml_body": "version: 2\nprofiles: {}\n"})
-    assert r.status_code == 200
+    res = PolicyResponse.model_validate(client.get("/api/policies").json())
+    assert res.profile == "default"
+    assert {"default", "strict", "permissive"} <= set(res.available_profiles)
+    assert "prompt_injection:" in res.yaml_body, "must be the real file, not a stub"
+
+    # A valid document is accepted (dry run until Phase 15 persists it).
+    ok = client.put("/api/policies", json={
+        "yaml_body": (
+            "version: 9\ndefault_profile: d\nprofiles:\n"
+            "  d:\n    rules:\n      pii: {action: block}\n"
+        )
+    })
+    assert ok.status_code == 200
+
+    # An invalid one is rejected with the reason, not silently accepted.
+    bad = client.put("/api/policies", json={
+        "yaml_body": "version: 1\ndefault_profile: nope\nprofiles: {}\n"
+    })
+    assert bad.status_code == 422
+    assert "default_profile" in bad.text
 
 
 def test_review_lifecycle_and_non_appealable_rules():

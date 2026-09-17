@@ -150,16 +150,18 @@ Even the large model misses the Indian name in this template. This is not a smal
 
 ## Phase 6 — Policy Engine
 
-- [ ] `config/policies.yaml` with `default` and `strict` profiles
-- [ ] Actions: `allow` | `sanitize` | `warn` | `block`
-- [ ] Precedence: `block` > `sanitize` > `warn` > `allow`
-- [ ] `appealable` flag per rule (credentials false, injection true)
-- [ ] Hot reload on file change
-- [ ] **Zero detection logic in this module** — it only maps findings to actions
-- [ ] Emits a decision event per evaluation
-- [ ] `tests/test_policy.py` — full matrix of detection combinations × profiles
+- [x] `config/policies.yaml` with `default` and `strict` profiles
+- [x] Actions: `allow` | `sanitize` | `warn` | `block`
+- [x] Precedence: `block` > `sanitize` > `warn` > `allow`
+- [x] `appealable` flag per rule (credentials false, injection true)
+- [x] Hot reload on file change
+- [x] **Zero detection logic in this module** — it only maps findings to actions
+- [x] Emits a decision event per evaluation
+- [x] `tests/test_policy.py` — full matrix of detection combinations × profiles
 
 ---
+
+**DONE** -- 47 engine tests + integration. Three profiles (`default`, `strict`, `permissive`) with inheritance; most-specific-key resolution; block > sanitize > warn > allow; highest-priority blocking rule supplies the reason; hot reload with bad-reload resilience. Override lifts only appealable rules -- the first draft lifted everything and the matrix caught it. Redaction is now action-aware: pipeline is scan -> resolve -> policy -> redact, so a warn-only profile flags without redacting. `GET /api/policies` serves the real file; `PUT` validates (persists in Phase 15).
 
 ## Phase 7 — Real `/inspect`
 
@@ -298,8 +300,8 @@ sweep's checklist. Add to it whenever something is hardcoded to keep moving.
 
 | Item | Where | Should be | Removed in |
 |---|---|---|---|
-| Decision if/else chain (secrets->BLOCK, pii->SANITIZE) | `stubs.py` | `config/policies.yaml` | Phase 6 |
-| `NON_APPEALABLE_RULES` set | `api/governance.py` | derived from `policies.yaml` `appealable` flags | Phase 6 |
+| ~~Decision if/else chain (secrets->BLOCK, pii->SANITIZE)~~ | `stubs.py` | `config/policies.yaml` | **done, Phase 6** |
+| ~~`NON_APPEALABLE_RULES` set~~ | `api/governance.py` | derived from `policies.yaml` `appealable` flags | **done, Phase 6** |
 | Routing complexity thresholds (20 / 120 words) | `stubs.py` | `config/routing.yaml` | Phase 7 |
 | Negation / number regex for `semantic_guards` | `stubs.py` | config | Phase 7 |
 | `STUB_MODE = True` flag, misleading now | `stubs.py` | gone | Phase 7 |

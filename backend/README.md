@@ -7,7 +7,7 @@ This service is the absolute authority on whether a prompt is safe. It is
 **stateless** -- the same input always yields the same verdict. All session
 state (token vault, semantic cache) belongs to Person 2's Gateway and its Redis.
 
-**Current build phase: Phase 5 (redactor).** Every endpoint
+**Current build phase: Phase 6 (policy engine).** Every endpoint
 is live and contract-valid. `GET /api/health` reports exactly which subsystems
 are real and which are still stubs.
 
@@ -19,7 +19,7 @@ are real and which are still stubs.
 | India engine | **Real.** Aadhaar (Verhoeff), PAN, IFSC, UPI, Indian mobile, and a 298-name gazetteer that closes the measured PERSON recall gap. Always on -- no model required |
 | Injection detector | **Real.** Heuristic Prompt-Injection Defense: 27 config-driven rules across 6 OWASP LLM01 categories, five de-obfuscation passes, base64 payloads decoded and rescanned. Does not claim to catch novel attacks |
 | Redactor | **Real.** Global placeholder numbering, offset-safe splicing, cross-scanner precedence, vault policy that never rehydrates secrets |
-| Policy engine | Stub (Phase 6) |
+| Policy engine | **Real.** `config/policies.yaml`, three profiles with inheritance, hot-reloaded. Contains no detection logic |
 | Everything else | Stub -- see `docs/PERSON1_BUILD_PLAN.md` |
 
 ---
@@ -307,6 +307,49 @@ replay.
 `SECRET`, and `AEGIS_SECRET_REHYDRATION=true` is ignored by design -- there
 is a test for that.
 
+## Policy engine (Phase 6)
+
+Detection and policy are separate layers. Scanners report; `config/policies.yaml`
+decides. Changing a tenant from "sanitise PII" to "block PII" is an edit to the
+file, not a deploy -- the engine hot-reloads on change and keeps serving the old
+set if the new one fails to parse.
+
+**Resolution.** A finding matches the most specific key that exists and falls
+back to its family: `pii.IN_AADHAAR` -> `pii`; `secrets.tokens` -> `secrets`.
+Secret keys come from the pattern config's `category` field, so the engine
+never learns *how* an AWS key is recognised -- either layer can change without
+the other.
+
+**Fold.** `block > sanitize > warn > allow`. Every finding keeps its own action;
+when several rules block, the highest `priority` supplies the code, status and
+appealability the Gateway returns.
+
+**Profiles.** Same request, three outcomes, zero code changes:
+
+| Profile | `Contact Priya Ramaswamy at priya@example.in` |
+|---|---|
+| `default` | SANITIZE -- `Contact [PERSON_1] at [EMAIL_1]` |
+| `strict` | BLOCK -- `PII_BLOCKED`, appealable |
+| `permissive` | WARN -- text unchanged, findings recorded |
+
+`strict` extends `default` and overrides only what it lists; a partial override
+keeps the parent's other fields. `permissive` is detection without
+enforcement, for evaluating the scanners against real traffic before turning
+enforcement on.
+
+**Override (Requirement 1).** An approved human review lifts only the
+*appealable* blocking rules. A leaked credential is not appealable, so it
+survives an override token whatever else was in the request, and the block
+reason then names the rule that could not be lifted.
+
+**Action-aware redaction.** The pipeline is scan -> resolve overlaps -> policy
+-> redact. SANITIZE findings are spliced; BLOCK findings are numbered so the UI
+can show what would have been redacted but the text is returned unmodified;
+WARN findings are reported with offsets and no placeholder. "Warn" means flag,
+not redact.
+
+**Entropy can never block**, even if the file says so.
+
 ### Entropy is a supporting signal
 
 `H(X) = -sum p(x) log2 p(x)` over string literals. A UUID, a git SHA and a
@@ -326,14 +369,15 @@ app/
   contracts/        Pydantic models -- the seam with Person 2
   api/              route handlers
   security/         secret_scanner.py, entropy.py, pii_scanner.py,
-                    india_recognizers.py, injection.py, redactor.py, spans.py (real)
-                    policy engine, pipeline (phases 6-7)
+                    india_recognizers.py, injection.py, redactor.py,
+                    policy_engine.py, spans.py (real)
+                    pipeline orchestration (phase 7)
   audit/            SQLAlchemy models + metrics   (phases 8, 12)
   verification/     grounded response checking    (phase 10)
   utils/            ids, timing, redacting logger
   stubs.py          phase 0 keyword-reactive stubs
 config/             secret_patterns.yaml, pii_entities.yaml, india_names.yaml,
-                    injection_rules.yaml (real); policies, pricing (later)
+                    injection_rules.yaml, policies.yaml (real); pricing (later)
 eval/               fairness corpus + harness     (phase 13)
 tests/
 ```

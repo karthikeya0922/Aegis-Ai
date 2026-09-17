@@ -25,7 +25,7 @@ from app.contracts.governance import (
     ReviewListResponse,
 )
 from app.security.policy_engine import get_policy_engine
-from app.stubs import stub_fairness_report, stub_policy, stub_review_record, stub_reviews
+from app.stubs import stub_fairness_report, stub_review_record, stub_reviews
 from app.utils.ids import override_token
 from app.utils.logging import get_logger
 
@@ -44,7 +44,21 @@ log = get_logger(__name__)
 
 @router.get("/policies", response_model=PolicyResponse, summary="Current policy config")
 async def get_policies(profile: str | None = Query(None)) -> PolicyResponse:
-    return stub_policy()
+    """The live policy file, as the engine currently holds it.
+
+    Returns the YAML verbatim so an operator can see exactly what is in
+    force, plus the resolved profile name and the available profiles.
+    """
+    engine = get_policy_engine()
+    ps = engine.policies
+    prof = engine.profile(profile)
+    return PolicyResponse(
+        version=ps.version,
+        profile=prof.name,
+        available_profiles=sorted(ps.profiles),
+        yaml_body=engine.path.read_text(encoding="utf-8"),
+        updated_at=datetime.fromtimestamp(ps.source_mtime, tz=timezone.utc),
+    )
 
 
 @router.put(
@@ -58,9 +72,25 @@ async def get_policies(profile: str | None = Query(None)) -> PolicyResponse:
     ),
 )
 async def put_policies(req: PolicyUpdateRequest) -> PolicyResponse:
-    current = stub_policy()
-    log.info("policy update requested (phase 0 stub: not persisted)")
-    return current
+    """Validate a proposed policy file. Persistence and versioning land in
+    Phase 15; until then this is a dry run that returns the current policy
+    and rejects an invalid document with the parse error."""
+    from tempfile import NamedTemporaryFile
+
+    from app.security.policy_engine import load_policies
+
+    with NamedTemporaryFile("w", suffix=".yaml", delete=False, encoding="utf-8") as tmp:
+        tmp.write(req.yaml_body)
+        tmp_path = tmp.name
+    try:
+        load_policies(__import__("pathlib").Path(tmp_path))
+    except Exception as exc:  # noqa: BLE001 - surface the validation error
+        raise HTTPException(status_code=422, detail=f"policy document invalid: {exc}") from exc
+    finally:
+        __import__("os").unlink(tmp_path)
+
+    log.info("policy update validated (not persisted until Phase 15)")
+    return await get_policies()
 
 
 @router.get(
