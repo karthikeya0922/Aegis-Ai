@@ -986,3 +986,21 @@ Aegis Ai/
 - **Next step:** Person 1 starts `cli/` B0–B1; Person 2 starts `extension/` A0–A1.
   Both reuse the existing HTTP contracts; no backend changes are required
   except adding the extension origin to `AEGIS_CORS_ORIGINS`.
+
+### 2026-09-18 — CLI B0–B1: `aegis scan`, git hook, baseline, SARIF
+- **What changed:** new `cli/` package (`aegis-cli`, `pip install -e ./cli`):
+  `aegis_cli/config.py` (~/.aegis/config.toml + env), `local.py` (imports
+  `backend/app/security` in-process; line-numbered findings with masked
+  previews and fingerprints), `scan.py` (file walk honouring .gitignore,
+  `--staged` from the index, `--diff REF` added lines only, baseline, SARIF
+  2.1.0), `hook.py` (`install-hook`, AEGIS_ALLOW=1 and `# aegis:allow`
+  overrides, pre-commit-framework snippet), `app.py` (typer). 15 tests.
+- **Why:** plan item C1 in `docs/EXTENSION_CLI_PLAN.md`. No detection logic
+  lives in the CLI; it is a front door onto the Inspector's scanners.
+- **Verified:** scratch repo — `git commit` with a staged AWS-shaped key is
+  refused with the masked finding; `AEGIS_ALLOW=1` commits and says so;
+  `--diff HEAD` reports only the newly added Slack-shaped token; baseline
+  suppresses by fingerprint and a changed value is a new finding; SARIF has
+  `level: error` and no values; `--pii --fail-on pii` exits 1 on an email.
+- **Next step:** B2 `aegis chat` (through the Gateway, streaming, pipeline
+  readout, `--explain`, `appeal`), then B3 `status`.

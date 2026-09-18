@@ -380,3 +380,15 @@ Every phase ships tests in the same commit. Minimum per scanner: true positives,
 5. Every `duration_ms` is measured, never estimated.
 6. Every cost and carbon figure carries its `basis`.
 7. The service stays stateless — session state belongs to Person 2's Redis.
+
+---
+
+## Post-16: CLI and extension
+
+Tracked in `docs/EXTENSION_CLI_PLAN.md`.
+
+- [x] B0 skeleton, config, exit codes
+- [x] B1 `aegis scan` (paths / --staged / --diff), install-hook, baseline, SARIF, 15 tests
+- [ ] B2 `aegis chat` through the Gateway
+- [ ] B3 `aegis status`
+- [ ] B4 packaging + README polish
