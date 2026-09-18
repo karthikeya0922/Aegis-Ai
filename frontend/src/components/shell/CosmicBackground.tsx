@@ -26,11 +26,73 @@ const starfield = STARS.map(
   ([x, y, r, a]) => `radial-gradient(${r}px ${r}px at ${x} ${y}, rgba(255,255,255,${a}) 100%, transparent)`,
 ).join(",");
 
-export function CosmicBackground({ intensity = 1 }: { intensity?: number }) {
+
+/**
+ * Vertical light curtains, from `Aegis Landing Cosmic.dc.html:33`.
+ *
+ * Twenty columns of varying width sweeping orange → white → blue across the
+ * frame, blurred together so they read as one aurora rather than 20 bars. Each
+ * gets its own sway duration so the curtain never pulses in lockstep.
+ */
+const SHAFT_COLORS = [
+  [255, 138, 0], [255, 150, 40], [255, 176, 70], [255, 205, 120], [255, 230, 180],
+  [255, 245, 225], [255, 255, 255], [235, 243, 255], [205, 230, 255], [160, 205, 255],
+  [110, 180, 255], [70, 160, 255], [40, 135, 255], [1, 117, 255], [20, 95, 235],
+  [30, 80, 210], [45, 70, 180], [60, 60, 150], [50, 50, 120], [40, 45, 95],
+] as const;
+
+function Shafts({ intensity }: { intensity: number }) {
+  return (
+    <div
+      className="absolute flex"
+      style={{
+        left: "-8%", right: "-8%", top: "-10%", bottom: "14%",
+        filter: "blur(var(--blur-shaft))",
+        opacity: intensity,
+        mixBlendMode: "screen",
+      }}
+    >
+      {SHAFT_COLORS.map(([r, g, b], i) => {
+        // Deterministic jitter — a fixed pattern beats Math.random(), which would
+        // differ between the server and client render and trip hydration.
+        const flex = 0.6 + ((i * 7) % 5) * 0.35;
+        const peak = 0.55 + ((i * 3) % 4) * 0.09;
+        const dur = 16 + ((i * 5) % 9) * 2;
+        return (
+          <span
+            key={i}
+            className="animate-shaft-sway"
+            style={{
+              flex,
+              animationDuration: `${dur}s`,
+              animationDelay: `-${i * 0.7}s`,
+              background: `linear-gradient(to bottom, rgba(${r},${g},${b},0) 0%, rgba(${r},${g},${b},${peak * 0.45}) 22%, rgba(${r},${g},${b},${peak}) 58%, rgba(${r},${g},${b},${peak * 0.85}) 80%, rgba(${r},${g},${b},0) 100%)`,
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+export function CosmicBackground({
+  intensity = 1,
+  /**
+   * `fixed` follows the viewport (app chrome); `absolute` is confined to the
+   * nearest positioned ancestor. The landing page uses `absolute` so the aurora
+   * horizon lands at the bottom of the HERO rather than being stretched down the
+   * whole document — stretched, the light band cuts straight through the content
+   * below it and makes the text unreadable.
+   */
+  position = "fixed",
+}: {
+  intensity?: number;
+  position?: "fixed" | "absolute";
+}) {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
+      className={`pointer-events-none ${position} inset-0 z-0 overflow-hidden`}
       style={{ background: "var(--aegis-bg-cosmic)" }}
     >
       {/* starfield */}
@@ -43,6 +105,8 @@ export function CosmicBackground({ intensity = 1 }: { intensity?: number }) {
           opacity: 0.7 * intensity,
         }}
       />
+
+      <Shafts intensity={intensity} />
 
       {/* aurora horizon — the orange→white→blue sweep rising from below */}
       <div
@@ -107,7 +171,7 @@ export function CosmicBackground({ intensity = 1 }: { intensity?: number }) {
       />
 
       {/* vignette + film grain keep text legible over the glow */}
-      <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at 48% 66%, transparent 30%, rgba(5,6,10,0.72) 74%, var(--aegis-bg-cosmic) 100%)" }} />
+      <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at 48% 70%, transparent 46%, rgba(5,6,10,0.42) 78%, var(--aegis-bg-cosmic) 100%)" }} />
       <div
         className="absolute inset-0"
         style={{ opacity: 0.11, mixBlendMode: "overlay", backgroundImage: "radial-gradient(circle at 50% 50%, #fff 0.5px, transparent 0.6px)", backgroundSize: "2.5px 2.5px" }}

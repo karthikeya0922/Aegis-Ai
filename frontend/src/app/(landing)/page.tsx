@@ -1,103 +1,240 @@
 import Link from "next/link";
-import { Shield, ShieldAlert, Key, Zap, BrainCircuit, HardDrive, EyeOff } from "lucide-react";
+import { BrainCircuit, EyeOff, HardDrive, Key, ShieldAlert, Zap } from "lucide-react";
 import { CosmicBackground } from "@/components/shell/CosmicBackground";
+import { HeroPreview } from "@/components/landing/HeroPreview";
+import { LandingNav } from "@/components/landing/LandingNav";
 
-const features = [
+/**
+ * Landing page.
+ *
+ * Layout follows the reference: full-viewport hero with the aurora rising behind
+ * a dashboard preview, then everything else on solid ground BELOW it. The aurora
+ * is scoped to the hero on purpose — stretched down the whole document, its light
+ * band crosses the feature cards and makes their text unreadable.
+ */
+
+const FEATURES = [
   {
-    icon: <EyeOff className="w-6 h-6 text-aegis-neon" />,
+    icon: EyeOff,
     title: "PII Redaction",
-    description: "Automatically detect and redact sensitive user data before it hits external APIs.",
+    description: "Names, emails, cards and phone numbers become reversible placeholders before any model sees them.",
+    color: "var(--status-info)",
   },
   {
-    icon: <Key className="w-6 h-6 text-aegis-neon" />,
+    icon: Key,
     title: "Secret Detection",
-    description: "Prevent API keys, tokens, and credentials from leaking in prompt payloads.",
+    description: "API keys, tokens, connection strings and private keys are stripped — and never rehydrated.",
+    color: "var(--status-sanitize)",
   },
   {
-    icon: <ShieldAlert className="w-6 h-6 text-aegis-neon" />,
+    icon: ShieldAlert,
     title: "Injection Defense",
-    description: "Block malicious prompt injections and jailbreak attempts in real-time.",
+    description: "Prompt injections and jailbreak attempts are blocked before a provider is ever called.",
+    color: "var(--status-block)",
   },
   {
-    icon: <Zap className="w-6 h-6 text-aegis-neon" />,
+    icon: Zap,
     title: "Smart Routing",
-    description: "Route requests dynamically to the most cost-effective and capable models.",
+    description: "Every request goes to the cheapest model that can actually handle it, with automatic failover.",
+    color: "var(--status-cost)",
   },
   {
-    icon: <HardDrive className="w-6 h-6 text-aegis-neon" />,
+    icon: HardDrive,
     title: "Semantic Cache",
-    description: "Cache responses intelligently based on semantic meaning to save costs and reduce latency.",
+    description: "Paraphrases hit the same cache entry, so repeat questions cost nothing and return instantly.",
+    color: "var(--status-clean)",
   },
   {
-    icon: <BrainCircuit className="w-6 h-6 text-aegis-neon" />,
+    icon: BrainCircuit,
     title: "Hallucination Firewall",
-    description: "Monitor and filter model outputs to prevent hallucinated facts and unsanctioned behavior.",
+    description: "Answers are graded against your reference documents; unsupported claims never reach the user.",
+    color: "var(--status-warn)",
   },
+];
+
+const STEPS = [
+  { n: "01", title: "Point at one base URL", body: "Swap your provider's base URL for Aegis. The API stays OpenAI-compatible, so no client changes." },
+  { n: "02", title: "Every prompt walks the gate", body: "Scan, redact, injection check, policy. A failure anywhere fails closed — the provider is never reached." },
+  { n: "03", title: "Route, cache, verify", body: "Cheapest capable model, semantic cache on the sanitized prompt, grounding check on the way back out." },
+  { n: "04", title: "Export the audit trail", body: "Every request lands in the log — including blocked ones — and exports as a PDF for EU AI Act evidence." },
 ];
 
 export default function LandingPage() {
   return (
-    <main className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-black text-white">
-      <div className="absolute inset-0 z-0">
-        <CosmicBackground />
-      </div>
+    <main className="relative" style={{ background: "var(--aegis-bg-cosmic)" }}>
+      <LandingNav />
 
-      <div className="relative z-10 container mx-auto px-6 py-24 flex-grow flex flex-col items-center justify-center text-center">
-        {/* Branding */}
-        <div className="flex items-center gap-3 mb-8">
-          <Shield className="w-12 h-12 text-aegis-neon" />
-          <h1 className="text-4xl font-extrabold tracking-widest uppercase">Aegis</h1>
+      {/* ---------------------------------------------------------------- hero */}
+      <section className="relative flex min-h-screen flex-col overflow-hidden">
+        <CosmicBackground position="absolute" />
+
+        <div
+          className="relative z-10 mx-auto flex w-full max-w-hero flex-1 flex-col items-center gap-15 text-center"
+          style={{ paddingInline: "clamp(20px, 4vw, 24px)", paddingTop: "clamp(120px, 18vh, 200px)" }}
+        >
+          <span
+            className="rounded-full px-14 py-7 text-base-plus text-aegis-text-80"
+            style={{
+              border: "1px solid var(--aegis-border-pill)",
+              background: "var(--aegis-surface-pill)",
+              backdropFilter: "blur(var(--blur-badge))",
+            }}
+          >
+            Open-source · v0.1
+          </span>
+
+          <h1
+            className="m-0 font-extrabold"
+            style={{
+              fontSize: "var(--text-display)",
+              lineHeight: "var(--leading-tight)",
+              letterSpacing: "var(--tracking-tightest)",
+              textWrap: "balance",
+            }}
+          >
+            Zero-trust gateway
+            <br />
+            for every model call
+          </h1>
+
+          <p
+            className="m-0 max-w-[720px] text-2xl leading-body"
+            style={{ color: "var(--aegis-text)", textShadow: "var(--text-shadow-hero)", textWrap: "balance" }}
+          >
+            Aegis redacts PII and secrets, blocks prompt injection, routes to the cheapest capable model and
+            exports the audit trail. One base URL, every provider.
+          </p>
+
+          <div className="flex flex-wrap items-center justify-center gap-10">
+            <Link
+              href="/playground"
+              className="rounded-full px-21 py-12 text-lg-plus font-semibold transition-transform duration-300 ease-out-expo hover:scale-[1.03]"
+              style={{ border: "1px solid var(--aegis-border-cta-lg)", background: "#000", boxShadow: "var(--shadow-cta-lg)" }}
+            >
+              Launch Inspector →
+            </Link>
+            <Link
+              href="https://github.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-full px-21 py-12 text-lg-plus font-semibold text-aegis-text-85 transition-colors duration-300 hover:text-aegis-text"
+              style={{ border: "1px solid var(--aegis-border-strong)", background: "rgba(0,0,0,0.45)", backdropFilter: "blur(var(--blur-badge))" }}
+            >
+              GitHub
+            </Link>
+          </div>
         </div>
 
-        {/* Hero */}
-        <h2 className="text-5xl md:text-7xl font-bold mb-6 tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
-          Zero-Trust AI Gateway
+        <div className="relative z-10 mt-auto" style={{ paddingTop: "clamp(48px, 8vh, 96px)" }}>
+          <HeroPreview />
+        </div>
+      </section>
+
+      {/* ------------------------------------------------------- guardrails */}
+      <section
+        id="guardrails"
+        className="relative z-10 mx-auto w-full max-w-marketing"
+        style={{ paddingInline: "clamp(20px, 4vw, 24px)", paddingBlock: "clamp(96px, 14vh, 140px)" }}
+      >
+        <h2
+          className="m-0 text-center font-extrabold"
+          style={{ fontSize: "var(--text-display-sm)", lineHeight: "var(--leading-heading)", letterSpacing: "var(--tracking-tighter)" }}
+        >
+          Six guardrails. One gateway.
         </h2>
-        <p className="text-xl md:text-2xl text-gray-400 mb-12 max-w-3xl">
-          Redact PII. Block injections. Route smart. Audit everything.
+        <p className="mx-auto mb-0 mt-11 max-w-[560px] text-center text-xl leading-body text-aegis-text-60">
+          Every prompt walks the same path before a provider ever sees it.
         </p>
 
-        {/* CTAs */}
-        <div className="flex flex-col sm:flex-row gap-6 mb-24">
-          <Link
-            href="/playground"
-            className="px-8 py-4 rounded-full bg-aegis-neon text-black font-semibold text-lg hover:bg-aegis-neon/90 transition-colors flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(57,255,20,0.3)]"
-          >
-            Launch Inspector &rarr;
-          </Link>
-          <Link
-            href="https://github.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-8 py-4 rounded-full bg-white/10 text-white font-semibold text-lg hover:bg-white/20 transition-colors border border-white/20 flex items-center justify-center gap-2 backdrop-blur-sm"
-          >
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
-            </svg>
-            GitHub
-          </Link>
-        </div>
-
-        {/* Feature Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full max-w-6xl text-left">
-          {features.map((feature, idx) => (
-            <div
-              key={idx}
-              className="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-colors"
+        <div className="mt-22 grid gap-14" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))" }}>
+          {FEATURES.map(({ icon: Icon, ...f }) => (
+            <article
+              key={f.title}
+              className="group relative overflow-hidden rounded-2xl p-17 transition-[transform,border-color] duration-300 ease-out-expo hover:-translate-y-1"
+              style={{ border: "1px solid var(--aegis-border-card)", background: "var(--aegis-bg-card-solid)" }}
             >
-              <div className="mb-4 bg-black/50 w-12 h-12 flex items-center justify-center rounded-lg border border-white/5">
-                {feature.icon}
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute -right-[20%] -top-[30%] h-[70%] w-[70%] rounded-circle opacity-0 transition-opacity duration-500 group-hover:opacity-40"
+                style={{ background: f.color, filter: "blur(var(--blur-orb-card))" }}
+              />
+              <div className="relative">
+                <span
+                  className="flex items-center justify-center rounded-md"
+                  style={{ width: 44, height: 44, border: "1px solid var(--aegis-border-subtle)", background: "var(--aegis-surface-inset)" }}
+                >
+                  <Icon className="h-5 w-5" style={{ color: f.color }} strokeWidth={1.75} />
+                </span>
+                <h3 className="mb-0 mt-14 text-3xl font-semibold">{f.title}</h3>
+                <p className="mb-0 mt-8 text-md leading-body text-aegis-text-62">{f.description}</p>
               </div>
-              <h3 className="text-xl font-semibold mb-2 text-white">{feature.title}</h3>
-              <p className="text-gray-400 leading-relaxed">{feature.description}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      {/* ------------------------------------------------------------- how */}
+      <section
+        id="how"
+        className="relative z-10 mx-auto w-full max-w-marketing"
+        style={{ paddingInline: "clamp(20px, 4vw, 24px)", paddingBottom: "clamp(96px, 14vh, 140px)" }}
+      >
+        <h2
+          className="m-0 text-center font-extrabold"
+          style={{ fontSize: "var(--text-display-sm)", lineHeight: "var(--leading-heading)", letterSpacing: "var(--tracking-tighter)" }}
+        >
+          How it works
+        </h2>
+
+        <div className="mt-22 grid gap-14" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}>
+          {STEPS.map((s) => (
+            <div key={s.n} className="rounded-xl p-15" style={{ border: "1px solid var(--aegis-border)", background: "var(--aegis-surface)", backdropFilter: "blur(var(--blur-panel))" }}>
+              <span className="font-mono text-sm-plus text-aegis-text-40">{s.n}</span>
+              <h3 className="mb-0 mt-10 text-2xl font-semibold">{s.title}</h3>
+              <p className="mb-0 mt-7 text-base-plus leading-body text-aegis-text-60">{s.body}</p>
             </div>
           ))}
         </div>
-      </div>
+      </section>
 
-      {/* Footer */}
-      <footer className="relative z-10 w-full py-8 text-center text-gray-500 border-t border-white/10 bg-black/50 backdrop-blur-md">
-        <p>&copy; {new Date().getFullYear()} Aegis AI. All rights reserved.</p>
+      {/* -------------------------------------------------------- security */}
+      <section
+        id="security"
+        className="relative z-10 mx-auto w-full max-w-marketing"
+        style={{ paddingInline: "clamp(20px, 4vw, 24px)", paddingBottom: "clamp(96px, 14vh, 140px)" }}
+      >
+        <div
+          className="relative overflow-hidden rounded-2xl p-22 text-center"
+          style={{ border: "1px solid var(--aegis-border-card)", background: "var(--aegis-bg-card-solid)" }}
+        >
+          <span aria-hidden="true" className="pointer-events-none absolute -left-[10%] -top-[40%] h-[80%] w-[60%] animate-float-y rounded-circle" style={{ background: "var(--aegis-orange)", opacity: 0.3, filter: "blur(var(--blur-orb-card))" }} />
+          <span aria-hidden="true" className="pointer-events-none absolute -bottom-[40%] -right-[10%] h-[80%] w-[60%] animate-float-y-slow rounded-circle" style={{ background: "var(--aegis-blue)", opacity: 0.3, filter: "blur(var(--blur-orb-card))" }} />
+
+          <div className="relative">
+            <h2 className="m-0 font-extrabold" style={{ fontSize: "var(--text-display-sm)", lineHeight: "var(--leading-heading)", letterSpacing: "var(--tracking-tighter)" }}>
+              Fails closed, by design
+            </h2>
+            <p className="mx-auto mb-0 mt-11 max-w-[620px] text-xl leading-body text-aegis-text-70">
+              If the security engine is unreachable, times out or returns something it shouldn&apos;t, the request
+              is refused. There is no &ldquo;proceed anyway&rdquo; path — and a detected secret is never sent to a
+              provider, never rehydrated, and never reaches your browser.
+            </p>
+            <Link
+              href="/dashboard"
+              className="mt-17 inline-block rounded-full px-21 py-12 text-lg-plus font-semibold transition-transform duration-300 ease-out-expo hover:scale-[1.03]"
+              style={{ border: "1px solid var(--aegis-border-cta-lg)", background: "#000", boxShadow: "var(--shadow-cta-lg)" }}
+            >
+              Open the Dashboard
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <footer
+        className="relative z-10 py-17 text-center font-mono text-sm-plus text-aegis-text-40"
+        style={{ borderTop: "1px solid var(--aegis-border-subtle)" }}
+      >
+        © {new Date().getFullYear()} Aegis AI. All rights reserved.
       </footer>
     </main>
   );

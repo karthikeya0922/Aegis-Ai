@@ -233,6 +233,8 @@ const config: Config = {
         "float-y": "floatY var(--dur-float) ease-in-out infinite",
         "float-y-slow": "floatY var(--dur-float-slow) ease-in-out infinite reverse",
         "stage-in": "stageIn 260ms var(--ease-out-expo) both",
+        // duration is overridden per-shaft inline so the curtain never pulses in lockstep
+        "shaft-sway": "shaftSway 20s ease-in-out infinite",
       },
     },
   },
