@@ -179,6 +179,12 @@ def upsert_event(ev: AuditEventRequest) -> tuple[bool, bool]:
                     row.secret_types = sorted(set(row.secret_types or []) | set(ev.secret_types))
             row.injection_detected = ev.injection_detected or row.injection_detected
 
+            # Estimates the Gateway did not supply are filled from config.
+            # They are labelled as estimates wherever they are reported; the
+            # basis strings live in config/pricing.yaml and
+            # config/sustainability.yaml.
+            _fill_estimates(row)
+
             row.gateway_finalized = True
         _bump("events_upserted")
         return True, duplicate
@@ -186,6 +192,40 @@ def upsert_event(ev: AuditEventRequest) -> tuple[bool, bool]:
         _bump("failures")
         log.error("audit: failed to upsert event %s: %s", ev.request_id, type(exc).__name__)
         return False, False
+
+
+def _fill_estimates(row: RequestAudit) -> None:
+    """Compute cost / energy / CO2 for a row that has tokens but no figures.
+
+    A cache hit ran no provider inference: its own energy is zero, and its
+    savings are what the request would have cost on the counterfactual model.
+    """
+    from app.audit.estimates import get_pricing, get_sustainability  # noqa: WPS433
+
+    pricing = get_pricing()
+    sus = get_sustainability()
+    has_tokens = (row.total_tokens or 0) > 0 or (row.input_tokens or 0) > 0
+
+    if row.cache_hit:
+        if row.estimated_cost_usd is None:
+            row.estimated_cost_usd = 0.0
+        if row.estimated_savings_usd is None and has_tokens:
+            row.estimated_savings_usd = pricing.cost_usd(
+                pricing.savings_counterfactual_model, row.input_tokens, row.output_tokens
+            )
+        if row.estimated_energy_wh is None:
+            row.estimated_energy_wh = 0.0
+            row.estimated_co2_g = 0.0
+        return
+
+    if not has_tokens:
+        return
+    if row.estimated_cost_usd is None:
+        row.estimated_cost_usd = pricing.cost_usd(row.model, row.input_tokens, row.output_tokens)
+    if row.estimated_energy_wh is None:
+        row.estimated_energy_wh = sus.energy_wh(row.model, row.total_tokens or ((row.input_tokens or 0) + (row.output_tokens or 0)))
+    if row.estimated_co2_g is None and row.estimated_energy_wh is not None:
+        row.estimated_co2_g = sus.co2_g(row.estimated_energy_wh)
 
 
 def _profile_from_pipeline(res: InspectResponse) -> str | None:

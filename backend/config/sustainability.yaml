@@ -1,0 +1,61 @@
+# Energy and carbon ESTIMATION assumptions.
+#
+# Nothing here is a measurement. Aegis has no power meter; it multiplies
+# reported token counts by a per-token energy assumption and a grid intensity
+# factor. The spec (s11) requires every such figure to be labelled estimated
+# and to carry its basis, which the metrics responses do.
+#
+# The per-token figures below are order-of-magnitude assumptions drawn from
+# published inference-energy analyses; they vary by hardware, batch size,
+# sequence length and provider efficiency by more than a factor of ten. Treat
+# the resulting numbers as comparable across requests within this
+# deployment, not as absolute claims about any provider's footprint.
+
+version: 1
+basis: >
+  Estimated, not measured: reported tokens x an assumed inference energy per
+  1,000 tokens by model class (config/sustainability.yaml) x an assumed grid
+  carbon intensity. Order-of-magnitude only; comparable within this
+  deployment, not an absolute claim.
+
+# Watt-hours per 1,000 tokens (input + output combined), by model class.
+energy_wh_per_1k_tokens:
+  frontier: 3.0     # large hosted models (gpt-4o, claude-opus, gemini-pro)
+  mid:      1.0     # mid-size hosted models (gpt-4o-mini, claude-sonnet, gemini-flash)
+  small:    0.3     # small hosted models (claude-haiku)
+  local:    0.5     # local inference on a workstation GPU (llama3, mistral)
+  unknown:  1.5
+
+# Which class each model belongs to. Unlisted models use `unknown`.
+model_class:
+  gpt-4o: frontier
+  gpt-4.1: frontier
+  o3-mini: mid
+  gpt-4o-mini: mid
+  gpt-4.1-mini: mid
+  claude-opus-5: frontier
+  claude-sonnet-5: mid
+  claude-haiku-4-5: small
+  gemini-2.5-pro: frontier
+  gemini-2.5-flash: mid
+  llama3: local
+  mistral: local
+  mock: small
+
+# Grams of CO2-equivalent per kilowatt-hour. A global-average figure by
+# default; set AEGIS_GRID_REGION to a listed region to use its factor.
+grid_gco2_per_kwh:
+  global: 480
+  in:     710    # India
+  eu:     250
+  us:     390
+  uk:     210
+  fr:     60
+  no:     30
+default_region: global
+
+# On a cache hit no provider inference ran. The energy AVOIDED is estimated
+# as the mean tokens of non-cached requests in the same window, priced at the
+# counterfactual model's class. Stated because "avoided" only means something
+# relative to what would otherwise have happened.
+avoided_counterfactual_model: gpt-4o-mini

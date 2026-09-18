@@ -17,7 +17,7 @@ from app.contracts.audit import (
     AuditReport,
 )
 from app.contracts.common import StrictModel
-from app.stubs import stub_audit_report
+from app.audit import metrics
 from app.utils.logging import get_logger
 
 router = APIRouter(tags=["audit"])
@@ -86,17 +86,18 @@ async def get_request(request_id: str) -> AuditEventRecord:
     response_model=AuditReport,
     summary="Structured audit export",
     description=(
-        "Returns structured sections the Gateway renders. Carries a disclaimer "
-        "stating that this is transaction evidence supporting a deployer's own "
-        "obligations, not a conformity assessment. Populated from the audit "
-        "table in Phase 12."
+        "Structured sections the Gateway renders, one per Trustworthy AI "
+        "requirement, each a set of evidence rows from the audit table with a "
+        "note saying what the numbers are and are not. Carries a disclaimer: "
+        "this is transaction evidence supporting a deployer's own obligations, "
+        "not a conformity assessment."
     ),
 )
 async def audit_report(
     tenant_id: str = Query("default"),
     since_hours: int = Query(168, ge=1, le=8760),
 ) -> AuditReport:
-    return stub_audit_report(tenant_id)
+    return metrics.report(tenant_id, since_hours)
 
 
 # ---------------------------------------------------------------------------

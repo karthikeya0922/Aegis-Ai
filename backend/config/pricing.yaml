@@ -1,0 +1,41 @@
+# Token pricing assumptions for cost ESTIMATES.
+#
+# The Inspector never sees a provider invoice. When the Gateway reports token
+# counts and a model but no cost, the audit row's estimated_cost_usd is
+# computed from this table, and every metrics response that shows a dollar
+# figure carries the `basis` string below so the dashboard can say where the
+# number came from. Update the prices; the basis string updates itself.
+#
+# Prices are USD per 1,000,000 tokens. They are LIST prices as of the
+# `as_of` date -- not negotiated rates, not what any tenant actually pays.
+
+version: 1
+as_of: "2026-09"
+currency: USD
+basis: >
+  Estimated from provider list prices (config/pricing.yaml, as of 2026-09),
+  USD per million tokens, applied to reported token counts. Not an invoice.
+
+# "Savings" on a cache hit are counted against this model: the cost the
+# request WOULD have incurred had it gone to the provider. Stated because a
+# savings figure is only meaningful relative to a named counterfactual.
+savings_counterfactual_model: gpt-4o-mini
+
+models:
+  gpt-4o:            { input: 2.50,  output: 10.00 }
+  gpt-4o-mini:       { input: 0.15,  output: 0.60 }
+  gpt-4.1:           { input: 2.00,  output: 8.00 }
+  gpt-4.1-mini:      { input: 0.40,  output: 1.60 }
+  o3-mini:           { input: 1.10,  output: 4.40 }
+  claude-opus-5:     { input: 15.00, output: 75.00 }
+  claude-sonnet-5:   { input: 3.00,  output: 15.00 }
+  claude-haiku-4-5:  { input: 0.80,  output: 4.00 }
+  gemini-2.5-pro:    { input: 1.25,  output: 10.00 }
+  gemini-2.5-flash:  { input: 0.30,  output: 2.50 }
+  llama3:            { input: 0.00,  output: 0.00 }   # local / Ollama
+  mistral:           { input: 0.00,  output: 0.00 }   # local / Ollama
+  mock:              { input: 0.00,  output: 0.00 }
+
+# Used when the model is not listed. Deliberately a mid-range figure so an
+# unknown model is neither free nor alarming; the basis string says so.
+default: { input: 1.00, output: 4.00 }

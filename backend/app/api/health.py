@@ -21,7 +21,7 @@ from app.security.policy_engine import get_policy_engine
 router = APIRouter(tags=["health"])
 
 _STARTED = time.monotonic()
-BUILD_PHASE = "phase-14-human-review"
+BUILD_PHASE = "phase-12-metrics"
 
 
 def _pii_component() -> ComponentHealth:
@@ -86,6 +86,24 @@ def _pending_reviews() -> int:
         return -1
 
 
+def _metrics_component() -> ComponentHealth:
+    from app.audit import metrics
+    from app.audit.estimates import get_pricing, get_sustainability
+
+    try:
+        ov = metrics.overview(window_hours=24)
+        return ComponentHealth(
+            name="metrics", status="ok",
+            detail=(
+                f"aggregated over request_audit; {ov.total_requests} request(s) in the last 24h; "
+                f"pricing v{get_pricing().version} ({get_pricing().as_of}), "
+                f"sustainability v{get_sustainability().version} region={get_sustainability().region}"
+            ),
+        )
+    except Exception as exc:  # noqa: BLE001
+        return ComponentHealth(name="metrics", status="degraded", detail=type(exc).__name__)
+
+
 def _components() -> list[ComponentHealth]:
     stub = "stub"  # components below that have not shipped yet
     return [
@@ -113,6 +131,7 @@ def _components() -> list[ComponentHealth]:
         ComponentHealth(name="grounding", status=stub, detail="NLI cross-encoder lands in Phase 10"),
         _database_component(),
         _fairness_component(),
+        _metrics_component(),
         ComponentHealth(
             name="review_api",
             status="ok",
