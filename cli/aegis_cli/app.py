@@ -15,6 +15,7 @@ from typing import Optional
 
 import typer
 from rich.console import Console
+from rich.panel import Panel
 from rich.markup import escape
 from rich.table import Table
 
@@ -203,6 +204,222 @@ def install_hook(
         console.print("\n[dim]This repo uses the pre-commit framework; to run through it instead, add:[/dim]")
         console.print(H.PRE_COMMIT_FRAMEWORK_SNIPPET)
     console.print("[dim]Override once with AEGIS_ALLOW=1, or per line with  # aegis:allow[/dim]")
+
+
+# ---------------------------------------------------------------------------
+# chat / appeal / reviews  (through the Gateway and the Inspector)
+# ---------------------------------------------------------------------------
+
+
+@app.command()
+def chat(
+    prompt: Optional[str] = typer.Argument(None, help="One prompt. Omit for a REPL."),
+    mode: str = typer.Option("sanitize", "--mode", help="sanitize | strict (x-aegis-mode)."),
+    no_cache: bool = typer.Option(False, "--no-cache", help="Bypass the semantic cache for this request."),
+    confidential: bool = typer.Option(False, "--confidential", help="Confidential mode: strict profile, no cache."),
+    ref: list[Path] = typer.Option([], "--ref", help="Reference document(s) for grounding (repeatable)."),
+    explain: bool = typer.Option(False, "--explain", help="After the answer, print the Inspector's audit row."),
+    as_json: bool = typer.Option(False, "--json", help="Machine-readable outcome instead of the readout."),
+    quiet: bool = typer.Option(False, "--quiet", "-q", help="Answer only; no pipeline readout."),
+) -> None:
+    """Chat through the Aegis Gateway and watch the pipeline decide.
+
+    Routing, failover, cache and audit all happen for real in the Gateway;
+    this renders the aegis.* events it streams back.
+    """
+    from aegis_cli import chat as C
+
+    cfg = CLIConfig.load()
+    if mode not in {"sanitize", "strict"}:
+        err.print("[red]--mode must be sanitize or strict[/red]"); raise typer.Exit(2)
+    docs = []
+    for r in ref:
+        try:
+            docs.append(r.read_text(encoding="utf-8"))
+        except OSError as exc:
+            err.print(f"[red]cannot read {r}: {exc}[/red]"); raise typer.Exit(2)
+
+    def one(text: str, history: list[dict[str, str]]) -> C.ChatOutcome:
+        started = {"any": False}
+
+        def on_token(tok: str) -> None:
+            if not started["any"]:
+                if not quiet:
+                    console.print("[bold]answer[/bold]")
+                started["any"] = True
+            sys.stdout.write(tok); sys.stdout.flush()
+
+        def on_scan(scan: dict) -> None:
+            if quiet or as_json:
+                return
+            C.render_stages(scan.get("stages", []), console)
+            if scan.get("action") == "sanitize":
+                C.render_sanitized(scan, console)
+            elif scan.get("action") == "warn":
+                console.print("[yellow]warning recorded; original prompt forwarded[/yellow]")
+
+        out = C.chat(text, cfg=cfg, mode=mode, no_cache=no_cache or confidential, confidential=confidential,
+                     reference_docs=docs or None, history=history,
+                     on_token=None if as_json else on_token, on_scan=on_scan)
+        if started["any"]:
+            sys.stdout.write("\n"); sys.stdout.flush()
+        if as_json:
+            console.print_json(json.dumps({
+                "request_id": out.request_id, "action": out.action, "error_code": out.error_code,
+                "blocked": out.blocked, "answer": out.answer, "grounding": out.grounding,
+                "telemetry": out.telemetry, "error": out.error_message, "exit_code": out.exit_code,
+            }))
+            return out
+        if out.blocked:
+            C.render_block(out, console)
+            return out
+        if out.error_message and not out.answer:
+            err.print(f"[red]{out.error_message}[/red]")
+            return out
+        if out.answer != out.streamed:
+            g = out.grounding or {}
+            title = "final answer (grounding fallback)" if g.get("blocked") else "final answer (rehydrated)"
+            console.print(Panel(out.answer, title=title, title_align="left",
+                                border_style="red" if g.get("blocked") else "green"))
+        if not quiet:
+            C.render_footer(out, console)
+            if explain and out.request_id:
+                audit = C.fetch_audit(out.request_id, cfg=cfg)
+                if audit:
+                    C.render_audit(audit, console)
+                else:
+                    console.print(f"[dim]no audit row yet for {out.request_id}[/dim]")
+        return out
+
+    if prompt is not None:
+        out = one(prompt, [])
+        raise typer.Exit(out.exit_code)
+
+    console.print(f"[dim]aegis chat -- gateway {cfg.gateway_url}, mode {mode}. Ctrl-D or /quit to leave.[/dim]")
+    history: list[dict[str, str]] = []
+    while True:
+        try:
+            text = console.input("[bold cyan]> [/bold cyan]").strip()
+        except (EOFError, KeyboardInterrupt):
+            console.print(); break
+        if not text:
+            continue
+        if text in {"/quit", "/exit"}:
+            break
+        out = one(text, history)
+        if out.answer and not out.blocked:
+            history += [{"role": "user", "content": text}, {"role": "assistant", "content": out.answer}]
+    raise typer.Exit(0)
+
+
+@app.command()
+def appeal(
+    request_id: str = typer.Argument(..., help="The request id from a blocked chat."),
+    justification: str = typer.Argument(..., help="Why this should be allowed (1-2000 chars)."),
+    decision: str = typer.Option("BLOCK", "--decision", help="Original decision being appealed."),
+) -> None:
+    """Ask a human reviewer to reconsider a blocked request (Requirement 1: human oversight)."""
+    from aegis_cli import chat as C
+
+    cfg = CLIConfig.load()
+    try:
+        status, body = C.create_appeal(request_id, justification, cfg=cfg, decision=decision.upper())
+    except Exception as exc:  # noqa: BLE001
+        err.print(f"[red]inspector unreachable at {cfg.engine_url}: {exc.__class__.__name__}[/red]"); raise typer.Exit(2)
+    if status == 201 and body.get("accepted", True):
+        rec = body.get("review", {})
+        console.print(f"appeal opened: [bold]{rec.get('id')}[/bold] (status {rec.get('status')})")
+        console.print("[dim]a reviewer decides with:  aegis reviews decide <id> --approve|--deny[/dim]")
+        raise typer.Exit(0)
+    err.print(f"[red]appeal not accepted ({status}): {body.get('reason') or body.get('detail') or body}[/red]")
+    raise typer.Exit(1)
+
+
+reviews_app = typer.Typer(help="The human-review queue.", no_args_is_help=True)
+app.add_typer(reviews_app, name="reviews")
+
+
+@reviews_app.command("list")
+def reviews_list(status: Optional[str] = typer.Option("PENDING", "--status", help="PENDING | APPROVED | DENIED | all")) -> None:
+    """List review requests."""
+    import httpx
+
+    cfg = CLIConfig.load()
+    params = {} if status in (None, "all") else {"status": status.upper()}
+    try:
+        r = httpx.get(f"{cfg.engine_url}/api/reviews", params=params, timeout=10)
+    except httpx.HTTPError as exc:
+        err.print(f"[red]inspector unreachable: {exc.__class__.__name__}[/red]"); raise typer.Exit(2)
+    items = r.json().get("items", [])
+    t = Table(title=f"reviews ({status or 'all'})", title_justify="left")
+    for col in ("id", "request_id", "decision", "rule", "status"):
+        t.add_column(col, no_wrap=True)
+    t.add_column("justification", overflow="fold")
+    for it in items:
+        t.add_row(it.get("id", ""), it.get("request_id", ""), str(it.get("original_decision", "")),
+                  it.get("rule_fired") or "-", str(it.get("status", "")), (it.get("user_justification") or "")[:60])
+    console.print(t)
+
+
+@reviews_app.command("decide")
+def reviews_decide(
+    review_id: str = typer.Argument(...),
+    approve: bool = typer.Option(False, "--approve"),
+    deny: bool = typer.Option(False, "--deny"),
+    note: Optional[str] = typer.Option(None, "--note"),
+    reviewer: Optional[str] = typer.Option(None, "--reviewer", help="Your reviewer reference (hashed on store)."),
+) -> None:
+    """Approve or deny an appeal. Needs AEGIS_REVIEWER_TOKEN when the Inspector has one set."""
+    import httpx
+
+    if approve == deny:
+        err.print("[red]pass exactly one of --approve / --deny[/red]"); raise typer.Exit(2)
+    cfg = CLIConfig.load()
+    headers = {"X-Reviewer-Token": cfg.reviewer_token} if cfg.reviewer_token else {}
+    try:
+        r = httpx.post(f"{cfg.engine_url}/api/reviews/{review_id}/decision", headers=headers, timeout=10,
+                       json={"approve": approve, "reviewer_ref": reviewer, "reviewer_note": note})
+    except httpx.HTTPError as exc:
+        err.print(f"[red]inspector unreachable: {exc.__class__.__name__}[/red]"); raise typer.Exit(2)
+    if r.status_code == 401:
+        err.print("[red]reviewer token required: set AEGIS_REVIEWER_TOKEN[/red]"); raise typer.Exit(2)
+    if r.status_code != 200:
+        err.print(f"[red]{r.status_code}: {r.text[:300]}[/red]"); raise typer.Exit(1)
+    body = r.json()
+    rec = body.get("review", {})
+    console.print(f"review {rec.get('id')} -> [bold]{rec.get('status')}[/bold]")
+    if body.get("override_token"):
+        console.print("override token (single-use, request-scoped, expires):")
+        console.print(f"  [bold]{body['override_token']}[/bold]")
+        console.print("[dim]resend the original request with override_token to /inspect, or via the Gateway[/dim]")
+
+
+@app.command()
+def status(
+    hours: int = typer.Option(24, "--hours", help="Metrics window."),
+    watch: bool = typer.Option(False, "--watch", help="Redraw every 5 seconds."),
+    as_json: bool = typer.Option(False, "--json"),
+) -> None:
+    """One screen: services, traffic, security, cache/sustainability estimates, providers, reviews, fairness."""
+    import time
+
+    from aegis_cli import status as St
+
+    cfg = CLIConfig.load()
+    while True:
+        snap = St.collect(cfg, hours=hours)
+        if as_json:
+            console.print_json(json.dumps(snap.to_json(), default=str))
+        else:
+            if watch:
+                console.clear()
+            St.render(snap, cfg, console)
+        if not watch:
+            raise typer.Exit(0 if snap.health else 2)
+        try:
+            time.sleep(5)
+        except KeyboardInterrupt:
+            raise typer.Exit(0)
 
 
 def main() -> None:

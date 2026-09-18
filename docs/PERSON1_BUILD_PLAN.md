@@ -389,6 +389,6 @@ Tracked in `docs/EXTENSION_CLI_PLAN.md`.
 
 - [x] B0 skeleton, config, exit codes
 - [x] B1 `aegis scan` (paths / --staged / --diff), install-hook, baseline, SARIF, 15 tests
-- [ ] B2 `aegis chat` through the Gateway
-- [ ] B3 `aegis status`
-- [ ] B4 packaging + README polish
+- [x] B2 `aegis chat` through the Gateway (streaming readout, --ref grounding, --explain, appeal, reviews list/decide)
+- [x] B3 `aegis status` (+ --watch, --json)
+- [x] B4 tests (25) + README

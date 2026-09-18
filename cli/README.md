@@ -8,7 +8,8 @@ Aegis from the terminal. Two jobs:
    CI step (SARIF).
 2. **`aegis chat`** -- a guarded chat that goes through the Aegis Gateway, so
    routing, failover, semantic cache and audit all happen for real, rendered
-   as the live pipeline readout. *(next checkpoint)*
+   as the live pipeline readout. Plus `appeal` / `reviews` for human
+   oversight and `status` for the deployment's numbers.
 
 ```
 pip install -e ./cli          # from the repository root; needs backend/ alongside
@@ -70,6 +71,67 @@ values. A changed value at the same place is a new finding.
 uses (`backend/config/policies.yaml`). Under `default`, secrets are BLOCK and
 PII is SANITIZE, which is why `--fail-on` defaults to `secret`: PII in source
 is usually a test fixture and should warn, not break the build, unless you ask.
+
+## `aegis chat`
+
+```
+aegis chat "Contact john@example.com about the merger"   # one shot
+aegis chat                                              # REPL, keeps history
+aegis chat "..." --mode strict                          # strict profile (x-aegis-mode)
+aegis chat "..." --no-cache                             # bypass the semantic cache
+aegis chat "..." --confidential                         # strict + no cache
+aegis chat "..." --ref policy.md --ref faq.md           # grounding against reference docs
+aegis chat "..." --explain                              # then print the Inspector's audit row
+aegis chat "..." --json                                 # machine-readable outcome
+```
+
+The readout, in the order the Gateway streams it:
+
+```
+pipeline
+ok   secret_scanner              0.1 ms
+!!   pii_scanner                19.1 ms  1 finding(s)
+ok   policy_engine               0.6 ms  profile=default v1 decision=SANITIZE rules=pii
+ok   cache_hint                  0.0 ms  not cacheable: personal_data_present
++- sent to the provider (sanitised) ----------------------------+
+| Contact [EMAIL_1] about the merger.                           |
++---------------------------------------------------------------+
+answer
+Please review the merger proposal promptly.
+provider groq  cache MISS  grounding pass (1)  rehydrated  req_...
+```
+
+Streamed tokens cannot be retracted. When the trailing `aegis.grounding`
+frame carries a different final text -- placeholders rehydrated, or the
+Gateway's fallback after a grounding block -- it is shown in a "final
+answer" panel under the streamed text, so what the model actually said and
+what the client should show are both visible.
+
+Exit codes: `0` answered (a grounding fallback is still 0), `1` blocked by
+policy, `2` gateway/provider error.
+
+### Human oversight from the terminal
+
+```
+aegis appeal <request_id> "why this should be allowed"     # opens a review
+aegis reviews list [--status PENDING|APPROVED|DENIED|all]
+aegis reviews decide <review_id> --approve|--deny [--note ..] [--reviewer ..]
+```
+
+`decide` sends `X-Reviewer-Token` from `AEGIS_REVIEWER_TOKEN` when set; an
+approval prints the single-use, request-scoped override token.
+
+## `aegis status`
+
+```
+aegis status              # services, traffic, security, cache/sustainability, providers, reviews, fairness
+aegis status --watch      # redraw every 5 s
+aegis status --json
+```
+
+Every estimate is printed with the basis string the API returns. The
+fairness section prints per-group recall and the worst-best gap as measured
+-- including when the gap is not closed.
 
 ## Configuration
 

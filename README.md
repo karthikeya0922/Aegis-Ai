@@ -10,6 +10,8 @@ requirements for Trustworthy AI. The design and the division of work are in
 | **Inspector** -- FastAPI service: secret / PII / injection detection, redaction, policy engine, audit database, human review, fairness harness, embeddings, grounded response verification, egress screens | Person 1 | [`backend/`](backend/README.md) |
 | **Gateway + dashboard** -- Next.js: OpenAI-compatible `/api/v1/chat/completions`, provider routing + failover, semantic cache (Redis Stack), streaming, dashboard | Person 2 | [`frontend/`](frontend/), [`lib/`](lib/), [`config/`](config/) -- see [`docs/FRONTEND.md`](docs/FRONTEND.md) |
 | Build plan and debt ledger | Person 1 | [`docs/PERSON1_BUILD_PLAN.md`](docs/PERSON1_BUILD_PLAN.md) |
+| **CLI** -- `aegis scan` pre-commit/CI credential scanning, `aegis chat` guarded chat through the Gateway with the pipeline readout, `appeal`/`reviews`, `status` | Person 1 | [`cli/`](cli/README.md) -- `pip install -e ./cli` |
+| **Browser extension** -- intercepts sends on ChatGPT/Claude/Gemini, scans via the Inspector, blocks or sanitises before the site sees it; injection screen on paste; info popup | Person 2 | `extension/` -- plan in [`docs/EXTENSION_CLI_PLAN.md`](docs/EXTENSION_CLI_PLAN.md) |
 | Pitch deck | -- | [`presentation/`](presentation/) |
 
 ## Run it

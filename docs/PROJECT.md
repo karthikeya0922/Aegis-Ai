@@ -1004,3 +1004,27 @@ Aegis Ai/
   `level: error` and no values; `--pii --fail-on pii` exits 1 on an email.
 - **Next step:** B2 `aegis chat` (through the Gateway, streaming, pipeline
   readout, `--explain`, `appeal`), then B3 `status`.
+
+### 2026-09-18 — CLI B2–B4: `aegis chat`, appeal/reviews, `aegis status`
+- **What changed:** `cli/aegis_cli/chat.py` (SSE client over the Gateway's
+  `/api/v1/chat/completions`, `x-aegis-mode` / `x-aegis-no-cache` /
+  `x-aegis-confidential` / `x-aegis-reference-docs` headers, persistent
+  `x-session-id`; renders `aegis.scan` stages before the answer, the sanitised
+  prompt, streamed tokens, then a "final answer" panel when the trailing
+  `aegis.grounding` frame differs -- rehydrated or grounding fallback -- and a
+  footer with provider / cache / grounding / request id; `--explain` reads
+  `/api/requests/{id}`), `appeal` and `reviews list|decide` against
+  `/api/reviews`, `status.py` (health, metrics, security, sustainability with
+  basis strings, providers, pending reviews, fairness gap as measured).
+  Root README gains CLI and extension rows. 25 CLI tests, all with recorded
+  responses (no network).
+- **Why:** plan items C2 and the information view; Requirement 1 (human
+  oversight) reachable from the terminal.
+- **Verified live:** PII prompt -> stages, `[EMAIL_1]` sent, rehydrated final
+  answer; AWS-shaped key -> blocked panel with the appeal command; `--ref`
+  with a contradicting doc -> streamed "2019" then the Gateway's fallback
+  panel; `appeal` -> `reviews list` -> `reviews decide --deny` round trip;
+  `status` shows cost/energy with basis and "no fairness run recorded".
+- **Next step / open:** cache HIT has not been shown live (no Redis Stack on
+  this machine); the extension (Person 2) is unstarted; `aegis chat` REPL
+  history is in-process only.
