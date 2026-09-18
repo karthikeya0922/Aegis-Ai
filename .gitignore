@@ -46,3 +46,8 @@ Thumbs.db
 *.db-shm
 *.db-wal
 *.db-journal
+
+# --- Gateway (Person 2) ---
+backend/.venv/
+frontend/.next/
+mocks/engine/node_modules/

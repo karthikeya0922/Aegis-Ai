@@ -1,12 +1,39 @@
-# Aegis -- local stack.
+# Aegis -- full stack.
 #
-#   docker compose up --build            # inspector (ml image) + postgres + redis
+#   docker compose up --build            # gateway + inspector (ml image) + redis-stack + postgres
 #   docker compose --profile lite up     # inspector base image, SQLite, no models
 #
-# The Gateway (Person 2, Next.js) is a placeholder service here: uncomment
-# once its Dockerfile lands. Everything the inspector needs is self-contained.
+# The gateway (Next.js, Person 2) proxies /api/v1/chat/completions through the
+# inspector; the inspector never talks to Redis -- semantic cache, rate limiter
+# state and circuit breakers are the gateway's (see backend/app/hardening.py).
 
 services:
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      REDIS_URL: redis://redis-stack:6379
+      AEGIS_ENGINE_URL: http://inspector:8000
+      AEGIS_SCAN_TIMEOUT_MS: ${AEGIS_SCAN_TIMEOUT_MS:-3000}
+      AEGIS_VERIFY_TIMEOUT_MS: ${AEGIS_VERIFY_TIMEOUT_MS:-3000}
+      GLM_API_KEY: ${GLM_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      TOGETHER_API_KEY: ${TOGETHER_API_KEY:-}
+      AEGIS_PROVIDER_HOST_ALLOWLIST: ${AEGIS_PROVIDER_HOST_ALLOWLIST:-}
+      AEGIS_PROVIDER_ALLOW_PRIVATE_IPS: ${AEGIS_PROVIDER_ALLOW_PRIVATE_IPS:-false}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      NEXT_TELEMETRY_DISABLED: "1"
+    depends_on:
+      redis-stack:
+        condition: service_started
+      inspector:
+        condition: service_healthy
+
   inspector:
     build:
       context: ./backend
@@ -42,36 +69,31 @@ services:
     ports:
       - "8000:8000"
 
+  # Redis Stack (RediSearch) for the gateway's semantic cache and breaker state.
+  redis-stack:
+    image: redis/redis-stack-server:latest
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
   postgres:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: aegis
       POSTGRES_PASSWORD: aegis
       POSTGRES_DB: aegis
+    ports:
+      - "5432:5432"
     volumes:
-      - pg-data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U aegis"]
       interval: 5s
       timeout: 3s
       retries: 10
 
-  # Redis is the Gateway's: semantic cache store and (if it chooses) a shared
-  # rate limiter. The inspector never talks to it -- see app/hardening.py.
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-
-  # gateway:
-  #   build: ./gateway
-  #   environment:
-  #     INSPECTOR_URL: http://inspector:8000
-  #     REDIS_URL: redis://redis:6379
-  #   ports:
-  #     - "3000:3000"
-  #   depends_on: [inspector, redis]
-
 volumes:
-  pg-data:
+  redis_data:
+  postgres_data:
   inspector-data:

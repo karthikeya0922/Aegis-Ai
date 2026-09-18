@@ -1,0 +1,21 @@
+{
+  "name": "aegis",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Aegis workspace root — dev tooling for the shared lib/ contract layer. Frontend and mocks/engine are separate npm projects with their own package.json.",
+  "scripts": {
+    "typecheck:lib": "tsc --noEmit -p lib/tsconfig.json"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "js-yaml": "^5.4.2",
+    "redis": "^6.2.1",
+    "undici": "^7.29.1",
+    "yaml": "^2.9.1"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20",
+    "typescript": "^5"
+  }
+}

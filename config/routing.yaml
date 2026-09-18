@@ -1,0 +1,11 @@
+routes:
+  low:
+    provider: ollama-local
+    model: llama3.1
+    failover: []
+  medium:
+    provider: openai-compatible
+    model: gpt-4o-mini
+  high:
+    provider: openai-compatible
+    model: gpt-4o

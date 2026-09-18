@@ -1,0 +1,62 @@
+# Aegis provider registry config (Phase 2A).
+#
+# Loaded by `lib/providers/registry.ts`. Never put an API key literal here — only the
+# NAME of the environment variable that holds it. `registry.ts` reads the actual key
+# from `process.env` at call time.
+#
+# `allowed_hosts` is the SSRF allowlist (see `lib/providers/ssrf-guard.ts`): a provider's
+# `base_url` host must appear here, and — separately — must not resolve to a private IP
+# unless AEGIS_PROVIDER_ALLOW_PRIVATE_IPS=true is set in the environment. This lets you
+# list "localhost" here for Ollama without weakening the private-IP check.
+allowed_hosts:
+  - api.openai.com
+  - api.groq.com
+  - api.together.xyz
+  - open.bigmodel.cn # GLM-4.6 (Zhipu) native endpoint
+  - localhost
+  - 127.0.0.1
+
+# The provider `name` the rest of the app asks the registry for when none is specified.
+default_provider: glm-free
+
+# Ordered failover chain used by lib/providers/failover.ts (Phase 2B):
+# `chatWithFailover`/`streamWithFailover` try these in order — [0] is primary, the
+# rest are secondaries tried transparently if the primary's circuit breaker trips
+# (HTTP 500/502/503/429, a connect/total timeout, or a connection error).
+failover_chain:
+  - glm-free
+  - groq
+
+providers:
+  # Free-tier default for local/dev work and Phase 2A scaffolding — no cost, no
+  # production SLA. Swap `default_provider` above once a paid provider is configured.
+  - name: glm-free
+    kind: openai_compatible
+    base_url: https://open.bigmodel.cn/api/paas/v4
+    api_key_env: GLM_API_KEY
+    default_model: glm-4.6
+
+  - name: openai
+    kind: openai_compatible
+    base_url: https://api.openai.com/v1
+    api_key_env: OPENAI_API_KEY
+    default_model: gpt-4o-mini
+
+  - name: groq
+    kind: openai_compatible
+    base_url: https://api.groq.com/openai/v1
+    api_key_env: GROQ_API_KEY
+    default_model: llama-3.3-70b-versatile
+
+  - name: together
+    kind: openai_compatible
+    base_url: https://api.together.xyz/v1
+    api_key_env: TOGETHER_API_KEY
+    default_model: meta-llama/Llama-3.3-70B-Instruct-Turbo
+
+  # Local Ollama — requires AEGIS_PROVIDER_ALLOW_PRIVATE_IPS=true (see .env.example)
+  # since its base_url resolves to a loopback address.
+  - name: ollama-local
+    kind: ollama
+    base_url: http://localhost:11434
+    default_model: llama3.1
