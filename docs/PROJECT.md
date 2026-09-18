@@ -898,3 +898,91 @@ Aegis Ai/
      points at `https://github.com`, and there is no pricing/testimonial/launch-date content.
   3. Route groups changed since the previous entry: the dashboard now lives at `/dashboard`
      (not `/`), with `/` given to the landing page.
+
+### 2026-09-18 — Ran the merged project end to end; fixed what broke on a real run
+- **What changed:**
+  1. `.env` created at the repo root (gitignored, not committed) from `.env.example`, with a
+     real `GROQ_API_KEY` the user supplied, `AEGIS_ENGINE_URL`/`REDIS_URL` pointed at localhost,
+     and a generated `AEGIS_USER_HASH_SALT`.
+  2. `config/providers.yaml`: `default_provider` and `failover_chain` switched to `groq` first
+     (it's the key we actually have).
+  3. `config/routing.yaml`: routes pointed at `groq` with real fallbacks
+     (`glm-free`, `openai`, `ollama-local`); the low/medium/high models were updated to
+     `openai/gpt-oss-20b` / `openai/gpt-oss-120b` after discovering (via `GET /v1/models` on
+     this key) that Groq retired the `llama-3.1-8b-instant` / `llama-3.3-70b-versatile` models
+     the config previously named — a bare `model_not_found` from Groq, not a bug in our code.
+  4. `lib/providers/registry.ts`: `AEGIS_PROVIDERS_CONFIG_PATH=` (empty string, as shipped in
+     `.env.example`) was read as a real path via `??`, so `loadProviderRegistry` did
+     `fs.readFileSync('')` → `ENOENT`. Changed the fallback chain to `||` so a blank value is
+     treated as unset. `.env` / `.env.example`: commented out that line and
+     `AEGIS_PROVIDER_HOST_ALLOWLIST=` for the same reason (blank env vars invite this class of
+     bug; commenting them out is clearer than an empty assignment).
+  5. `lib/providers/openai-compatible.ts`: a missing `*_API_KEY` threw `retryable: false`,
+     which aborted the whole failover chain on the first provider instead of trying the next
+     one. Changed to `retryable: true` with a safe `publicMessage`. Updated the one test that
+     pinned the old `retryable: false` (`frontend/src/lib/providers/openai-compatible.test.ts`).
+  6. `frontend/src/app/api/v1/chat/completions/route.ts`: the top-level `catch {}` swallowed
+     every unhandled error as an opaque `internal_error` with nothing in the server log. Added
+     `console.error` with the stack — this is what surfaced items 4 and 7.
+  7. `lib/cache/semantic-cache.ts`: `storeCache` called `ensureRedis()` *outside* its own
+     try/catch, so a Redis outage after a successful provider call still threw and turned a
+     working response into a 500. Moved the call inside the try block (mirrors the read path,
+     `checkCache`, which already did this correctly).
+  8. `frontend/next.config.ts` + `frontend/package.json`: added `dotenv` and load the repo-root
+     `.env` at config-load time, so one `.env` configures both the inspector and the gateway
+     (Next.js only auto-loads `frontend/.env*` on its own).
+  9. Backend `.env` / `.env.example`: `DATABASE_URL=postgresql://aegis:aegis@postgres:5432/aegis`
+     (meant only for `docker-compose`, which sets it directly via `environment:` and never reads
+     it from `.env`) was being picked up by `app/config.py`'s own `env_file=(".env", "../.env")`
+     for a **local, non-Docker** run — `psycopg2` isn't installed outside the `ml` Docker image,
+     so the backend failed at startup with `ModuleNotFoundError: No module named 'psycopg2'`.
+     Commented the line out in both files so local dev falls back to the backend's own
+     `sqlite:///./aegis.db` default; docker-compose is unaffected since it never reads this file.
+  10. `config/pricing.yaml` (backend) and `config/costs.yaml` (gateway): both had no entry for
+      `openai/gpt-oss-20b` / `openai/gpt-oss-120b` (or real `glm-4.6` pricing), so every
+      request silently costed/CO2'd out at `0`. Added Groq's and Zhipu's list prices to both
+      files. Also hardened `backend/app/audit/service.py::_fill_estimates`: when only a
+      Gateway-reported `total_tokens` is present (no in/out split), it now prices at the
+      model's blended in/out rate instead of leaving the estimate at the (technically correct
+      but misleading-looking) `None`→never-filled path.
+- **Why:** the user asked to actually run the project with a real provider key. Every item
+  above was found by doing that — sending real requests through the gateway to the inspector —
+  not by inspection; each was a genuine dead end (hang, 500, or silently-wrong `$0.00` cost) on
+  the very first real completion request.
+- **Verified (live, both servers running locally, this key):**
+  - Clean prompt → `200`, real completion from `groq`/`openai/gpt-oss-20b`, non-zero cost
+    (`$0.000001425` for a 16-token exchange) and non-zero CO2 in the audit row.
+  - PII in the prompt → sanitized on ingress, provider only ever sees `[PERSON_1]`/`[EMAIL_1]`,
+    rehydrated correctly in the final answer text.
+  - AWS-shaped key in the prompt → `400 CREDENTIAL_LEAK_PREVENTED` in under 1s, never reaches
+    the provider.
+  - Prompt-injection phrase → `403 PROMPT_INJECTION_BLOCKED`.
+  - Streaming (`stream: true`) → SSE frames incl. `aegis.scan`, ending in `[DONE]`.
+  - `/api/audit/events`, `/api/metrics`, `/api/audit/report` (PDF) all read the same rows back
+    through the gateway's dashboard API.
+  - Backend suite: 605/605 passing after the estimate fix.
+- **Next step / open questions:**
+  1. The `AEGIS_PROVIDER_HOST_ALLOWLIST` env var is still commented out in `.env`/`.env.example`
+     — only `localhost`/loopback hosts from `config/providers.yaml`'s own `allowed_hosts` list
+     apply until a value is set; fine for local dev, worth setting explicitly before any
+     non-local deploy.
+  2. The 10 pre-existing frontend test failures noted in the prior entry are untouched and
+     still open (stale `fakeProvider` mocks vs. the registry-based failover code) — not
+     something this session's live run could diagnose further, since they're a unit-test/mock
+     drift, not a runtime failure.
+  3. `redis-stack` isn't running locally; the rate limiter fails open and the semantic cache is
+     disabled (both by design, per the "Redis is optional" work from the previous session) — a
+     cache-hit code path has not been exercised live in this session.
+
+### 2026-09-18 — Plan for the browser extension and the CLI
+- **What changed:** `docs/EXTENSION_CLI_PLAN.md` — the agreed split of two
+  features into a browser extension (Person 2) and two into a CLI (Person 1),
+  with phases, checklists, done-criteria, cut order, and the demo sequence.
+- **Why:** decided earlier in the session; this makes it buildable without
+  re-deciding. Extension executes features 1–2 (the only ones that can run in
+  the browser against third-party sites) and displays the rest read-only; the
+  CLI executes feature 1 as a pre-commit scanner and features 3–4 by placing
+  the call through the Gateway, rendered as the terminal Inspector.
+- **Next step:** Person 1 starts `cli/` B0–B1; Person 2 starts `extension/` A0–A1.
+  Both reuse the existing HTTP contracts; no backend changes are required
+  except adding the extension origin to `AEGIS_CORS_ORIGINS`.
