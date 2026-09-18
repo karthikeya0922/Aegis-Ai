@@ -7,7 +7,7 @@ This service is the absolute authority on whether a prompt is safe. It is
 **stateless** -- the same input always yields the same verdict. All session
 state (token vault, semantic cache) belongs to Person 2's Gateway and its Redis.
 
-**Current build phase: Phase 12 (metrics).** The whole ingress path is real, every decision is on file, the detector's fairness is measured, automated blocks are contestable, and the dashboard reads real aggregates. Every endpoint
+**Current build phase: Phase 15 (policy versioning).** Every subsystem on the ingress and governance side is real; only the ML egress side (embeddings, grounding, harm screen) remains stubbed. Every endpoint
 is live and contract-valid. `GET /api/health` reports exactly which subsystems
 are real and which are still stubs.
 
@@ -19,7 +19,7 @@ are real and which are still stubs.
 | India engine | **Real.** Aadhaar (Verhoeff), PAN, IFSC, UPI, Indian mobile, and a 298-name gazetteer that lifts gazetteer-covered Indian names to 1.000 recall. Always on -- no model required |
 | Injection detector | **Real.** Heuristic Prompt-Injection Defense: 27 config-driven rules across 6 OWASP LLM01 categories, five de-obfuscation passes, base64 payloads decoded and rescanned. Does not claim to catch novel attacks |
 | Redactor | **Real.** Global placeholder numbering, offset-safe splicing, cross-scanner precedence, vault policy that never rehydrates secrets |
-| Policy engine | **Real.** `config/policies.yaml`, three profiles with inheritance, hot-reloaded. Contains no detection logic |
+| Policy engine | **Real.** `config/policies.yaml`, three profiles with inheritance, hot-reloaded. Contains no detection logic. Every change is an immutable version with rollback |
 | Pipeline | **Real.** `security/pipeline.py`: ten measured stages, config-driven routing and cache hints, pluggable override verifier |
 | Database | **Real.** SQLite by default, Postgres by `DATABASE_URL`; Alembic migrations; two-phase audit write; erasure and retention |
 | Fairness harness | **Real.** Per-group recall over a 5-group corpus, baseline vs current, persisted; `POST /api/fairness/run` |
@@ -518,6 +518,26 @@ named counterfactual is fabricated telemetry.
 Measured inspector overhead over the Phase 12 smoke traffic: **p50 6.2 ms,
 p95 7.8 ms** -- the honest number for "what does Aegis add to a request".
 
+## Policy versioning (Phase 15)
+
+Requirement 7. Every change to the policy file is an immutable
+`policy_version` row, so any past decision can be replayed against the
+rules in force at the time: the audit row records `policy_version`, and
+history says what that version contained.
+
+```text
+PUT  /api/policies                 validate -> assign version -> row -> live file -> engine reloads
+GET  /api/policies/history         newest first, with a readable diff summary per version
+GET  /api/policies/versions/{n}    the YAML of one version
+POST /api/policies/rollback/{n}    a NEW version whose body is version n -- history is never rewritten
+```
+
+An invalid document is rejected with the loader's own message and nothing
+changes. The version number is assigned by the service and stamped into the
+YAML regardless of what the author wrote. The baseline is recorded as v1 at
+startup, and before the first update on a deployment with empty history, so
+there is always something to roll back to. Author identity is a salted hash.
+
 ### Entropy is a supporting signal
 
 `H(X) = -sum p(x) log2 p(x)` over string literals. A UUID, a git SHA and a
@@ -542,6 +562,7 @@ app/
                     policy_engine.py, pipeline.py, spans.py (all real)
   audit/            database.py, models.py, service.py, metrics.py, estimates.py (real)
   reviews/          service.py -- appeals, decisions, ReviewOverrideVerifier (real)
+  policies/         service.py -- versioned policy updates and rollback (real)
   fairness/         harness.py -- per-group recall, baseline vs current (real)
   verification/     grounded response checking    (phase 10)
   utils/            ids, timing, redacting logger

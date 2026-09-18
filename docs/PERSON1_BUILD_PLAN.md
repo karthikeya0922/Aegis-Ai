@@ -281,13 +281,15 @@ Even the large model misses the Indian name in this template. The gazetteer catc
 
 ## Phase 15 — Policies API & Versioning
 
-- [ ] `GET /api/policies` — current YAML + version
-- [ ] `PUT /api/policies` — validate, then write a new immutable `policy_version` row
-- [ ] Diff summary between versions
-- [ ] Rollback endpoint
-- [ ] `tests/test_policies_api.py`
+- [x] `GET /api/policies` — current YAML + version
+- [x] `PUT /api/policies` — validate, then write a new immutable `policy_version` row
+- [x] Diff summary between versions
+- [x] Rollback endpoint
+- [x] `tests/test_policies_api.py`
 
 ---
+
+**DONE** -- `app/policies/service.py`, 12 tests. Every PUT is an immutable `policy_version` row with a readable diff summary; the version is stamped into the YAML and the engine force-reloads so it is in force at once; rollback is itself a new version. Baseline recorded at startup and before the first update on empty history. Live: v1 SANITIZE -> PUT v2 BLOCK -> invalid PUT 422 (still v2) -> rollback v3 SANITIZE. Tests run the engine against a scratch copy session-wide after the first wired run clobbered the repo file.
 
 ## Phase 16 — Hardening & Ship
 
@@ -331,7 +333,7 @@ sweep's checklist. Add to it whenever something is hardcoded to keep moving.
 | ~~Metrics return zeros~~ | `stubs.py` | aggregation over `request_audit` | **done, Phase 12** |
 | ~~Fairness report nulls~~ | `stubs.py` | measured harness output | **done, Phase 13** |
 | PERSON recall gap for East Asian (0.81) and African (0.83) names | detector | gazetteers for those groups sourced independently of the eval corpus; hyphen-aware name matching | post-16 / roadmap |
-| Policy PUT not persisted | `api/governance.py` | `policy_version` table | Phase 15 |
+| ~~Policy PUT not persisted~~ | `api/governance.py` | `policy_version` table | **done, Phase 15** |
 
 ---
 

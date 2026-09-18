@@ -510,26 +510,8 @@
           "governance"
         ],
         "summary": "Current policy config",
-        "description": "The live policy file, as the engine currently holds it.\n\nReturns the YAML verbatim so an operator can see exactly what is in\nforce, plus the resolved profile name and the available profiles.",
+        "description": "The policy in force: YAML verbatim, version, profiles, and when it was set.",
         "operationId": "get_policies_api_policies_get",
-        "parameters": [
-          {
-            "name": "profile",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Profile"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -537,16 +519,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PolicyResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -558,17 +530,17 @@
           "governance"
         ],
         "summary": "Update policy, creating a new immutable version",
-        "description": "Policy changes are themselves auditable. Each update writes a new `policy_version` row; previous versions are never mutated, so any past decision can be replayed against the rules that were in force.",
+        "description": "Validates the document through the engine's own loader, assigns the next version number (stamped into the YAML), writes an immutable `policy_version` row, writes the live file, and reloads the engine. Previous versions are never mutated, so any past decision can be replayed against the rules that were in force: the audit row records `policy_version`, and history says what that version contained.\n\nAn invalid document is rejected with the loader's message and nothing changes. `author_ref` is stored as a salted hash.",
         "operationId": "put_policies_api_policies_put",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/PolicyUpdateRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -599,8 +571,22 @@
         "tags": [
           "governance"
         ],
-        "summary": "Policy version history",
+        "summary": "Policy version history, newest first",
         "operationId": "policy_history_api_policies_history_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -608,6 +594,118 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PolicyHistoryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/policies/versions/{version}": {
+      "get": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "The YAML body of one historical version",
+        "operationId": "policy_version_api_policies_versions__version__get",
+        "parameters": [
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Version"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolicyResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/policies/rollback/{version}": {
+      "post": {
+        "tags": [
+          "governance"
+        ],
+        "summary": "Roll back to a previous version (as a new version)",
+        "description": "History is never rewritten. Rollback creates a NEW version whose body is the old one, noted as a rollback, so the sequence of what was in force stays linear and complete.",
+        "operationId": "policy_rollback_api_policies_rollback__version__post",
+        "parameters": [
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Version"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/PolicyRollbackRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Req"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolicyResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -3306,6 +3404,35 @@
           "yaml_body"
         ],
         "title": "PolicyResponse"
+      },
+      "PolicyRollbackRequest": {
+        "properties": {
+          "author_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Author Ref"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "PolicyRollbackRequest"
       },
       "PolicyUpdateRequest": {
         "properties": {
