@@ -21,7 +21,7 @@ from app.security.policy_engine import get_policy_engine
 router = APIRouter(tags=["health"])
 
 _STARTED = time.monotonic()
-BUILD_PHASE = "phase-12-metrics"
+BUILD_PHASE = "phase-15-policy-versioning"
 
 
 def _pii_component() -> ComponentHealth:
@@ -104,6 +104,15 @@ def _metrics_component() -> ComponentHealth:
         return ComponentHealth(name="metrics", status="degraded", detail=type(exc).__name__)
 
 
+def _policy_versions() -> int:
+    from app.policies import service as policies
+
+    try:
+        return policies.version_count()
+    except Exception:  # noqa: BLE001
+        return -1
+
+
 def _components() -> list[ComponentHealth]:
     stub = "stub"  # components below that have not shipped yet
     return [
@@ -124,7 +133,8 @@ def _components() -> list[ComponentHealth]:
             status="ok",
             detail=(
                 f"config/policies.yaml v{get_policy_engine().policies.version}, "
-                f"profiles: {', '.join(get_policy_engine().policies.profiles)}; hot-reloaded"
+                f"profiles: {', '.join(get_policy_engine().policies.profiles)}; "
+                f"{_policy_versions()} version(s) on file; hot-reloaded"
             ),
         ),
         ComponentHealth(name="embeddings", status=stub, detail="Deterministic stub vectors until Phase 9"),

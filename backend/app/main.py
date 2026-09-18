@@ -104,6 +104,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     inj = get_injection_detector()
     log.info("injection detector ready (%d rules, v%d)", len(inj.ruleset.rules), inj.ruleset.version)
 
+    # Record the policy file as version 1 if history is empty, so the
+    # baseline is on file alongside every later change.
+    from app.policies.service import bootstrap as bootstrap_policies
+
+    bootstrap_policies()
+
     from app.security.pipeline import get_pipeline
 
     pipe = get_pipeline()

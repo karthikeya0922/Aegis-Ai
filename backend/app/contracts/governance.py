@@ -32,6 +32,11 @@ class PolicyUpdateRequest(StrictModel):
     note: str | None = None
 
 
+class PolicyRollbackRequest(StrictModel):
+    author_ref: str | None = None
+    note: str | None = None
+
+
 class PolicyVersionSummary(StrictModel):
     version: int
     created_at: datetime

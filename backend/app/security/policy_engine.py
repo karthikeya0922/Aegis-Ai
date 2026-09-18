@@ -215,6 +215,15 @@ class PolicyEngine:
             except Exception as exc:  # noqa: BLE001 - keep serving the old set
                 log.error("policy reload failed, keeping v%d: %s", self._set.version, exc)
 
+    def force_reload(self) -> None:
+        """Reload now. Used after a versioned write so the new rules are in
+        force immediately, not on the next mtime check (which can lag by a
+        second on coarse filesystems)."""
+        with self._lock:
+            self._set = load_policies(self.path)
+            self._secret_categories = None
+        log.info("policies reloaded on request (v%d)", self._set.version)
+
     @property
     def policies(self) -> PolicySet:
         self._maybe_reload()

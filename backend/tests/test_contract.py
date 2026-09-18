@@ -328,14 +328,20 @@ def test_policies_endpoints():
     assert {"default", "strict", "permissive"} <= set(res.available_profiles)
     assert "prompt_injection:" in res.yaml_body, "must be the real file, not a stub"
 
-    # A valid document is accepted (dry run until Phase 15 persists it).
+    # A valid document becomes a new immutable version. The engine runs
+    # against a scratch copy in tests (conftest.py), so this never touches
+    # the repo file -- and it is rolled straight back so later tests see the
+    # default rules.
+    before = res.version
     ok = client.put("/api/policies", json={
-        "yaml_body": (
-            "version: 9\ndefault_profile: d\nprofiles:\n"
-            "  d:\n    rules:\n      pii: {action: block}\n"
-        )
+        "yaml_body": res.yaml_body.replace("action: sanitize", "action: block", 1),
+        "note": "contract test",
     })
     assert ok.status_code == 200
+    assert ok.json()["version"] == before + 1
+    rb = client.post(f"/api/policies/rollback/{before}", json={"note": "contract test cleanup"})
+    assert rb.status_code == 200 and rb.json()["version"] == before + 2
+    assert "action: sanitize" in client.get("/api/policies").json()["yaml_body"]
 
     # An invalid one is rejected with the reason, not silently accepted.
     bad = client.put("/api/policies", json={
