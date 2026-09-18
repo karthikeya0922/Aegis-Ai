@@ -87,7 +87,44 @@ class RequestIdFormatter(logging.Formatter):
         return super().format(record)
 
 
+_redacting_factory_installed = False
+
+
+def install_redacting_record_factory() -> None:
+    """Scrub at record CREATION, before any handler exists to see the raw value.
+
+    A filter on the stdout handler only protects stdout. A file handler, a
+    log shipper, or pytest's capture would each receive the unscrubbed
+    record. Replacing the LogRecord factory means every record, on every
+    handler, in every logger, is scrubbed the moment it is made. There is
+    no path by which a handler can observe the original message.
+    """
+    global _redacting_factory_installed
+    if _redacting_factory_installed:
+        return
+    base_factory = logging.getLogRecordFactory()
+
+    def factory(*args, **kwargs):  # noqa: ANN002, ANN003 - logging's own signature
+        record = base_factory(*args, **kwargs)
+        try:
+            if isinstance(record.msg, str):
+                record.msg = scrub(record.msg)
+            if record.args:
+                if isinstance(record.args, dict):
+                    record.args = {k: scrub(v) if isinstance(v, str) else v for k, v in record.args.items()}
+                elif isinstance(record.args, tuple):
+                    record.args = tuple(scrub(a) if isinstance(a, str) else a for a in record.args)
+        except Exception:  # noqa: BLE001 - logging must never raise
+            pass
+        return record
+
+    logging.setLogRecordFactory(factory)
+    _redacting_factory_installed = True
+
+
 def configure_logging(level: str = "INFO") -> None:
+    install_redacting_record_factory()
+
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(
         RequestIdFormatter(
@@ -95,6 +132,8 @@ def configure_logging(level: str = "INFO") -> None:
             datefmt="%H:%M:%S",
         )
     )
+    # Belt and braces: the handler filter stays as a second line, but the
+    # record factory above is the control that matters.
     handler.addFilter(RedactingFilter())
 
     root = logging.getLogger()

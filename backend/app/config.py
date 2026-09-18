@@ -87,6 +87,18 @@ class Settings(BaseSettings):
     # ---- Transport limits -------------------------------------------------
     max_request_bytes: int = Field(default=256_000, alias="AEGIS_MAX_REQUEST_BYTES")
     cors_origins: str = Field(default="http://localhost:3000", alias="AEGIS_CORS_ORIGINS")
+    # Per-tenant token bucket, in-process. 0 disables. See app/hardening.py.
+    rate_limit_per_minute: int = Field(default=600, alias="AEGIS_RATE_LIMIT_PER_MINUTE")
+    rate_limit_burst: int = Field(default=60, alias="AEGIS_RATE_LIMIT_BURST")
+    # Bounded wait for the Gateway; work on the threadpool is not cancelled. 0 disables.
+    request_timeout_seconds: float = Field(default=20.0, alias="AEGIS_REQUEST_TIMEOUT_SECONDS")
+
+    # ---- Operator auth (shared secrets; RBAC lives in the Gateway) ----------
+    reviewer_token: str | None = Field(default=None, alias="AEGIS_REVIEWER_TOKEN")
+    admin_token: str | None = Field(default=None, alias="AEGIS_ADMIN_TOKEN")
+
+    # ---- Retention scheduler ----------------------------------------------
+    purge_interval_hours: float = Field(default=6.0, alias="AEGIS_PURGE_INTERVAL_HOURS")
 
     @field_validator("aegis_mode")
     @classmethod

@@ -9,6 +9,7 @@ Run: uvicorn app.main:app --reload --port 8000
 
 from __future__ import annotations
 
+import asyncio
 import time
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
@@ -139,7 +140,17 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         log.warning("grounding DEGRADED (verification will be skipped): %s", ver.degraded_reason)
     else:
         log.info("grounding ready (%s)", ver.model_name)
+
+    from app import hardening
+
+    hardening.warn_if_open()
+    stop = asyncio.Event()
+    purge_task = asyncio.create_task(hardening.retention_loop(settings.purge_interval_hours, stop))
+    log.info("retention scheduler running every %.1fh (AEGIS_AUDIT_RETENTION_DAYS=%d)",
+             settings.purge_interval_hours, settings.audit_retention_days)
     yield
+    stop.set()
+    purge_task.cancel()
     log.info("%s shutting down", settings.service_name)
 
 
@@ -160,6 +171,15 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "X-Request-Id"],
 )
+
+
+@app.middleware("http")
+async def limits(request: Request, call_next):
+    """Rate limit and deadline. Registered first, so it runs after request_context
+    has assigned the request id (Starlette middleware wraps outside-in)."""
+    from app.hardening import rate_limit_and_timeout
+
+    return await rate_limit_and_timeout(request, call_next)
 
 
 @app.middleware("http")

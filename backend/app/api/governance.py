@@ -6,7 +6,9 @@ difference between an AI security gateway and a responsible-AI gateway.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+
+from app.hardening import require_admin, require_reviewer
 
 from app.config import settings
 from app.contracts.common import ReviewStatus
@@ -63,7 +65,7 @@ async def get_policies() -> PolicyResponse:
         "changes. `author_ref` is stored as a salted hash."
     ),
 )
-async def put_policies(req: PolicyUpdateRequest) -> PolicyResponse:
+async def put_policies(req: PolicyUpdateRequest, _: None = Depends(require_admin)) -> PolicyResponse:
     try:
         return policies.update(req.yaml_body, author_ref=req.author_ref, note=req.note)
     except policies.PolicyInvalid as exc:
@@ -106,7 +108,9 @@ async def policy_version(version: int) -> PolicyResponse:
         "force stays linear and complete."
     ),
 )
-async def policy_rollback(version: int, req: PolicyRollbackRequest | None = None) -> PolicyResponse:
+async def policy_rollback(
+    version: int, req: PolicyRollbackRequest | None = None, _: None = Depends(require_admin)
+) -> PolicyResponse:
     try:
         return policies.rollback(
             version,
@@ -179,7 +183,9 @@ async def get_review(review_id: str) -> ReviewRecord:
         "Authentication of reviewers is Phase 16."
     ),
 )
-async def decide_review(review_id: str, req: ReviewDecisionRequest) -> ReviewDecisionResponse:
+async def decide_review(
+    review_id: str, req: ReviewDecisionRequest, _: None = Depends(require_reviewer)
+) -> ReviewDecisionResponse:
     try:
         out = reviews.decide(
             review_id, approve=req.approve, reviewer_ref=req.reviewer_ref, note=req.reviewer_note,

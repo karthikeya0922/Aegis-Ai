@@ -6,7 +6,9 @@ time; the Gateway posts the other half here once the response completes.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+
+from app.hardening import require_admin
 
 from app.audit import service
 from app.contracts.audit import (
@@ -129,7 +131,9 @@ class EraseSubjectResponse(StrictModel):
         "(or the `retention_days` override) are deleted."
     ),
 )
-async def purge(retention_days: int | None = Query(None, ge=0, le=3650)) -> PurgeResponse:
+async def purge(
+    retention_days: int | None = Query(None, ge=0, le=3650), _: None = Depends(require_admin)
+) -> PurgeResponse:
     from app.config import settings
 
     days = retention_days if retention_days is not None else settings.audit_retention_days
@@ -147,7 +151,7 @@ async def purge(retention_days: int | None = Query(None, ge=0, le=3650)) -> Purg
         "this call either. Returns the number of rows removed."
     ),
 )
-async def erase_subject(req: EraseSubjectRequest) -> EraseSubjectResponse:
+async def erase_subject(req: EraseSubjectRequest, _: None = Depends(require_admin)) -> EraseSubjectResponse:
     n = service.delete_subject(req.user_ref)
     log.info("audit: subject erasure removed %d row(s)", n)
     return EraseSubjectResponse(deleted=n)
