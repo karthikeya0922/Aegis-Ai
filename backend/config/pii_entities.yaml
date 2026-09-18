@@ -23,6 +23,21 @@
 
 version: 1
 
+# Titles that make a following capitalised name unambiguous enough to flag as
+# PERSON at low confidence when no NER model is loaded (degraded mode only).
+honorifics:
+  - Mr
+  - Mrs
+  - Ms
+  - Miss
+  - Dr
+  - Prof
+  - Sir
+  - Dame
+  - Shri
+  - Smt
+  - Sri
+
 entities:
 
   EMAIL_ADDRESS:

@@ -1,12 +1,19 @@
 """Health and readiness.
 
-Reports honestly which subsystems are real and which are still stubs, so
+Reports honestly which subsystems are loaded and which are degraded, so
 Person 2 can tell at a glance what a given deployment actually implements.
+
+Components register themselves in COMPONENTS; the endpoint iterates the
+registry. Adding a subsystem means adding one function and one line here,
+and the list in the response can never drift from the list of probes.
 """
 
 from __future__ import annotations
 
+import subprocess
 import time
+from collections.abc import Callable
+from functools import lru_cache
 
 from fastapi import APIRouter
 
@@ -15,13 +22,34 @@ from app.contracts.health import ComponentHealth, HealthResponse
 from app.audit import database as audit_db
 from app.audit import service as audit_service
 from app.security.injection import get_detector as get_injection_detector
+from app.security.secret_scanner import get_scanner as get_secret_scanner
 from app.security.pii_scanner import get_pii_scanner
 from app.security.policy_engine import get_policy_engine
 
 router = APIRouter(tags=["health"])
 
 _STARTED = time.monotonic()
-BUILD_PHASE = "phase-11-egress"
+
+
+@lru_cache
+def build_phase() -> str:
+    """`phase-<version>+<git sha>` derived at first call, never hand-bumped.
+
+    The prefix keeps the contract test stable; the sha says which build is
+    answering. Without git (a container built from a tarball) the sha is
+    'unknown', which is honest.
+    """
+    sha = "unknown"
+    try:
+        out = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            capture_output=True, text=True, timeout=2, cwd=str(settings.policies_path.parent.parent),
+        )
+        if out.returncode == 0 and out.stdout.strip():
+            sha = out.stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        pass
+    return f"phase-{settings.version}+{sha}"
 
 
 def _pii_component() -> ComponentHealth:
@@ -156,45 +184,98 @@ def _screens_component() -> ComponentHealth:
     )
 
 
+def _secret_component() -> ComponentHealth:
+    sc = get_secret_scanner()
+    return ComponentHealth(
+        name="secret_scanner", status="ok",
+        detail=f"{len(sc.patterns)} config-driven patterns, overlap-resolved, entropy-weighted",
+    )
+
+
+def _entropy_component() -> ComponentHealth:
+    return ComponentHealth(
+        name="entropy_scanner", status="ok",
+        detail=f"Shannon entropy >= {settings.entropy_threshold} over literals >= {settings.entropy_min_length} chars; warn-only by design",
+    )
+
+
+def _injection_component() -> ComponentHealth:
+    det = get_injection_detector()
+    return ComponentHealth(
+        name="injection_detector", status="ok",
+        detail=(
+            f"heuristic, {len(det.ruleset.rules)} rules across "
+            f"{len(det.ruleset.categories)} OWASP LLM01 categories; "
+            "does not claim to catch novel attacks"
+        ),
+    )
+
+
+def _policy_component() -> ComponentHealth:
+    pol = get_policy_engine().policies
+    return ComponentHealth(
+        name="policy_engine", status="ok",
+        detail=(
+            f"config/policies.yaml v{pol.version}, profiles: {', '.join(pol.profiles)}; "
+            f"{_policy_versions()} version(s) on file; hot-reloaded"
+        ),
+    )
+
+
+def _review_component() -> ComponentHealth:
+    return ComponentHealth(
+        name="review_api", status="ok",
+        detail=(
+            f"{_pending_reviews()} pending; override tokens single-use, request-scoped, "
+            f"{settings.override_token_ttl_seconds}s TTL, stored hashed"
+        ),
+    )
+
+
+def _hardening_component() -> ComponentHealth:
+    open_roles = [r for r, t in (("reviewer", settings.reviewer_token), ("admin", settings.admin_token)) if not t]
+    limiter = (
+        f"{settings.rate_limit_per_minute}/min burst {settings.rate_limit_burst} per tenant"
+        if settings.rate_limit_per_minute > 0 else "rate limit OFF"
+    )
+    timeout = f"{settings.request_timeout_seconds:g}s deadline" if settings.request_timeout_seconds > 0 else "no deadline"
+    if open_roles:
+        return ComponentHealth(
+            name="hardening", status="degraded",
+            detail=f"{', '.join(open_roles)} endpoints UNAUTHENTICATED (token not set); {limiter}; {timeout}",
+        )
+    return ComponentHealth(name="hardening", status="ok", detail=f"reviewer + admin tokens set; {limiter}; {timeout}")
+
+
+# The registry. Order is the order in the response.
+COMPONENTS: tuple[Callable[[], ComponentHealth], ...] = (
+    _pii_component,
+    _secret_component,
+    _entropy_component,
+    _injection_component,
+    _policy_component,
+    _embeddings_component,
+    _grounding_component,
+    _screens_component,
+    _database_component,
+    _fairness_component,
+    _metrics_component,
+    _review_component,
+    _hardening_component,
+)
+
+
 def _components() -> list[ComponentHealth]:
-    stub = "stub"  # components below that have not shipped yet
-    return [
-        _pii_component(),
-        ComponentHealth(name="secret_scanner", status="ok", detail="25 config-driven patterns, overlap-resolved"),
-        ComponentHealth(name="entropy_scanner", status="ok", detail="Shannon entropy, warn-only by design"),
-        ComponentHealth(
-            name="injection_detector",
-            status="ok",
-            detail=(
-                f"heuristic, {len(get_injection_detector().ruleset.rules)} rules across "
-                f"{len(get_injection_detector().ruleset.categories)} OWASP LLM01 categories; "
-                "does not claim to catch novel attacks"
-            ),
-        ),
-        ComponentHealth(
-            name="policy_engine",
-            status="ok",
-            detail=(
-                f"config/policies.yaml v{get_policy_engine().policies.version}, "
-                f"profiles: {', '.join(get_policy_engine().policies.profiles)}; "
-                f"{_policy_versions()} version(s) on file; hot-reloaded"
-            ),
-        ),
-        _embeddings_component(),
-        _grounding_component(),
-        _screens_component(),
-        _database_component(),
-        _fairness_component(),
-        _metrics_component(),
-        ComponentHealth(
-            name="review_api",
-            status="ok",
-            detail=(
-                f"{_pending_reviews()} pending; override tokens single-use, request-scoped, "
-                f"{settings.override_token_ttl_seconds}s TTL, stored hashed"
-            ),
-        ),
-    ]
+    out: list[ComponentHealth] = []
+    for probe in COMPONENTS:
+        try:
+            out.append(probe())
+        except Exception as exc:  # noqa: BLE001 - one broken probe must not hide the rest
+            out.append(ComponentHealth(
+                name=probe.__name__.strip("_").removesuffix("_component"),
+                status="unavailable", detail=f"probe raised {type(exc).__name__}",
+            ))
+    return out
 
 
 @router.get(
@@ -204,18 +285,13 @@ def _components() -> list[ComponentHealth]:
 )
 async def health() -> HealthResponse:
     components = _components()
-    stubbed = [c.name for c in components if c.status == "stub"]
-    degraded = [c for c in components if c.status == "degraded"]
-    reasons: list[str] = []
-    if stubbed:
-        reasons.append(f"{len(stubbed)} subsystem(s) still serving Phase 0 stubs")
-    for c in degraded:
-        reasons.append(f"{c.name}: {c.detail}")
+    not_ok = [c for c in components if c.status != "ok"]
+    reasons = [f"{c.name}: {c.detail}" for c in not_ok]
     return HealthResponse(
         service=settings.service_name,
         version=settings.version,
-        status="degraded" if (stubbed or degraded) else "ok",
-        phase=BUILD_PHASE,
+        status="degraded" if not_ok else "ok",
+        phase=build_phase(),
         degraded_reasons=reasons,
         components=components,
         uptime_seconds=round(time.monotonic() - _STARTED, 2),

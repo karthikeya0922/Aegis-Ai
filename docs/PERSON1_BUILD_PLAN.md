@@ -299,15 +299,32 @@ Even the large model misses the Indian name in this template. The gazetteer catc
 
 ## Phase 16 — Hardening & Ship
 
-- [ ] Input size limits, request timeouts, per-tenant rate limiting
-- [ ] Security headers, safe error envelopes (no stack traces)
-- [ ] **Assert the redacting logger** — a test that greps captured logs for known secrets
-- [ ] Startup model warm-up so demo-day cold start is not a risk
-- [ ] Retention purge scheduler
-- [ ] `README.md` — setup, curl examples, architecture, **limitations section**
-- [ ] Docker image with models baked in
-- [ ] `docker-compose` integration verified with Person 2
-- [ ] Full `pytest` green; coverage on every scanner
+- [x] Input size limits, request timeouts, per-tenant rate limiting
+- [x] Security headers, safe error envelopes (no stack traces)
+- [x] **Assert the redacting logger** — a test that greps captured logs for known secrets
+- [x] Startup model warm-up so demo-day cold start is not a risk
+- [x] Retention purge scheduler
+- [x] `README.md` — setup, curl examples, architecture, **limitations section**
+- [x] Docker image with models baked in
+- [x] `docker-compose` stack written (gateway service left as a commented placeholder until Person 2's Dockerfile lands -- **not yet verified end to end with the Gateway**)
+- [x] Full `pytest` green; coverage on every scanner
+
+---
+
+**DONE** -- `app/hardening.py`: per-tenant token bucket (429 + Retry-After), bounded wait
+(504 `INSPECTOR_TIMEOUT`), `X-Admin-Token` / `X-Reviewer-Token` gates on every
+state-changing endpoint, retention loop. Log redaction moved into the `LogRecord`
+factory and asserted by grepping `caplog` for five credential shapes. Scope stated
+in the module docstring: in-process limiter, not distributed; threadpool work is not
+cancelled at the deadline; RBAC stays in the Gateway. `ml` image bakes spaCy lg,
+MiniLM and the NLI model. Root README, `docker-compose.yml`, `.env.example`. 592 tests.
+
+**Sweep done** -- `config/india_identifiers.yaml` (PAN holder types, IFSC bank codes,
+UPI PSPs), `honorifics:` in `pii_entities.yaml`, `leading_stop:` in `india_names.yaml`
+with the contact-cue overlap removed, health built from a `COMPONENTS` registry (a
+probe that raises reports `unavailable` instead of taking the endpoint down), phase
+string derived as `phase-<version>+<git sha>`. Health now reports `hardening:
+degraded` when the operator tokens are unset -- a dev box is open and says so.
 
 ---
 
@@ -324,12 +341,12 @@ sweep's checklist. Add to it whenever something is hardcoded to keep moving.
 | ~~Negation / number regex for `semantic_guards`~~ | `stubs.py` | `config/routing.yaml` | **done, Phase 7** |
 | ~~`STUB_MODE = True` flag, misleading now~~ | `stubs.py` | gone | **done, Phase 7** |
 | ~~Whole-request `stubs.py` orchestration~~ | `stubs.py` | `security/pipeline.py` with `StageRecorder` | **done, Phase 7** |
-| `_KNOWN_BANK_CODES`, `_UPI_PSPS` | `india_recognizers.py` | YAML, per "patterns are data" | sweep |
-| Honorific list | `pii_scanner.py` regex | YAML | sweep |
-| `_LEADING_STOP` overlaps `contact_cues` | `india_recognizers.py` / `india_names.yaml` | one list | sweep |
-| Health component list maintained by hand | `api/health.py` | derived from a scanner registry | Phase 16 |
-| Reviewer identity is a free-text `reviewer_ref`, unauthenticated | `api/governance.py` | reviewer role + auth; RBAC is Person 2's gateway concern, the Inspector should at least require a shared secret | Phase 16 |
-| `BUILD_PHASE` string bumped by hand | `api/health.py` | derived from git tag or version | Phase 16 |
+| ~~`_KNOWN_BANK_CODES`, `_UPI_PSPS`, PAN holder types~~ | `india_recognizers.py` | `config/india_identifiers.yaml` | **done, sweep** |
+| ~~Honorific list~~ | `pii_scanner.py` regex | `pii_entities.yaml: honorifics` | **done, sweep** |
+| ~~`_LEADING_STOP` overlaps `contact_cues`~~ | `india_recognizers.py` / `india_names.yaml` | `india_names.yaml: leading_stop`, cues not repeated | **done, sweep** |
+| ~~Health component list maintained by hand~~ | `api/health.py` | `COMPONENTS` registry of probes | **done, sweep** |
+| ~~Reviewer identity is a free-text `reviewer_ref`, unauthenticated~~ | `api/governance.py` | `X-Reviewer-Token` shared secret; RBAC remains the Gateway's | **done, Phase 16** |
+| ~~`BUILD_PHASE` string bumped by hand~~ | `api/health.py` | `phase-<version>+<git sha>` at first call | **done, sweep** |
 | ~~Scanners run on joined text; `message_index` always 0~~ | `stubs.py` | per-message scan, real offsets | **done, Phase 5** |
 | ~~In-memory review records~~ | `api/governance.py` | `review_request` table | **done, Phase 14** |
 | ~~`PermissiveOverrideVerifier` accepts any `ovr_` token~~ | `security/pipeline.py` | `ReviewOverrideVerifier` is the default; permissive kept for tests only | **done, Phase 14** |
@@ -338,7 +355,9 @@ sweep's checklist. Add to it whenever something is hardcoded to keep moving.
 | ~~Egress always PASS~~ | `stubs.py` | harm/bias screens + policy | **done, Phase 11** |
 | ~~Metrics return zeros~~ | `stubs.py` | aggregation over `request_audit` | **done, Phase 12** |
 | ~~Fairness report nulls~~ | `stubs.py` | measured harness output | **done, Phase 13** |
-| PERSON recall gap for East Asian (0.81) and African (0.83) names | detector | gazetteers for those groups sourced independently of the eval corpus; hyphen-aware name matching | post-16 / roadmap |
+| PERSON recall gap for East Asian (0.81) and African (0.83) names | detector | gazetteers for those groups sourced independently of the eval corpus; hyphen-aware name matching | **open** -- roadmap, stated in every README |
+| Rate limiter is per-replica | `hardening.py` | shared limiter in the Gateway's Redis | **open** -- Gateway concern, documented |
+| `docker-compose` gateway service is a placeholder | `docker-compose.yml` | real service once Person 2's Dockerfile exists | **open** -- needs Person 2 |
 | ~~Policy PUT not persisted~~ | `api/governance.py` | `policy_version` table | **done, Phase 15** |
 
 ---

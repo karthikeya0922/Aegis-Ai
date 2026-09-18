@@ -351,3 +351,39 @@ contact_cues:
   - candidate
   - applicant
   - student
+
+# Capitalised words that commonly *precede* a name at sentence start and are
+# never part of it. Stripped from the front of a run so "Meet Arjun Mehta"
+# yields the span "Arjun Mehta", not the verb as well. The contact cues above
+# are stop words too; they are not repeated here.
+leading_stop:
+  - the
+  - this
+  - that
+  - these
+  - those
+  - please
+  - and
+  - for
+  - our
+  - your
+  - my
+  - his
+  - her
+  - their
+  - meet
+  - hi
+  - hello
+  - thanks
+  - ask
+  - call
+  - tell
+  - email
+  - patient
+  - customer
+  - employee
+  - candidate
+  - applicant
+  - student
+  - welcome
+  - introducing

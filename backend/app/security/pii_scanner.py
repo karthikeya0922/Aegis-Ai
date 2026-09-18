@@ -130,10 +130,15 @@ _SSN = re.compile(r"\b(?!000|666|9\d\d)\d{3}-(?!00)\d{2}-(?!0000)\d{4}\b")
 
 # Honorific + capitalised name. Narrow on purpose -- only used in degraded
 # mode, and only because "Dr. Priya Ramaswamy" is unambiguous enough to be
-# worth a low-confidence flag when no NER model is loaded.
-_HONORIFIC_NAME = re.compile(
-    r"\b(?:Mr|Mrs|Ms|Miss|Dr|Prof|Sir|Dame|Shri|Smt|Sri)\.?\s+"
-    r"([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2})\b"
+# worth a low-confidence flag when no NER model is loaded. The title list is
+# data (pii_entities.yaml: honorifics).
+def _honorific_pattern(titles: list[str]) -> re.Pattern[str]:
+    alt = "|".join(re.escape(t) for t in titles) or "Dr"
+    return re.compile(r"\b(?:" + alt + r")\.?\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2})\b")
+
+
+_HONORIFIC_NAME = _honorific_pattern(
+    [str(t) for t in (yaml.safe_load(PII_CONFIG_PATH.read_text(encoding="utf-8")).get("honorifics") or [])]
 )
 
 # Runs of digits that are known non-PII structures. Consulted before the

@@ -70,7 +70,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         "%s v%s starting (phase=%s, env=%s)",
         settings.service_name,
         settings.version,
-        health.BUILD_PHASE,
+        health.build_phase(),
         settings.environment,
     )
 
@@ -270,7 +270,7 @@ async def root() -> dict[str, str]:
     return {
         "service": settings.service_name,
         "version": settings.version,
-        "phase": health.BUILD_PHASE,
+        "phase": health.build_phase(),
         "docs": "/docs",
         "openapi": "/openapi.json",
     }

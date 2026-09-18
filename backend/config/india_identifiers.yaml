@@ -1,0 +1,132 @@
+# Structured Indian identifier reference data.
+#
+# The regexes for Aadhaar, PAN, IFSC, UPI and Indian mobile live in
+# app/security/india_recognizers.py because their shape is fixed by the
+# issuing body. What changes over time -- and what a deployer may need to
+# extend without a code change -- is the reference data that turns a
+# shape match into a confident one:
+#
+#   pan_holder_types   4th PAN letter; a known code lifts confidence to 0.90
+#   ifsc_bank_codes    first 4 IFSC letters; a known bank lifts to 0.92
+#   upi_psps           the part after the @ in a UPI VPA; the alternation
+#                      is what separates "name@ybl" from an email address
+#
+# Unknown codes still match the shape at a lower confidence; they are not
+# dropped. Add here, never in code.
+
+version: 1
+
+pan_holder_types:
+  P: person
+  C: company
+  H: hindu undivided family
+  F: firm
+  A: association of persons
+  T: trust
+  B: body of individuals
+  L: local authority
+  J: artificial juridical person
+  G: government
+
+ifsc_bank_codes:
+  - SBIN
+  - HDFC
+  - ICIC
+  - UTIB
+  - PUNB
+  - BARB
+  - KKBK
+  - YESB
+  - IDIB
+  - CNRB
+  - UBIN
+  - IOBA
+  - BKID
+  - MAHB
+  - INDB
+  - FDRL
+  - KARB
+  - SIBL
+  - CSBK
+  - DLXB
+  - RATN
+  - TMBL
+  - KVBL
+  - CIUB
+  - JAKA
+  - IDFB
+  - AUBL
+  - BDBL
+  - ESFB
+  - UJVN
+  - PYTM
+  - AIRP
+  - FINO
+  - DBSS
+  - SCBL
+  - HSBC
+  - CITI
+  - ANDB
+  - CORP
+  - ORBC
+  - ALLA
+  - SYNB
+  - VIJB
+  - UCBA
+  - CBIN
+  - PSIB
+  - BKDN
+  - IBKL
+
+upi_psps:
+  - okaxis
+  - okhdfcbank
+  - okicici
+  - oksbi
+  - ybl
+  - ibl
+  - axl
+  - paytm
+  - apl
+  - upi
+  - sbi
+  - icici
+  - hdfcbank
+  - axisbank
+  - kotak
+  - yesbank
+  - idfcbank
+  - indus
+  - federal
+  - barodampay
+  - cnrb
+  - pnb
+  - boi
+  - unionbankofindia
+  - waaxis
+  - wahdfcbank
+  - waicici
+  - wasbi
+  - freecharge
+  - mobikwik
+  - jupiteraxis
+  - fam
+  - slice
+  - airtel
+  - jio
+  - rbl
+  - dbs
+  - citi
+  - hsbc
+  - abfspay
+  - ikwik
+  - naviaxis
+  - postbank
+  - pingpay
+  - fbl
+  - kmbl
+  - axisb
+  - yapl
+  - yesg
+  - timecosmos
+  - tapicici

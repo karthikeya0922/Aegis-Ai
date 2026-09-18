@@ -86,29 +86,32 @@ def verhoeff_check_digit(number: str) -> str:
 # the last digit. Formats: 2345 6789 0123 | 2345-6789-0123 | 234567890123
 _AADHAAR = re.compile(r"(?<!\d)([2-9]\d{3})[ \-]?(\d{4})[ \-]?(\d{4})(?!\d)")
 
+# Reference data (holder types, bank codes, PSP handles) is config, not code.
+_IDENTIFIERS_PATH = CONFIG_DIR / "india_identifiers.yaml"
+
+
+def _load_identifiers(path: Path = _IDENTIFIERS_PATH) -> tuple[frozenset[str], frozenset[str], tuple[str, ...], int]:
+    raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+    holders = frozenset(str(k).upper() for k in (raw.get("pan_holder_types") or {}))
+    banks = frozenset(str(b).upper() for b in raw.get("ifsc_bank_codes", []))
+    # longest first so "okhdfcbank" wins over "hdfcbank" in the alternation
+    psps = tuple(sorted((str(x).lower() for x in raw.get("upi_psps", [])), key=len, reverse=True))
+    return holders, banks, psps, int(raw.get("version", 1))
+
+
+_PAN_HOLDER_TYPES, _KNOWN_BANK_CODES, _UPI_PSPS, IDENTIFIERS_VERSION = _load_identifiers()
+
 # PAN: AAAAA9999A. The 4th letter encodes the holder type.
 _PAN = re.compile(r"\b([A-Z]{3})([A-Z])([A-Z])(\d{4})([A-Z])\b")
-_PAN_HOLDER_TYPES = set("PCHFATBLJG")  # person, company, HUF, firm, AOP, trust, BOI, local, juridical, govt
 
 # IFSC: 4 letters (bank), a literal 0, 6 alphanumerics (branch).
 _IFSC = re.compile(r"\b([A-Z]{4})0([A-Z0-9]{6})\b")
-_KNOWN_BANK_CODES = {
-    "SBIN", "HDFC", "ICIC", "UTIB", "PUNB", "BARB", "KKBK", "YESB", "IDIB", "CNRB",
-    "UBIN", "IOBA", "BKID", "MAHB", "INDB", "FDRL", "KARB", "SIBL", "CSBK", "DLXB",
-    "RATN", "TMBL", "KVBL", "CIUB", "JAKA", "IDFB", "AUBL", "BDBL", "ESFB", "UJVN",
-    "PYTM", "AIRP", "FINO", "DBSS", "SCBL", "HSBC", "CITI", "ANDB", "CORP", "ORBC",
-    "ALLA", "SYNB", "VIJB", "UCBA", "CBIN", "PSIB", "BKDN", "IBKL",
-}
 
 # UPI VPA: handle@psp. No TLD -- that is what separates it from an email.
-_UPI_PSPS = (
-    "okaxis|okhdfcbank|okicici|oksbi|ybl|ibl|axl|paytm|apl|upi|sbi|icici|hdfcbank|"
-    "axisbank|kotak|yesbank|idfcbank|indus|federal|barodampay|cnrb|pnb|boi|"
-    "unionbankofindia|waaxis|wahdfcbank|waicici|wasbi|freecharge|mobikwik|"
-    "jupiteraxis|fam|slice|airtel|jio|rbl|dbs|citi|hsbc|abfspay|ikwik|naviaxis|"
-    "postbank|pingpay|fbl|kmbl|axisb|yapl|yesg|timecosmos|tapicici"
+_UPI = re.compile(
+    r"(?<![\w.\-])([A-Za-z0-9._\-]{2,64})@(" + "|".join(re.escape(x) for x in _UPI_PSPS) + r")(?![\w.])",
+    re.IGNORECASE,
 )
-_UPI = re.compile(rf"(?<![\w.\-])([A-Za-z0-9._\-]{{2,64}})@({_UPI_PSPS})(?![\w.])", re.IGNORECASE)
 
 # Indian mobile: 10 digits starting 6-9. Optional +91 / 91 / 0 prefix.
 # Groupings seen in practice: 98765 43210 | 98765-43210 | 9876543210
@@ -127,23 +130,18 @@ _IN_MOBILE = re.compile(
 _CAP_RUN = re.compile(r"\b([A-Z][a-z]{2,}(?:\s+[A-Z][a-z]{2,}){0,3})\b")
 _CUE_BEFORE = re.compile(r"([A-Za-z]+)[\s:,]+$")
 
-# Capitalised words that commonly *precede* a name at sentence start and are
-# never part of it. Stripped from the front of a run so "Meet Arjun Mehta"
-# yields the span "Arjun Mehta", not the verb as well.
-_LEADING_STOP = frozenset(
-    "the this that these those please and for our your my his her their "
-    "with from meet contact dear hi hello thanks regards attn attention "
-    "cc to ask call tell email patient customer employee candidate applicant "
-    "student welcome introducing".split()
-)
-
-
 @dataclass(frozen=True)
 class Gazetteer:
     first_names: frozenset[str]
     surnames: frozenset[str]
     contact_cues: frozenset[str]
+    leading_stop: frozenset[str]
     version: int
+
+    @property
+    def stop_words(self) -> frozenset[str]:
+        """Words never part of a name: the leading stops plus the contact cues."""
+        return self.leading_stop | self.contact_cues
 
     @property
     def all_names(self) -> frozenset[str]:
@@ -156,6 +154,7 @@ def _load_gazetteer(path: Path) -> Gazetteer:
         first_names=frozenset(str(n) for n in raw.get("first_names", []) if len(str(n)) >= 3),
         surnames=frozenset(str(n) for n in raw.get("surnames", []) if len(str(n)) >= 3),
         contact_cues=frozenset(str(c).lower() for c in raw.get("contact_cues", [])),
+        leading_stop=frozenset(str(c).lower() for c in raw.get("leading_stop", [])),
         version=int(raw.get("version", 1)),
     )
 
@@ -246,7 +245,7 @@ class IndiaEngine:
 
     def _names(self, text: str, mi: int) -> list[PIIMatch]:
         g = self.gazetteer
-        stop = _LEADING_STOP | g.contact_cues
+        stop = g.stop_words
         out = []
         for m in _CAP_RUN.finditer(text):
             # Token positions within the source text, so a trimmed run still

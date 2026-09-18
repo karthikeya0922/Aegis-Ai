@@ -668,7 +668,8 @@ app/
   utils/            ids, timing, redacting logger (scrubs at record creation)
 config/             secret_patterns.yaml, pii_entities.yaml, india_names.yaml,
                     injection_rules.yaml, policies.yaml, routing.yaml,
-                    pricing.yaml, sustainability.yaml, egress_screens.yaml (all real)
+                    pricing.yaml, sustainability.yaml, egress_screens.yaml,
+                    india_identifiers.yaml (all real; every list that grows is here, not in code)
 eval/               name_corpus.yaml, run_fairness.py (real)
 tests/
 ```

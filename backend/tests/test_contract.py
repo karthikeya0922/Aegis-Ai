@@ -451,12 +451,17 @@ def test_health_reports_stub_subsystems_honestly():
     """
     res = HealthResponse.model_validate(client.get("/api/health").json())
     assert res.phase.startswith("phase-")
-    stubbed = [c.name for c in res.components if c.status == "stub"]
-    if stubbed:
+    not_ok = [c for c in res.components if c.status != "ok"]
+    if not_ok:
         assert res.status == "degraded"
-        assert res.degraded_reasons, "degraded status must say why"
+        # every non-ok component is named in the reasons, with its detail
+        for c in not_ok:
+            assert any(r.startswith(f"{c.name}:") for r in res.degraded_reasons), c
     else:
-        assert res.status == "ok"
+        assert res.status == "ok" and not res.degraded_reasons
+    # a dev deployment with no operator tokens is open, and must say so
+    hard = next(c for c in res.components if c.name == "hardening")
+    assert hard.status == "degraded" and "UNAUTHENTICATED" in hard.detail
 
 
 def test_health_marks_shipped_subsystems_as_real():
