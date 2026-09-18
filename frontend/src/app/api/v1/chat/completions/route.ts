@@ -13,17 +13,38 @@ import { DEFAULT_SCAN_TIMEOUT_MS } from "@/lib/gateway/scan-gate";
 import { buildStreamingResponse } from "@/lib/gateway/streaming";
 import { consoleTelemetry } from "@/lib/gateway/telemetry";
 
-const redisClient = createClient({ url: process.env.REDIS_URL || "redis://localhost:6379" });
-redisClient.on("error", (err) => console.error("Redis Rate Limit Error:", err));
+// Redis is optional for the rate limiter: when it is down we fail open (below),
+// but only if connect() actually fails. node-redis reconnects forever by default,
+// so without a bounded strategy a missing Redis would hang every request.
+const redisClient = createClient({
+  url: process.env.REDIS_URL || "redis://localhost:6379",
+  socket: {
+    connectTimeout: 1500,
+    reconnectStrategy: (retries) => (retries > 2 ? new Error("redis unavailable") : 300),
+  },
+});
+let redisErrorLogged = false;
+redisClient.on("error", (err) => {
+  if (!redisErrorLogged) {
+    redisErrorLogged = true;
+    console.error("Redis Rate Limit Error (failing open):", err instanceof Error ? err.message : err);
+  }
+});
 let redisConnected = false;
 let redisConnectPromise: Promise<void> | null = null;
 async function ensureRedis() {
   if (process.env.NODE_ENV === "test") return;
   if (!redisConnected) {
     if (!redisConnectPromise) {
-      redisConnectPromise = redisClient.connect().then(() => { redisConnected = true; });
+      redisConnectPromise = redisClient.connect().then(() => { redisConnected = true; }).catch((err) => {
+        redisConnectPromise = null;
+        throw err;
+      });
     }
-    await redisConnectPromise;
+    await Promise.race([
+      redisConnectPromise,
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("redis connect timeout")), 2000)),
+    ]);
   }
 }
 

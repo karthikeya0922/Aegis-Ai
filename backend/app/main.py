@@ -19,7 +19,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api import audit, embed, governance, health, inspect
+from app.api import audit, embed, governance, health, inspect, internal
 from app.config import settings
 from app.utils.ids import request_id as new_request_id
 from app.utils.logging import configure_logging, get_logger
@@ -258,6 +258,7 @@ app.include_router(embed.router)
 app.include_router(audit.router)
 app.include_router(governance.router)
 app.include_router(health.router)
+app.include_router(internal.router)  # the Gateway's /internal/* contract
 
 # metrics router carries its own /api/metrics prefix
 from app.api import metrics  # noqa: E402

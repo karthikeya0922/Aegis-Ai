@@ -92,6 +92,25 @@ live demo is the most likely way this service embarrasses us. `init_db()` create
 | Request size | `AEGIS_MAX_REQUEST_BYTES` | 413 before the body is parsed. |
 | Security headers | `app/main.py` | `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Cache-Control: no-store` on every response. |
 
+## The Gateway's `/internal/*` contract
+
+Person 2's gateway was built against `lib/types/aegis.ts` and the mock in
+`mocks/engine/server.ts`. `app/api/internal.py` serves that contract from the
+real pipeline so neither half needed rewriting:
+
+| Gateway calls | Served by | Notes |
+|---|---|---|
+| `POST /internal/scan` | pipeline + `record_inspection` | `mode: strict` or `confidential_mode` selects the strict profile. Secrets are never in `match`; PII `match` is the value the gateway's own `inspector.ts` redacts before display |
+| `POST /internal/verify` | egress screens + grounding + `record_egress` | Harm/bias REPLACE is applied to `final_text`; a grounding failure is reported as `status: block` and the gateway substitutes its own fallback. `rehydrate: true` swaps PII placeholders back from the `vault_token` -- never secrets |
+| `POST /internal/audit` | `upsert_event` | Gateway's half of the row; 201 with the merged entry |
+| `GET /internal/audit/events`, `GET /internal/audit` | audit table | Filters: from, to, provider, action, cache_hit, has_detections, limit, offset |
+| `GET /internal/audit/report` | `metrics.report` | A real PDF, generated without a library |
+| `GET /internal/policies` | policy engine | Derived flags; PUT is 405 -- policy is versioned YAML at `PUT /api/policies` |
+| `GET /internal/health` | health registry | `engine: "python"` |
+
+`vault_token` is the one piece of state: an in-process TTL map
+(`AEGIS_VAULT_TTL_SECONDS`), per replica, holding placeholder -> PII only.
+
 ## For Person 2
 
 Regenerate the spec after any contract change:

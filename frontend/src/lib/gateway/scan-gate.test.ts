@@ -225,7 +225,7 @@ describe("sanitize verdict", () => {
     expect(provider).toHaveBeenCalledTimes(1);
     const [prompt, params] = provider.mock.calls[0];
     expect(prompt.messages).toEqual(userMessages(SANITIZED));
-    expect(params).toEqual({ ...PARAMS, model: "llama3.1" });
+    expect(params).toEqual({ ...PARAMS, model: "glm-4.6" });
     // Nothing handed to the provider contains the original values.
     const handedOver = JSON.stringify(provider.mock.calls[0]);
     expect(handedOver).not.toContain("Jane Doe");

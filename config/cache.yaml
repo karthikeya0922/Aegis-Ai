@@ -1,10 +1,24 @@
+# Semantic cache embeddings (lib/cache/semantic-cache.ts).
+#
+# "aegis" uses the inspector's POST /embed (all-MiniLM-L6-v2, 384 dims, L2-
+# normalised) -- the same vectors the cache guards and fairness harness are
+# measured on, and no extra service to run. The inspector reports `degraded`
+# when it fell back to hash vectors; the cache refuses to index those.
 embedding:
-  provider: ollama
-  ollama:
-    base_url: http://localhost:11434
-    model: nomic-embed-text
-  # Or you could have:
+  provider: aegis
+  dim: 384
+  # aegis:
+  #   base_url: http://localhost:8000   # optional; defaults to AEGIS_ENGINE_URL
+
+  # Alternatives:
+  # provider: ollama
+  # dim: 768
+  # ollama:
+  #   base_url: http://localhost:11434
+  #   model: nomic-embed-text
+  #
   # provider: openai
+  # dim: 1536
   # openai:
-    # base_url: https://api.openai.com/v1
-    # model: text-embedding-3-small
+  #   base_url: https://api.openai.com/v1
+  #   model: text-embedding-3-small

@@ -84,7 +84,7 @@ describe("OpenAICompatibleProvider.chat", () => {
 
     await expect(
       provider.chat({ model: "gpt-4o-mini", messages: [{ role: "user", content: "hi" }], signal: new AbortController().signal }),
-    ).rejects.toMatchObject({ retryable: false });
+    ).rejects.toMatchObject({ retryable: true, publicMessage: expect.stringContaining("not configured") });
   });
 
   it("rejects a base_url whose host is not allowlisted, without ever calling fetch", async () => {

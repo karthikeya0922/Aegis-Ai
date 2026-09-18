@@ -1,11 +1,19 @@
+# Gateway routing by prompt complexity (lib/routing/router.ts).
+#
+# Provider names MUST exist in config/providers.yaml. Every tier has a failover
+# chain so one missing credential or a stopped local Ollama degrades to the
+# next provider instead of a 502. Set the matching *_API_KEY in .env, or run
+# Ollama locally with AEGIS_PROVIDER_ALLOW_PRIVATE_IPS=true.
 routes:
   low:
-    provider: ollama-local
-    model: llama3.1
-    failover: []
+    provider: glm-free
+    model: glm-4.6
+    failover: [groq, ollama-local]
   medium:
-    provider: openai-compatible
-    model: gpt-4o-mini
+    provider: glm-free
+    model: glm-4.6
+    failover: [groq, openai, ollama-local]
   high:
-    provider: openai-compatible
+    provider: openai
     model: gpt-4o
+    failover: [glm-free, groq, ollama-local]

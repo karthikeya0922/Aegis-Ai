@@ -357,7 +357,10 @@ sweep's checklist. Add to it whenever something is hardcoded to keep moving.
 | ~~Fairness report nulls~~ | `stubs.py` | measured harness output | **done, Phase 13** |
 | PERSON recall gap for East Asian (0.81) and African (0.83) names | detector | gazetteers for those groups sourced independently of the eval corpus; hyphen-aware name matching | **open** -- roadmap, stated in every README |
 | Rate limiter is per-replica | `hardening.py` | shared limiter in the Gateway's Redis | **open** -- Gateway concern, documented |
-| `docker-compose` gateway service is a placeholder | `docker-compose.yml` | real service once Person 2's Dockerfile exists | **open** -- needs Person 2 |
+| ~~`docker-compose` gateway service is a placeholder~~ | `docker-compose.yml` | frontend service from Person 2's Dockerfile | **done, merge** |
+| Gateway spoke `/internal/*`, Inspector spoke `/inspect` | both | one contract | **done** -- `app/api/internal.py` serves the gateway's contract from the real pipeline; native endpoints unchanged |
+| Gateway hung when Redis was absent; semantic cache required Ollama; routing named a provider that did not exist; a missing API key aborted the failover chain | `frontend/`, `lib/`, `config/` | fail fast / fail over | **done** -- bounded Redis connects, `provider: aegis` embeds via `/embed`, routing uses real names with chains, missing key is retryable |
+| 10 gateway unit tests build a `fakeProvider` they never inject (streaming.ts now resolves providers from the registry) | `frontend/src/lib/gateway/*.test.ts` | inject providers or mock the registry | **open** -- Person 2's test drift, not an integration bug |
 | ~~Policy PUT not persisted~~ | `api/governance.py` | `policy_version` table | **done, Phase 15** |
 
 ---

@@ -61,10 +61,13 @@ function resolveApiKey(envVar: string | undefined, providerName: string): string
   if (!envVar) return null;
   const key = process.env[envVar];
   if (!key) {
+    // Retryable on purpose: an unconfigured credential is a reason to move to
+    // the next provider in the failover chain, not to fail the whole request.
     throw new ProviderError(`Missing API key: environment variable "${envVar}" is not set for provider "${providerName}"`, {
       provider: providerName,
       status: null,
-      retryable: false,
+      retryable: true,
+      publicMessage: `provider "${providerName}" is not configured`,
     });
   }
   return key;

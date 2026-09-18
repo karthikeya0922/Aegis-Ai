@@ -14,6 +14,12 @@ export interface GatewayPrompt {
 interface CacheConfig {
   embedding: {
     provider: string;
+    /** Vector dimension of the index. 384 for the Aegis inspector (all-MiniLM-L6-v2). */
+    dim?: number;
+    aegis?: {
+      /** Defaults to AEGIS_ENGINE_URL. */
+      base_url?: string;
+    };
     ollama?: {
       base_url: string;
       model: string;
@@ -39,9 +45,20 @@ function loadConfig(): CacheConfig {
 }
 
 const redisClient = createClient({
-  url: process.env.REDIS_URL || "redis://localhost:6379"
+  url: process.env.REDIS_URL || "redis://localhost:6379",
+  socket: {
+    connectTimeout: 1500,
+    // Bounded: a missing Redis means "no cache", never a hung request.
+    reconnectStrategy: (retries) => (retries > 2 ? new Error("redis unavailable") : 300),
+  },
 });
-redisClient.on("error", (err) => console.error("Redis Client Error", err));
+let redisErrorLogged = false;
+redisClient.on("error", (err) => {
+  if (!redisErrorLogged) {
+    redisErrorLogged = true;
+    console.error("Redis Client Error (semantic cache disabled):", err instanceof Error ? err.message : err);
+  }
+});
 
 let isConnected = false;
 let connectionPromise: Promise<void> | null = null;
@@ -58,7 +75,7 @@ async function ensureRedis() {
             type: "VECTOR",
             ALGORITHM: "FLAT",
             TYPE: "FLOAT32",
-            DIM: 768,
+            DIM: embeddingDim(),
             DISTANCE_METRIC: "COSINE"
           },
           response: { type: "TEXT" },
@@ -81,8 +98,32 @@ async function ensureRedis() {
   await connectionPromise;
 }
 
+function embeddingDim(): number {
+  const config = loadConfig();
+  if (typeof config.embedding.dim === "number" && config.embedding.dim > 0) return config.embedding.dim;
+  return config.embedding.provider === "aegis" ? 384 : 768;
+}
+
 async function getEmbedding(text: string): Promise<number[]> {
   const config = loadConfig();
+  if (config.embedding.provider === "aegis") {
+    // The inspector's own embedding service (Person 1, POST /embed). Same model
+    // the fairness harness and cache guards are measured against.
+    const base = (config.embedding.aegis?.base_url || process.env.AEGIS_ENGINE_URL || "http://localhost:8000").replace(/\/+$/, "");
+    const res = await fetch(`${base}/embed`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ texts: [text], normalize: true }),
+    });
+    if (!res.ok) throw new Error(`aegis /embed returned ${res.status}`);
+    const data = (await res.json()) as { vectors: number[][]; degraded?: boolean; engine?: string };
+    if (data.degraded) {
+      // Hash-fallback vectors carry no semantic structure: caching on them would
+      // return unrelated answers. Refuse rather than build a bad index.
+      throw new Error(`aegis /embed is degraded (${data.engine}); semantic cache disabled`);
+    }
+    return data.vectors[0];
+  }
   if (config.embedding.provider === "ollama") {
     const oConf = config.embedding.ollama!;
     const res = await fetch(`${oConf.base_url}/api/embeddings`, {
