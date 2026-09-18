@@ -27,6 +27,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
 COPY config ./config
+COPY alembic.ini .
+COPY migrations ./migrations
+
+# Run unprivileged. The SQLite default lives under /srv/data; mount a volume
+# there or point DATABASE_URL at Postgres.
+RUN mkdir -p /srv/data
+ENV DATABASE_URL=sqlite:////srv/data/aegis.db
 
 # Run unprivileged.
 RUN useradd --system --uid 10001 aegis && chown -R aegis:aegis /srv
@@ -49,10 +56,17 @@ COPY requirements-ml.txt .
 RUN pip install --no-cache-dir -r requirements-ml.txt \
  && python -m spacy download en_core_web_lg
 
-# Pre-fetch transformer weights into the image layer.
+# Pre-fetch transformer weights into the image layer: the embedding model
+# (semantic cache, fairness harness) and the NLI cross-encoder (grounding).
+# Without the second one grounding reports SKIPPED -- never a faked score --
+# but a demo that shows SKIPPED is a demo that forgot this line.
+ARG AEGIS_EMBEDDING_MODEL=all-MiniLM-L6-v2
+ARG AEGIS_NLI_MODEL=cross-encoder/nli-deberta-v3-small
 RUN python - <<'PY'
-from sentence_transformers import SentenceTransformer
-SentenceTransformer("all-MiniLM-L6-v2")
+import os
+from sentence_transformers import CrossEncoder, SentenceTransformer
+SentenceTransformer(os.environ.get("AEGIS_EMBEDDING_MODEL", "all-MiniLM-L6-v2"))
+CrossEncoder(os.environ.get("AEGIS_NLI_MODEL", "cross-encoder/nli-deberta-v3-small"))
 PY
 
 COPY eval ./eval

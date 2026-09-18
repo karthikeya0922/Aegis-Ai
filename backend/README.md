@@ -7,9 +7,10 @@ This service is the absolute authority on whether a prompt is safe. It is
 **stateless** -- the same input always yields the same verdict. All session
 state (token vault, semantic cache) belongs to Person 2's Gateway and its Redis.
 
-**Current build phase: Phase 11.** Every endpoint is real; `stubs.py` no longer exists. Phase 16 (hardening) and the sweep remain. Every endpoint
-is live and contract-valid. `GET /api/health` reports exactly which subsystems
-are real and which are still stubs.
+**Build complete (Phase 16).** Every endpoint is real, and the transport is
+hardened: rate limit, deadline, operator auth, retention scheduler, and a
+logger that scrubs at record creation. `GET /api/health` reports which
+subsystems are loaded and which are degraded.
 
 | Subsystem | Status |
 |---|---|
@@ -28,6 +29,7 @@ are real and which are still stubs.
 | Embeddings | **Real.** all-MiniLM-L6-v2 via sentence-transformers, dim 384, L2-normalised; hash fallback that reports itself |
 | Grounded Response Verification | **Real.** NLI cross-encoder, per-claim SUPPORTED / UNSUPPORTED / CONTRADICTED; skipped and reported when the model is absent, never a faked score |
 | Egress screens | **Real.** Heuristic harm and bias screens, config-driven, policy-decided; a floor, not a classifier |
+| Hardening | **Real.** Per-tenant token bucket (429), bounded wait (504), `X-Admin-Token` / `X-Reviewer-Token` gates, scheduled purge, record-factory log redaction |
 
 ---
 
@@ -63,6 +65,32 @@ python -m pytest -q
 keep passing unchanged through every later phase.
 
 ---
+
+## Shipping it (Phase 16)
+
+```bash
+# from the repository root
+cp backend/.env.example .env            # set AEGIS_USER_HASH_SALT, AEGIS_ADMIN_TOKEN, AEGIS_REVIEWER_TOKEN
+docker compose up --build               # inspector (ml image, models baked) + postgres + redis
+docker compose --profile lite up        # base image, SQLite, no models: boots in seconds
+```
+
+The `ml` image bakes spaCy `en_core_web_lg`, `all-MiniLM-L6-v2` and the
+NLI cross-encoder into the layer, because a cold model download during a
+live demo is the most likely way this service embarrasses us. `init_db()` creates the schema on boot; for a managed Postgres run
+`alembic upgrade head` from `backend/` (the migrations ship in the image).
+
+### What the hardening does, and what it does not
+
+| Control | Where | Honest scope |
+|---|---|---|
+| Rate limit | `app/hardening.py`, `AEGIS_RATE_LIMIT_PER_MINUTE` / `_BURST` | In-process token bucket keyed by `X-Tenant-Id` (else client address). Protects one replica from one noisy caller. **Not distributed** -- with N replicas each has its own bucket. A shared limiter belongs to the Gateway, which owns Redis. `/api/health` and the docs are exempt. |
+| Deadline | `AEGIS_REQUEST_TIMEOUT_SECONDS` | Bounds how long the Gateway waits; answers `504 INSPECTOR_TIMEOUT` with the request id. The threadpool work **continues past the deadline**; it cannot be cancelled from here. |
+| Operator auth | `AEGIS_ADMIN_TOKEN`, `AEGIS_REVIEWER_TOKEN` | Shared secrets, constant-time compared. Admin gates `PUT /api/policies`, rollback, purge, erase-subject; reviewer gates `POST /api/reviews/{id}/decision`. Reads stay open. **Unset means open** -- startup logs `UNAUTHENTICATED` in capitals. RBAC is the Gateway's. |
+| Retention | `AEGIS_PURGE_INTERVAL_HOURS` | `purge_expired()` runs on boot and then on the interval; a failing purge is logged and the loop continues. |
+| Log redaction | `app/utils/logging.py` | The scrub lives in the `LogRecord` factory, so every handler in every logger -- stdout, a file, a shipper, pytest capture -- only ever sees the redacted record. `tests/test_hardening.py` greps `caplog` for five credential shapes. |
+| Request size | `AEGIS_MAX_REQUEST_BYTES` | 413 before the body is parsed. |
+| Security headers | `app/main.py` | `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Cache-Control: no-store` on every response. |
 
 ## For Person 2
 
@@ -625,6 +653,7 @@ alembic.ini, migrations/   controlled schema upgrades (alembic upgrade head)
 app/
   config.py         every threshold, sourced from env
   main.py           app, middleware, error envelopes
+  hardening.py      rate limit, deadline, operator auth, retention loop
   contracts/        Pydantic models -- the seam with Person 2
   api/              route handlers
   security/         secret_scanner.py, entropy.py, pii_scanner.py,
@@ -636,7 +665,7 @@ app/
   cache/            embeddings.py -- sentence-transformers with hash fallback (real)
   fairness/         harness.py -- per-group recall, baseline vs current (real)
   verification/     grounding.py, screens.py, egress.py (real)
-  utils/            ids, timing, redacting logger
+  utils/            ids, timing, redacting logger (scrubs at record creation)
 config/             secret_patterns.yaml, pii_entities.yaml, india_names.yaml,
                     injection_rules.yaml, policies.yaml, routing.yaml,
                     pricing.yaml, sustainability.yaml, egress_screens.yaml (all real)

@@ -436,6 +436,22 @@
               ],
               "title": "Retention Days"
             }
+          },
+          {
+            "name": "x-admin-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Admin-Token"
+            }
           }
         ],
         "responses": {
@@ -470,15 +486,33 @@
         "summary": "Erase every audit row for one user (right to erasure)",
         "description": "The raw `user_ref` is hashed with the deployment salt and every row with that hash is deleted. The raw value is not logged or stored by this call either. Returns the number of rows removed.",
         "operationId": "erase_subject_api_audit_erase_subject_post",
+        "parameters": [
+          {
+            "name": "x-admin-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Admin-Token"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/EraseSubjectRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -532,15 +566,33 @@
         "summary": "Update policy, creating a new immutable version",
         "description": "Validates the document through the engine's own loader, assigns the next version number (stamped into the YAML), writes an immutable `policy_version` row, writes the live file, and reloads the engine. Previous versions are never mutated, so any past decision can be replayed against the rules that were in force: the audit row records `policy_version`, and history says what that version contained.\n\nAn invalid document is rejected with the loader's message and nothing changes. `author_ref` is stored as a salted hash.",
         "operationId": "put_policies_api_policies_put",
+        "parameters": [
+          {
+            "name": "x-admin-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Admin-Token"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/PolicyUpdateRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -669,6 +721,22 @@
             "schema": {
               "type": "integer",
               "title": "Version"
+            }
+          },
+          {
+            "name": "x-admin-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Admin-Token"
             }
           }
         ],
@@ -899,6 +967,22 @@
             "schema": {
               "type": "string",
               "title": "Review Id"
+            }
+          },
+          {
+            "name": "x-reviewer-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Reviewer-Token"
             }
           }
         ],

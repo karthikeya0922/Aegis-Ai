@@ -1,0 +1,77 @@
+# Aegis -- local stack.
+#
+#   docker compose up --build            # inspector (ml image) + postgres + redis
+#   docker compose --profile lite up     # inspector base image, SQLite, no models
+#
+# The Gateway (Person 2, Next.js) is a placeholder service here: uncomment
+# once its Dockerfile lands. Everything the inspector needs is self-contained.
+
+services:
+  inspector:
+    build:
+      context: ./backend
+      target: ml
+    environment:
+      DATABASE_URL: postgresql+psycopg://aegis:aegis@postgres:5432/aegis
+      AEGIS_USER_HASH_SALT: ${AEGIS_USER_HASH_SALT:?set a long random value in .env}
+      AEGIS_ADMIN_TOKEN: ${AEGIS_ADMIN_TOKEN:-}
+      AEGIS_REVIEWER_TOKEN: ${AEGIS_REVIEWER_TOKEN:-}
+      AEGIS_CORS_ORIGINS: ${AEGIS_CORS_ORIGINS:-http://localhost:3000}
+      AEGIS_WARM_MODELS: "true"
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 3s
+      start_period: 60s
+      retries: 3
+
+  inspector-lite:
+    profiles: ["lite"]
+    build:
+      context: ./backend
+      target: base
+    environment:
+      AEGIS_USER_HASH_SALT: ${AEGIS_USER_HASH_SALT:-dev-only-salt}
+    volumes:
+      - inspector-data:/srv/data
+    ports:
+      - "8000:8000"
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: aegis
+      POSTGRES_PASSWORD: aegis
+      POSTGRES_DB: aegis
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aegis"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Redis is the Gateway's: semantic cache store and (if it chooses) a shared
+  # rate limiter. The inspector never talks to it -- see app/hardening.py.
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  # gateway:
+  #   build: ./gateway
+  #   environment:
+  #     INSPECTOR_URL: http://inspector:8000
+  #     REDIS_URL: redis://redis:6379
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on: [inspector, redis]
+
+volumes:
+  pg-data:
+  inspector-data:
