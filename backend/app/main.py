@@ -116,8 +116,21 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     pipe.warm()
     log.info("inspection pipeline ready (routing config v%d)", pipe.routing.version)
 
+    # Embeddings: loading MiniLM takes a few seconds from cache and the
+    # first encode pays a further warm-up. Done here so the Gateway's first
+    # cache lookup does not. Falls through instantly to hash mode if the
+    # package or weights are absent, and health reports that.
+    from app.cache.embeddings import get_embedding_service
+
+    emb = get_embedding_service()
+    emb.warm()
+    if emb.degraded:
+        log.warning("embeddings DEGRADED: %s", emb.degraded_reason)
+    else:
+        log.info("embeddings ready (%s, dim=%d)", emb.model_name, emb.dim)
+
     if settings.warm_models_on_startup:
-        log.info("model warm-up requested (embeddings/NLI: no-op until Phase 9)")
+        log.info("model warm-up requested (NLI cross-encoder: no-op until Phase 10)")
     yield
     log.info("%s shutting down", settings.service_name)
 

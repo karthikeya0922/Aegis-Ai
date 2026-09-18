@@ -19,3 +19,8 @@ class EmbedResponse(StrictModel):
     normalized: bool
     vectors: list[list[float]]
     duration_ms: float = Field(ge=0)
+    # "sentence-transformers" or "hash-fallback". On fallback the vectors are
+    # deterministic but carry no semantic structure; a Gateway should not
+    # build a near-match index on them.
+    engine: str = "sentence-transformers"
+    degraded: bool = False

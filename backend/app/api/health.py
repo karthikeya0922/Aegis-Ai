@@ -21,7 +21,7 @@ from app.security.policy_engine import get_policy_engine
 router = APIRouter(tags=["health"])
 
 _STARTED = time.monotonic()
-BUILD_PHASE = "phase-15-policy-versioning"
+BUILD_PHASE = "phase-9-embeddings"
 
 
 def _pii_component() -> ComponentHealth:
@@ -113,6 +113,21 @@ def _policy_versions() -> int:
         return -1
 
 
+def _embeddings_component() -> ComponentHealth:
+    from app.cache.embeddings import get_embedding_service
+
+    e = get_embedding_service().health()
+    if e["degraded"]:
+        return ComponentHealth(
+            name="embeddings", status="degraded",
+            detail=f"hash fallback (no semantic structure): {e['degraded_reason']}",
+        )
+    return ComponentHealth(
+        name="embeddings", status="ok",
+        detail=f"sentence-transformers {e['model']}, dim {e['dim']}, L2-normalised",
+    )
+
+
 def _components() -> list[ComponentHealth]:
     stub = "stub"  # components below that have not shipped yet
     return [
@@ -137,7 +152,7 @@ def _components() -> list[ComponentHealth]:
                 f"{_policy_versions()} version(s) on file; hot-reloaded"
             ),
         ),
-        ComponentHealth(name="embeddings", status=stub, detail="Deterministic stub vectors until Phase 9"),
+        _embeddings_component(),
         ComponentHealth(name="grounding", status=stub, detail="NLI cross-encoder lands in Phase 10"),
         _database_component(),
         _fairness_component(),
