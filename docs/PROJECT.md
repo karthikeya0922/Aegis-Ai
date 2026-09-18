@@ -850,3 +850,51 @@ Aegis Ai/
   - Architecture (H2): Fixed the provider routing disconnect in `pipeline.ts` and `streaming.ts`. Requests now dynamically use `registry.getFailoverGroupFor(route)` to construct their failover chain, respecting `config/routing.yaml` rather than the global default.
   - UX: "Confidential Mode" toggle in Playground is now intercepted server-side and properly forwarded in `RequestMeta` -> `engine.scan()`.
   - Config: Updated `docker-compose.yml` to point `python-engine` to `./backend` instead of the mock server. Fixed Next.js build issues related to `__dirname`.
+
+### 2026-09-18 — Landing page rebuilt against the COSMOQ reference
+- **What changed:**
+  - `frontend/src/components/landing/LandingNav.tsx` (new) — logo left, glass pill centre
+    (Guardrails / How it works / Security / Dashboard), glowing `--shadow-cta` "Get Started"
+    right. Includes a masked scrim that fades in on scroll.
+  - `frontend/src/components/landing/HeroPreview.tsx` (new) — the LIVE INSPECTOR dashboard
+    preview that peeks up from the bottom of the hero, ported from the 3-column mock in
+    `Aegis Landing Cosmic.dc.html:63-96`. Square bottom corners so it reads as a window, not a card.
+  - `frontend/src/app/(landing)/page.tsx` — rewritten. Hero (badge, `--text-display` headline,
+    balanced subcopy, dual CTA, preview), then Guardrails / How it works / Security sections and
+    a footer on solid ground below.
+  - `frontend/src/components/shell/CosmicBackground.tsx` — added a `position` prop
+    (`fixed` | `absolute`) and the 20-column `Shafts` light-curtain layer from the design file
+    (`shaftSway`, deterministic per-column flex/opacity/duration — no `Math.random()`, which
+    would differ between server and client render and trip hydration). Vignette softened
+    (inner transparent stop 30%→46%, mid opacity 0.72→0.42) because it was swallowing the
+    curtains at the edges, which is exactly where they live.
+  - `frontend/tailwind.config.ts` — registered `animate-shaft-sway`.
+- **Why:** User supplied the COSMOQ reference alongside a screenshot of the existing landing page
+  and asked for it to match.
+- **Three real bugs found in the existing landing page and fixed:**
+  1. `text-aegis-neon` / `bg-aegis-neon` were used throughout but **`aegis-neon` is not defined**
+     in `tailwind.config.ts` or `globals.css`. The feature icons and the primary CTA background
+     were rendering as nothing; only a hardcoded green `box-shadow` was visible, which also
+     clashed with the orange/blue brand. All replaced with real tokens.
+  2. `CosmicBackground` was `fixed inset-0` behind the *whole document*, so the aurora horizon
+     landed mid-page and its light band crossed the feature cards, making their text unreadable
+     (visible in the user's screenshot). The aurora is now scoped to the hero via
+     `position="absolute"`, and everything below sits on solid ground.
+  3. The fixed nav had no scrim, so the "How it works" card headings bled through the pill as
+     they scrolled under it.
+- **Verified:** `npx tsc --noEmit` clean; `npm run build` compiles; visually checked at 1440x900
+  across the full scroll — hero, guardrails, how-it-works, security, footer.
+- **Next step / open questions:**
+  1. **10 pre-existing test failures, NOT from this change.** `npm test` is
+     **116/126** (was 126/126 on 2026-09-18 earlier). Confirmed pre-existing by stashing every
+     file touched here and re-running — the same 10 fail. They originate in commit `3b9b740`,
+     which added `ProviderRegistry.getFailoverGroupFor(route)` (per-route failover chains) and
+     changed `streaming.ts`, while the test mocks in `route.stream.test.ts` / `route.test.ts`
+     still stub only `getFailoverGroup` → `TypeError: getFailoverGroupFor is not a function`.
+     Other failures in `streaming.test.ts` look deeper than a stale mock (missing chunk content,
+     no `aegis.grounding` frame), so this needs whoever wrote that refactor to confirm intended
+     behaviour before the tests are "fixed" — left untouched deliberately.
+  2. Landing copy still carries placeholders from `docs/LANDING_PAGE_PROMPT.md`: the GitHub link
+     points at `https://github.com`, and there is no pricing/testimonial/launch-date content.
+  3. Route groups changed since the previous entry: the dashboard now lives at `/dashboard`
+     (not `/`), with `/` given to the landing page.
