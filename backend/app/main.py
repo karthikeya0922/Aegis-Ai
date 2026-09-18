@@ -129,8 +129,16 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     else:
         log.info("embeddings ready (%s, dim=%d)", emb.model_name, emb.dim)
 
-    if settings.warm_models_on_startup:
-        log.info("model warm-up requested (NLI cross-encoder: no-op until Phase 10)")
+    # Grounding: the NLI cross-encoder. Warmed here for the same reason as
+    # the others; if absent, verification is reported as skipped, never faked.
+    from app.verification.grounding import get_verifier
+
+    ver = get_verifier()
+    ver.warm()
+    if ver.degraded:
+        log.warning("grounding DEGRADED (verification will be skipped): %s", ver.degraded_reason)
+    else:
+        log.info("grounding ready (%s)", ver.model_name)
     yield
     log.info("%s shutting down", settings.service_name)
 

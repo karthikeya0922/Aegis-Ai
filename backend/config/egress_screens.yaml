@@ -1,0 +1,91 @@
+# Aegis egress screens -- heuristic checks on the MODEL's response.
+#
+# Two screens, both pattern-based and both a FLOOR, not a ceiling:
+#
+#   harm  -- instructions or encouragement for violence, self-harm, weapons
+#            or illegal activity. Default policy: replace the response.
+#   bias  -- sweeping generalisations about groups and demeaning language
+#            aimed at them (Requirement 5, output side). Default policy:
+#            annotate, because the signal is noisy and a human should see it
+#            in context.
+#
+# What this is not: a classifier trained on labelled harmful output. It is
+# regex over normalised text, and the limitations panel says so. It catches
+# the blunt cases and misses the subtle ones; the known-misses block in
+# tests/test_egress.py lists examples.
+#
+# Group terms are kept generic and non-exhaustive on purpose. The bias
+# screen does not contain slurs: matching a demeaning frame ("all X are")
+# around a group noun catches the pattern without a list of insults in
+# the repository.
+#
+# Scoring is the same as the injection detector: per-category max, then
+# noisy-OR across categories. Each screen flags at its own threshold.
+
+version: 1
+
+harm:
+  threshold: 0.70
+  categories:
+    violence:
+      weight: 0.90
+      patterns:
+        # The object must look like a person. Technical and abstract objects
+        # ("kill a process", "attack a problem") are excluded: the screen
+        # reasons about grammar, not intent, and the tests document the gap.
+        - '\b(how\s+to|steps\s+to|instructions\s+(for|to)|guide\s+to|best\s+way\s+to)\s+(kill|murder|assault|attack|hurt|harm|poison|strangle|stab|shoot)\s+(?:some(one|body)|people|a\s+person|him|her|them|my\s+(wife|husband|neighbou?r|boss|ex)|(a|the|your|my|his|her)\s+(?!(process|thread|task|job|daemon|server|connection|session|port|container|pod|query|script|tab|window|app|program|bug|feature|zombie|service|instance|node|cluster|pipeline|build|deployment|problem|network|position|argument|market|idea|rumou?r|virus|weed|weeds|bacteria|mold|mould|pest|pests)\b)\w+)'
+        - '\b(kill|murder|hurt|harm)\s+(him|her|them|your\s+\w+)\s+(by|with|using)\b'
+    self_harm:
+      weight: 0.95
+      patterns:
+        - '\b(you\s+should|why\s+not|go\s+ahead\s+and|just)\s+(kill\s+yourself|end\s+(it|your\s+life)|hurt\s+yourself)\b'
+        - '\b(best|easiest|painless|effective)\s+(way|method|ways|methods)\s+to\s+(kill\s+yourself|commit\s+suicide|end\s+your\s+life|self-?harm)\b'
+        - '\b(how\s+(to|do\s+i)|steps\s+to)\s+(kill\s+myself|commit\s+suicide|overdose)\b'
+    weapons:
+      weight: 0.85
+      patterns:
+        - '\b(how\s+to|steps\s+to|instructions\s+(for|to)|recipe\s+for|synthesi[sz]e?|build|make|assemble)\s+(a\s+|an\s+)?(bomb|explosive|pipe\s+bomb|nerve\s+agent|sarin|ricin|napalm|thermite|ghost\s+gun|untraceable\s+(gun|firearm))\b'
+        - '\b(detonator|blasting\s+cap|primary\s+explosive)\s+(wiring|assembly|construction)\b'
+    illegal:
+      weight: 0.75
+      patterns:
+        - '\b(how\s+to|steps\s+to|guide\s+to|tips\s+for)\s+(launder\s+money|evade\s+(tax|taxes|police|arrest)|hack\s+(into|someone)|steal\s+(a\s+car|credit\s+cards?|identit)|forge\s+(a\s+|an\s+)?(passport|id|signature|document)|traffick)\b'
+        - '\b(without\s+(getting\s+)?caught|avoid\s+detection\s+by\s+(police|law\s+enforcement))\b'
+
+bias:
+  threshold: 0.60
+  # Generic group nouns. Deliberately broad; the frame around them is what
+  # scores, not the noun itself.
+  group_terms: >
+    women|men|girls|boys|muslims|hindus|christians|jews|sikhs|buddhists|atheists|
+    indians|pakistanis|africans|asians|europeans|americans|arabs|chinese|japanese|
+    koreans|mexicans|nigerians|immigrants|refugees|foreigners|old\s+people|the\s+elderly|
+    young\s+people|teenagers|disabled\s+people|gay\s+people|lesbians|trans\s+people|
+    black\s+people|white\s+people|brown\s+people|dalits|brahmins|poor\s+people|rich\s+people|
+    homeless\s+people|autistic\s+people|fat\s+people
+  categories:
+    generalization:
+      weight: 0.70
+      patterns:
+        - '\b(all|every|most|typical|the\s+majority\s+of)\s+(GROUP)\s+(are|is|were|tend\s+to\s+be|can''t|cannot|always|never|will\s+always|will\s+never)\b'
+        - '\b(GROUP)\s+(are|is)\s+(all|always|inherently|naturally|genetically|by\s+nature)\s+\w+'
+    demeaning:
+      weight: 0.85
+      patterns:
+        - '\b(GROUP)\s+(are|is)\s+(all\s+|just\s+|basically\s+)?(inferior|subhuman|animals|vermin|parasites|savages|primitive|backward|stupid|worthless|a\s+plague|a\s+disease)\b'
+        - '\b(inferior|subhuman|savage|primitive|backward|worthless)\s+(race|people|culture|religion)\b'
+    exclusion:
+      weight: 0.65
+      patterns:
+        - '\b(GROUP)\s+(should\s+not|shouldn''t|must\s+not|don''t\s+deserve\s+to|are\s+not\s+fit\s+to|cannot\s+be\s+trusted\s+to)\s+(vote|work|lead|teach|drive|own|marry|live\s+here|be\s+hired|hold\s+office)\b'
+        - '\b(ban|deport|exclude|remove)\s+(all\s+)?(GROUP)\s+(from|entirely|completely)\b'
+
+# Fallback text used when the policy says replace.
+fallbacks:
+  harm: >
+    This response was withheld by Aegis: its content matched a harm screen.
+    If you believe this is a mistake, you can request human review.
+  grounding: >
+    I cannot verify this claim against the supplied documentation. The
+    response was withheld because too few of its statements were supported
+    by the reference material provided.

@@ -28,6 +28,7 @@ from app.audit.database import session_scope
 from app.audit.models import RequestAudit
 from app.config import settings
 from app.contracts.audit import AuditEventRecord, AuditEventRequest
+from app.contracts.egress import EgressResponse
 from app.contracts.common import DetectionCategory
 from app.contracts.inspect import InspectRequest, InspectResponse
 from app.utils.ids import hash_user_ref
@@ -192,6 +193,34 @@ def upsert_event(ev: AuditEventRequest) -> tuple[bool, bool]:
         _bump("failures")
         log.error("audit: failed to upsert event %s: %s", ev.request_id, type(exc).__name__)
         return False, False
+
+
+def record_egress(request_id: str, res: "EgressResponse") -> bool:
+    """Persist the egress outcome on the request's row. Never raises."""
+    try:
+        with session_scope() as s:
+            row = s.execute(
+                select(RequestAudit).where(RequestAudit.request_id == request_id)
+            ).scalar_one_or_none()
+            if row is None:
+                row = RequestAudit(request_id=request_id)
+                s.add(row)
+            flagged = res.safety.flagged or res.bias.flagged or res.action.value == "REPLACE"
+            row.egress_flagged = flagged or row.egress_flagged
+            cats = list(res.safety.categories) + [f"bias:{b}" for b in res.bias.signals]
+            if res.action.value != "PASS":
+                cats.append(f"action:{res.action.value.lower()}")
+            if cats:
+                row.egress_categories = sorted(set(row.egress_categories or []) | set(cats))
+            if res.grounding.enabled:
+                row.grounding_enabled = True
+                row.grounding_score = res.grounding.score
+                row.grounding_status = res.grounding.status.value
+        return True
+    except Exception as exc:  # noqa: BLE001
+        _bump("failures")
+        log.error("audit: failed to record egress %s: %s", request_id, type(exc).__name__)
+        return False
 
 
 def _fill_estimates(row: RequestAudit) -> None:

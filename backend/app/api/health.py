@@ -21,7 +21,7 @@ from app.security.policy_engine import get_policy_engine
 router = APIRouter(tags=["health"])
 
 _STARTED = time.monotonic()
-BUILD_PHASE = "phase-9-embeddings"
+BUILD_PHASE = "phase-11-egress"
 
 
 def _pii_component() -> ComponentHealth:
@@ -128,6 +128,34 @@ def _embeddings_component() -> ComponentHealth:
     )
 
 
+def _grounding_component() -> ComponentHealth:
+    from app.verification.grounding import get_verifier
+
+    g = get_verifier().health()
+    if g["degraded"]:
+        return ComponentHealth(
+            name="grounding", status="degraded",
+            detail=f"verification skipped (reported, never faked): {g['degraded_reason']}",
+        )
+    return ComponentHealth(
+        name="grounding", status="ok",
+        detail=f"NLI cross-encoder {g['model']}, labels read from model config; support score, not a guarantee",
+    )
+
+
+def _screens_component() -> ComponentHealth:
+    from app.verification.screens import load_screens
+
+    sc = load_screens()
+    return ComponentHealth(
+        name="egress_screens", status="ok",
+        detail=(
+            f"heuristic harm ({len(sc.harm.categories)} categories) and bias "
+            f"({len(sc.bias.categories)} categories) screens, config v{sc.version}; pattern-based, not a classifier"
+        ),
+    )
+
+
 def _components() -> list[ComponentHealth]:
     stub = "stub"  # components below that have not shipped yet
     return [
@@ -153,7 +181,8 @@ def _components() -> list[ComponentHealth]:
             ),
         ),
         _embeddings_component(),
-        ComponentHealth(name="grounding", status=stub, detail="NLI cross-encoder lands in Phase 10"),
+        _grounding_component(),
+        _screens_component(),
         _database_component(),
         _fairness_component(),
         _metrics_component(),

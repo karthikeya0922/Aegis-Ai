@@ -92,6 +92,38 @@ profiles:
         priority: 1
         note: Entropy is a supporting signal and never blocks on its own.
 
+      # --- egress: what happens to the MODEL's response --------------------
+      # Actions here are replace | annotate | pass. "replace" swaps the
+      # response for a configured fallback text; "annotate" lets it through
+      # with the finding attached for the UI.
+
+      egress_harm:
+        action: replace
+        priority: 100
+        note: >
+          Heuristic harm screen on the response (violence, self-harm,
+          weapons, illegal-activity instructions). Replaced with the harm
+          fallback text.
+
+      egress_bias:
+        action: annotate
+        priority: 40
+        note: >
+          Heuristic screen for group generalisations and demeaning language
+          in the response. Annotated, not replaced: the signal is noisy and a
+          human should see it in context.
+
+      grounding:
+        action: annotate
+        priority: 60
+        review_below: 0.75
+        replace_below: 0.50
+        note: >
+          Grounded Response Verification. Runs only when a reference document
+          is supplied. Score = supported claims / claims. Below review_below
+          the response is annotated REVIEW; below replace_below it is replaced
+          with the grounding fallback text. A support score, not a guarantee.
+
   strict:
     extends: default
     description: >
@@ -130,6 +162,14 @@ profiles:
         action: block
         threshold: 0.60
 
+      egress_bias:
+        action: replace
+        note: Strict replaces on bias signals rather than annotating.
+
+      grounding:
+        review_below: 0.85
+        replace_below: 0.65
+
   permissive:
     extends: default
     description: >
@@ -148,3 +188,9 @@ profiles:
         action: warn
       prompt_injection:
         action: warn
+      egress_harm:
+        action: annotate
+        note: Permissive annotates rather than replacing, so the screen can be evaluated on real output.
+      grounding:
+        action: annotate
+        replace_below: 0.0

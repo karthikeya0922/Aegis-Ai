@@ -1,8 +1,8 @@
 """Ingress and egress inspection endpoints.
 
-Phase 0 delegates to app.stubs. Phase 7 and Phase 11 replace the bodies of
-these handlers with the real pipeline; the request and response models do not
-change, so Person 2's Gateway needs no edit.
+Both real. /inspect runs security/pipeline.py; /inspect/egress and /verify
+run verification/egress.py and verification/grounding.py. Each records
+its outcome on the request's audit row, fire-and-forget.
 """
 
 from __future__ import annotations
@@ -16,9 +16,10 @@ from app.contracts.egress import (
     VerifyResponse,
 )
 from app.contracts.inspect import InspectRequest, InspectResponse
-from app.audit.service import record_inspection
+from app.audit.service import record_egress, record_inspection
 from app.security.pipeline import get_pipeline
-from app.stubs import stub_egress
+from app.verification.egress import run_egress
+from app.verification.grounding import get_verifier
 from app.utils.logging import get_logger
 
 router = APIRouter(tags=["inspection"])
@@ -53,23 +54,21 @@ async def inspect(req: InspectRequest) -> InspectResponse:
     response_model=EgressResponse,
     summary="Screen a model response before it reaches the user",
     description=(
-        "Runs harm and bias screening, and grounded verification when "
-        "`reference_context` is supplied. Returns PASS / ANNOTATE / REPLACE."
+        "Runs the harm and bias screens and, when `reference_context` is "
+        "supplied and `grounding` is in `checks`, Grounded Response "
+        "Verification. Returns PASS / ANNOTATE / REPLACE as decided by the "
+        "policy profile's egress rules; on REPLACE, `replacement_text` holds "
+        "the configured fallback.\n\n"
+        "The screens are heuristic (pattern-based) and the verification is an "
+        "NLI support score, not a guarantee. A REPLACE cannot retract tokens "
+        "already streamed: buffer when a reference document is attached.\n\n"
+        "The Inspector records the outcome on the request's audit row; the "
+        "Gateway need not repeat it in POST /audit/events."
     ),
 )
 async def inspect_egress(req: EgressRequest) -> EgressResponse:
-    result = stub_egress(
-        request_id=req.request_id,
-        response_text=req.response_text,
-        has_reference=bool(req.reference_context) and "grounding" in req.checks,
-    )
-    log.info(
-        "egress request_id=%s action=%s grounding=%s",
-        req.request_id,
-        result.action.value,
-        result.grounding.status.value,
-        extra={"request_id": req.request_id},
-    )
+    result = run_egress(req)
+    record_egress(req.request_id, result)
     return result
 
 
@@ -78,16 +77,25 @@ async def inspect_egress(req: EgressRequest) -> EgressResponse:
     response_model=VerifyResponse,
     summary="Grounded Response Verification (standalone)",
     description=(
-        "Compares an answer against a reference document using sentence-level "
-        "claim extraction and NLI entailment. This is a heuristic support "
-        "score, not a guarantee of factual correctness."
+        "Compares an answer against a reference document: sentence-level "
+        "claims, top-k evidence by embedding similarity, NLI cross-encoder "
+        "entailment per claim. Returns SUPPORTED / UNSUPPORTED / CONTRADICTED "
+        "per claim and a support score. This is a heuristic support score, "
+        "not a guarantee of factual correctness, and it cannot judge whether "
+        "the reference itself is true."
     ),
 )
 async def verify(req: VerifyRequest) -> VerifyResponse:
-    egress = stub_egress(req.request_id, req.answer, has_reference=True)
+    from app.utils.timing import StageRecorder
+
+    rec = StageRecorder()
+    with rec.stage("grounding") as st:
+        outcome = get_verifier().verify(req.answer, req.reference_context)
+        g = outcome.result
+        if not g.enabled:
+            st.warn(f"skipped: {outcome.engine}")
+        else:
+            st.note(f"score={g.score} {g.supported}/{g.claims} supported, {g.contradicted} contradicted")
     return VerifyResponse(
-        request_id=req.request_id,
-        grounding=egress.grounding,
-        pipeline=egress.pipeline,
-        total_duration_ms=egress.total_duration_ms,
+        request_id=req.request_id, grounding=g, pipeline=rec.stages, total_duration_ms=rec.total_ms,
     )

@@ -214,8 +214,19 @@ def test_egress_with_reference_runs_grounding():
         },
     )
     res = EgressResponse.model_validate(r.json())
-    assert res.grounding.enabled is True
-    assert res.grounding.claims == res.grounding.supported + res.grounding.unsupported
+    assert res.grounding.claims == (
+        res.grounding.supported + res.grounding.unsupported + res.grounding.contradicted
+    )
+    if res.grounding.enabled:
+        # Real NLI: the changed date is a contradiction, and a 0/1 score is
+        # below replace_below, so the response is replaced with the fallback.
+        assert res.grounding.contradicted == 1 and res.grounding.supported == 0
+        assert res.grounding.status.value == "UNGROUNDED"
+        assert res.action.value == "REPLACE" and res.replacement_text
+        assert "cannot verify" in res.replacement_text.lower()
+    else:
+        # Model unavailable: skipped and said so, never a faked score.
+        assert res.grounding.status.value == "SKIPPED" and res.grounding.score is None
 
 
 def test_verify_endpoint():

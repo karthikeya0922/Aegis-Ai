@@ -32,7 +32,9 @@ from app.contracts.common import (
     Decision,
     Detection,
     DetectionCategory,
+    EgressAction,
     EntropyFinding,
+    GroundingStatus,
     InjectionFinding,
     PolicyAction,
 )
@@ -70,6 +72,17 @@ class Rule:
     priority: int = 0
     threshold: float | None = None
     note: str = ""
+    # Numeric knobs a rule may carry beyond the fixed fields, e.g. the
+    # grounding rule's review_below / replace_below. Inherited and
+    # overridable like everything else.
+    params: dict[str, float] = field(default_factory=dict)
+    # Egress rules use replace | annotate | pass. The loader keeps the verb
+    # here and stores an equivalent ingress action in `action` so the rest
+    # of the engine needs no special case.
+    egress_action: str | None = None
+
+
+_EGRESS_VERBS = {"replace": PolicyAction.BLOCK, "annotate": PolicyAction.WARN, "pass": PolicyAction.ALLOW}
 
 
 @dataclass
@@ -100,9 +113,13 @@ class PolicySet:
 def _merge_rule(base: Rule | None, raw: dict[str, Any], key: str) -> Rule:
     """Overlay `raw` on `base` (from an extended profile), field by field."""
     b = base or Rule(key=key, action=PolicyAction.ALLOW)
+    raw_action = str(raw.get("action", b.egress_action or b.action.value)).lower()
+    egress_verb = raw_action if raw_action in _EGRESS_VERBS else b.egress_action if "action" not in raw else None
+    action = _EGRESS_VERBS[raw_action] if raw_action in _EGRESS_VERBS else PolicyAction(raw_action)
     return Rule(
         key=key,
-        action=PolicyAction(str(raw.get("action", b.action.value)).lower()),
+        action=action,
+        egress_action=egress_verb,
         appealable=bool(raw.get("appealable", b.appealable)),
         code=str(raw.get("code", b.code)),
         http_status=int(raw.get("http_status", b.http_status)),
@@ -111,7 +128,15 @@ def _merge_rule(base: Rule | None, raw: dict[str, Any], key: str) -> Rule:
             float(raw["threshold"]) if raw.get("threshold") is not None else b.threshold
         ),
         note=str(raw.get("note", b.note) or "").strip(),
+        params={
+            **b.params,
+            **{k: float(v) for k, v in raw.items()
+               if k not in _FIXED_RULE_FIELDS and isinstance(v, (int, float)) and not isinstance(v, bool)},
+        },
     )
+
+
+_FIXED_RULE_FIELDS = frozenset({"action", "appealable", "code", "http_status", "priority", "threshold", "note"})
 
 
 def load_policies(path: Path) -> PolicySet:
@@ -185,11 +210,121 @@ class PolicyDecision:
 
 
 # ---------------------------------------------------------------------------
+# Egress
+# ---------------------------------------------------------------------------
+
+
+_EGRESS_RANK = {EgressAction.PASS: 0, EgressAction.ANNOTATE: 1, EgressAction.REPLACE: 2}
+_ACTION_TO_EGRESS = {
+    PolicyAction.ALLOW: EgressAction.PASS,
+    PolicyAction.WARN: EgressAction.ANNOTATE,
+    PolicyAction.SANITIZE: EgressAction.ANNOTATE,  # nothing to redact in a response; annotate
+    PolicyAction.BLOCK: EgressAction.REPLACE,
+}
+
+
+@dataclass
+class EgressDecision:
+    action: EgressAction
+    reasons: list[str]
+    rules_fired: list[str]
+    grounding_status: GroundingStatus | None
+    replace_with: str | None  # "harm" | "grounding" -- which fallback text to use
+    profile: str
+    policy_version: int
+
+
+def _egress_action_for(rule: Rule | None, default: EgressAction = EgressAction.ANNOTATE) -> EgressAction:
+    if rule is None:
+        return default
+    # YAML may say replace / annotate / pass directly, or reuse allow/warn/block.
+    if rule.egress_action:
+        return EgressAction(rule.egress_action.upper())
+    return _ACTION_TO_EGRESS[rule.action]
+
+
+class _EgressMixin:
+    def evaluate_egress(
+        self,
+        *,
+        harm_flagged: bool,
+        harm_categories: list[str],
+        bias_flagged: bool,
+        bias_signals: list[str],
+        grounding_enabled: bool,
+        grounding_score: float | None,
+        profile: str | None = None,
+    ) -> EgressDecision:
+        """Map egress screen results to PASS / ANNOTATE / REPLACE.
+
+        Rules: egress_harm, egress_bias, grounding. The grounding rule's
+        params review_below / replace_below set the status bands; the
+        thresholds in settings are the fallback when the rule omits them.
+        """
+        prof = self.profile(profile)
+        ps = self.policies
+        reasons: list[str] = []
+        fired: list[str] = []
+        action = EgressAction.PASS
+        replace_with: str | None = None
+
+        def raise_to(new: EgressAction, source: str) -> None:
+            nonlocal action, replace_with
+            if _EGRESS_RANK[new] > _EGRESS_RANK[action]:
+                action = new
+                if new is EgressAction.REPLACE:
+                    replace_with = source
+
+        if harm_flagged:
+            rule = prof.resolve("egress_harm")
+            a = _egress_action_for(rule, EgressAction.REPLACE)
+            fired.append(rule.key if rule else "egress_harm(default)")
+            reasons.append(f"harm screen flagged: {', '.join(harm_categories) or 'unspecified'}")
+            raise_to(a, "harm")
+
+        if bias_flagged:
+            rule = prof.resolve("egress_bias")
+            a = _egress_action_for(rule, EgressAction.ANNOTATE)
+            fired.append(rule.key if rule else "egress_bias(default)")
+            reasons.append(f"bias screen flagged: {', '.join(bias_signals) or 'unspecified'}")
+            raise_to(a, "harm")
+
+        status: GroundingStatus | None = None
+        if grounding_enabled and grounding_score is not None:
+            rule = prof.resolve("grounding")
+            # Explicit None checks: a configured 0.0 ("never replace") is a
+            # real value, and `0.0 or default` would silently discard it.
+            rb = rule.params.get("review_below") if rule else None
+            pb = rule.params.get("replace_below") if rule else None
+            review_below = settings.grounding_review_below if rb is None else rb
+            replace_below = settings.grounding_replace_below if pb is None else pb
+            if grounding_score < replace_below:
+                status = GroundingStatus.UNGROUNDED
+                fired.append(rule.key if rule else "grounding(default)")
+                reasons.append(f"grounding score {grounding_score:.2f} below {replace_below:.2f}")
+                raise_to(EgressAction.REPLACE, "grounding")
+            elif grounding_score < review_below:
+                status = GroundingStatus.REVIEW
+                fired.append(rule.key if rule else "grounding(default)")
+                reasons.append(f"grounding score {grounding_score:.2f} below {review_below:.2f}")
+                raise_to(_egress_action_for(rule, EgressAction.ANNOTATE) if rule else EgressAction.ANNOTATE, "grounding")
+            else:
+                status = GroundingStatus.GROUNDED
+        elif grounding_enabled:
+            status = GroundingStatus.SKIPPED
+
+        return EgressDecision(
+            action=action, reasons=reasons, rules_fired=fired, grounding_status=status,
+            replace_with=replace_with, profile=prof.name, policy_version=ps.version,
+        )
+
+
+# ---------------------------------------------------------------------------
 # Engine
 # ---------------------------------------------------------------------------
 
 
-class PolicyEngine:
+class PolicyEngine(_EgressMixin):
     def __init__(self, path: Path | None = None) -> None:
         self.path = path or settings.policies_path
         self._lock = threading.Lock()
