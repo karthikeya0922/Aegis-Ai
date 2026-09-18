@@ -392,3 +392,5 @@ Tracked in `docs/EXTENSION_CLI_PLAN.md`.
 - [x] B2 `aegis chat` through the Gateway (streaming readout, --ref grounding, --explain, appeal, reviews list/decide)
 - [x] B3 `aegis status` (+ --watch, --json)
 - [x] B4 tests (25) + README
+- [x] A0-A3 extension: worker, adapters, send gate, paste screen, popup, options (demo-day build; not yet loaded against live sites)
+- [ ] A4 adapter fixtures / vitest

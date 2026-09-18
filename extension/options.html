@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Aegis Guard options</title>
+<style>
+  body { width: 380px; margin: 0; padding: 14px; background: #0f1720; color: #e8eef5; font: 13px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  label { display: block; margin: 10px 0 4px; color: #b9c5d3; }
+  input[type=text], input[type=number], select { width: 100%; box-sizing: border-box; background: #1c2733; color: #e8eef5; border: 1px solid #2c3b4b; border-radius: 6px; padding: 6px 8px; font: inherit; }
+  .row { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+  .hint { font-size: 11px; color: #6f8195; }
+  button { margin-top: 14px; background: #2f6feb; color: #fff; border: 0; border-radius: 6px; padding: 7px 12px; cursor: pointer; font: inherit; }
+  #saved { margin-left: 10px; color: #3ddc84; }
+</style>
+</head>
+<body>
+<b>Aegis Guard</b>
+<label>Inspector URL</label>
+<input type="text" id="engineUrl" placeholder="http://localhost:8000">
+<div class="hint">The extension talks to your own Inspector; nothing is sent to a third party for scanning.</div>
+<label>Mode</label>
+<select id="mode"><option value="sanitize">sanitize — mask personal data, block credentials</option><option value="strict">strict — block on personal data too</option></select>
+<div class="row"><input type="checkbox" id="failOpen"><label for="failOpen" style="margin:0">Fail open when the Inspector is unreachable</label></div>
+<div class="hint">Off (default): an unreachable Inspector holds the send and asks you. On: the message goes out unscanned with a notice.</div>
+<label>Screen pastes longer than (characters)</label>
+<input type="number" id="pasteMinChars" min="0">
+<label>Sites</label>
+<div class="row"><input type="checkbox" id="site-chatgpt"><span>ChatGPT</span></div>
+<div class="row"><input type="checkbox" id="site-claude"><span>Claude</span></div>
+<div class="row"><input type="checkbox" id="site-gemini"><span>Gemini</span></div>
+<button id="save">Save</button><span id="saved"></span>
+<script src="options.js"></script>
+</body>
+</html>

@@ -1028,3 +1028,26 @@ Aegis Ai/
 - **Next step / open:** cache HIT has not been shown live (no Redis Stack on
   this machine); the extension (Person 2) is unstarted; `aegis chat` REPL
   history is in-process only.
+
+### 2026-09-18 — Browser extension A0–A3 (demo-day build)
+- **What changed:** new `extension/` (Manifest V3, plain JS, load-unpacked, no
+  build step): `background.js` (service worker does every Inspector call from
+  the extension origin -- no CORS change needed -- and strips raw matched
+  values before replying to the page), `adapters.js` (ChatGPT / Claude /
+  Gemini selectors + generic fallback, the only DOM knowledge),
+  `content.js` (E1 send interception with allow / sanitise-in-place /
+  warn / block; E2 paste screen for injection and credentials; fail-closed
+  with a visible "Send anyway"), `popup.*` (this page / deployment with
+  basis strings / reviews), `options.*`, README.
+- **Why:** plan items E1, E2 and the info popup. Built by Person 1 because it
+  is demo day and the CLI finished early; Person 2's checklist in
+  `docs/EXTENSION_CLI_PLAN.md` is otherwise unchanged.
+- **Verified:** all scripts pass `node --check`; the exact payload the worker
+  sends returns `sanitize` (PERSON + EMAIL, placeholders), `block
+  CREDENTIAL_LEAK_PREVENTED`, and `block PROMPT_INJECTION_BLOCKED` with rule
+  ids from the live Inspector. **Not verified:** the extension has not been
+  loaded in a real Chrome against the live sites in this session -- the site
+  selectors in `adapters.js` are best-effort and are the first thing to
+  check on the demo machine (generic fallback catches the focused composer).
+- **Skipped for time:** A4 vitest fixtures for the adapters; Redis cache-HIT
+  demo (no Docker on this machine).

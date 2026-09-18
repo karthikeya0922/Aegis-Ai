@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Aegis Guard",
+  "version": "0.1.0",
+  "description": "Scans what you type into ChatGPT, Claude and Gemini through your Aegis Inspector before it is sent: credentials blocked, personal data masked, pasted prompt-injection caught. Heuristic, and says so.",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "http://localhost:8000/*",
+    "http://127.0.0.1:8000/*",
+    "https://chat.openai.com/*",
+    "https://chatgpt.com/*",
+    "https://claude.ai/*",
+    "https://gemini.google.com/*"
+  ],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    {
+      "matches": ["https://chat.openai.com/*", "https://chatgpt.com/*", "https://claude.ai/*", "https://gemini.google.com/*"],
+      "js": ["adapters.js", "content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": { "default_popup": "popup.html", "default_title": "Aegis Guard" },
+  "options_ui": { "page": "options.html", "open_in_tab": false },
+  "icons": { "128": "icon.png" }
+}

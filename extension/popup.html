@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Aegis Guard</title>
+<style>
+  body { width: 360px; margin: 0; background: #0f1720; color: #e8eef5; font: 13px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid #22303f; }
+  header b { font-size: 14px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: #7c8ea3; }
+  .dot.ok { background: #3ddc84; } .dot.degraded { background: #f6c454; } .dot.down { background: #ff5f6d; }
+  #health { color: #b9c5d3; font-size: 12px; margin-left: auto; text-align: right; }
+  nav { display: flex; border-bottom: 1px solid #22303f; }
+  nav button { flex: 1; background: none; border: 0; color: #7c8ea3; padding: 8px; cursor: pointer; font: inherit; }
+  nav button.on { color: #e8eef5; border-bottom: 2px solid #2f6feb; }
+  section { display: none; padding: 10px 14px; } section.on { display: block; }
+  table { width: 100%; border-collapse: collapse; } td { padding: 3px 0; vertical-align: top; }
+  td:first-child { color: #7c8ea3; width: 46%; }
+  h4 { margin: 10px 0 4px; font-size: 12px; color: #b9c5d3; text-transform: uppercase; letter-spacing: .04em; }
+  .basis { font-size: 11px; color: #6f8195; margin-top: 6px; }
+  .stage { display: flex; gap: 8px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
+  .stage .s { width: 16px; } .pass { color: #3ddc84; } .flagged { color: #f6c454; } .blocked { color: #ff5f6d; } .skipped { color: #6f8195; }
+  .stage .d { color: #7c8ea3; margin-left: auto; }
+  footer { padding: 8px 14px; border-top: 1px solid #22303f; font-size: 11px; color: #6f8195; display: flex; justify-content: space-between; }
+  a { color: #7fb1ff; text-decoration: none; }
+</style>
+</head>
+<body>
+<header><span class="dot" id="dot"></span><b>Aegis Guard</b><span id="health">checking…</span></header>
+<nav>
+  <button data-tab="page" class="on">This page</button>
+  <button data-tab="deploy">Deployment</button>
+  <button data-tab="reviews">Reviews</button>
+</nav>
+<section id="page" class="on">
+  <table>
+    <tr><td>site</td><td id="site">–</td></tr>
+    <tr><td>scans this session</td><td id="scans">0</td></tr>
+    <tr><td>sanitised / blocked</td><td><span id="sanitized">0</span> / <span id="blocked">0</span></td></tr>
+    <tr><td>pastes held</td><td id="pastes">0</td></tr>
+    <tr><td>last verdict</td><td id="last">–</td></tr>
+  </table>
+  <h4>last pipeline</h4>
+  <div id="stages" class="basis">no scan yet on this tab</div>
+</section>
+<section id="deploy">
+  <div id="deploy-body" class="basis">loading…</div>
+</section>
+<section id="reviews">
+  <div id="reviews-body" class="basis">loading…</div>
+</section>
+<footer>
+  <span>heuristic detection · estimates carry their basis</span>
+  <a href="#" id="opts">options</a>
+</footer>
+<script src="popup.js"></script>
+</body>
+</html>
