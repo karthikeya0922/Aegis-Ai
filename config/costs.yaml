@@ -12,12 +12,18 @@ prices:
   llama-3.3-70b-versatile:
     in: 0.59
     out: 0.79
+  "openai/gpt-oss-120b":
+    in: 0.15
+    out: 0.60
+  "openai/gpt-oss-20b":
+    in: 0.075
+    out: 0.30
   llama3.1:
     in: 0.0
     out: 0.0
   glm-4.6:
-    in: 0.0
-    out: 0.0
+    in: 0.60
+    out: 2.20
 
 assumptions:
   # Estimated carbon footprint: kWh per token

@@ -284,9 +284,9 @@ export async function storeCache(
   
   if (!textToEmbed) return;
 
-  await ensureRedis();
-  
+  // A cache write must never fail a response that has already been produced.
   try {
+    await ensureRedis();
     const embedding = await getEmbedding(textToEmbed);
     const id = `aegis:cache:${Date.now()}:${Math.random().toString(36).substring(7)}`;
     

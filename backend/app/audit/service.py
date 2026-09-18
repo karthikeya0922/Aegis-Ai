@@ -250,7 +250,15 @@ def _fill_estimates(row: RequestAudit) -> None:
     if not has_tokens:
         return
     if row.estimated_cost_usd is None:
-        row.estimated_cost_usd = pricing.cost_usd(row.model, row.input_tokens, row.output_tokens)
+        if row.input_tokens is None and row.output_tokens is None and row.total_tokens:
+            # Gateway reported only a total (its contract has `tokens_consumed`).
+            # Price it at the model's blended in/out rate rather than reporting
+            # a false zero; the pricing basis string already says these are
+            # list-price estimates.
+            i, o = pricing.rates(row.model)
+            row.estimated_cost_usd = round(row.total_tokens * (i + o) / 2 / 1_000_000, 6)
+        else:
+            row.estimated_cost_usd = pricing.cost_usd(row.model, row.input_tokens, row.output_tokens)
     if row.estimated_energy_wh is None:
         row.estimated_energy_wh = sus.energy_wh(row.model, row.total_tokens or ((row.input_tokens or 0) + (row.output_tokens or 0)))
     if row.estimated_co2_g is None and row.estimated_energy_wh is not None:

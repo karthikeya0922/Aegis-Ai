@@ -182,7 +182,9 @@ export async function POST(req: NextRequest) {
     const result = await guardedCompletion(meta, inbound.messages, inbound.params, deps, req.signal);
 
     return NextResponse.json(result.body, { status: result.status, headers });
-  } catch {
+  } catch (err) {
+    // Never leak the error to the client; always leave it in the server log.
+    console.error(`[aegis-gateway] ${requestId} internal error:`, err instanceof Error ? err.stack ?? err.message : err);
     return NextResponse.json(
       buildErrorPayload("internal_error", "An internal error occurred", requestId),
       { status: 500, headers }

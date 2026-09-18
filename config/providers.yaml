@@ -17,15 +17,15 @@ allowed_hosts:
   - 127.0.0.1
 
 # The provider `name` the rest of the app asks the registry for when none is specified.
-default_provider: glm-free
+default_provider: groq
 
 # Ordered failover chain used by lib/providers/failover.ts (Phase 2B):
 # `chatWithFailover`/`streamWithFailover` try these in order — [0] is primary, the
 # rest are secondaries tried transparently if the primary's circuit breaker trips
 # (HTTP 500/502/503/429, a connect/total timeout, or a connection error).
 failover_chain:
-  - glm-free
   - groq
+  - glm-free
 
 providers:
   # Free-tier default for local/dev work and Phase 2A scaffolding — no cost, no
@@ -46,7 +46,7 @@ providers:
     kind: openai_compatible
     base_url: https://api.groq.com/openai/v1
     api_key_env: GROQ_API_KEY
-    default_model: llama-3.3-70b-versatile
+    default_model: openai/gpt-oss-20b
 
   - name: together
     kind: openai_compatible

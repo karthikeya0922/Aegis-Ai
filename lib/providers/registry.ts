@@ -233,7 +233,7 @@ function defaultConfigPath(): string {
 /** Loads and validates `config/providers.yaml`, returning a ready-to-use `ProviderRegistry`. */
 export async function loadProviderRegistry(options: LoadProviderRegistryOptions = {}): Promise<ProviderRegistry> {
   const env = options.env ?? process.env;
-  const configPath = options.configPath ?? env.AEGIS_PROVIDERS_CONFIG_PATH ?? defaultConfigPath();
+  const configPath = options.configPath || env.AEGIS_PROVIDERS_CONFIG_PATH || defaultConfigPath(); // blank (as in .env.example) means unset
 
   let raw: string;
   try {

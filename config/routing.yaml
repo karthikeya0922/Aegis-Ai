@@ -6,14 +6,14 @@
 # Ollama locally with AEGIS_PROVIDER_ALLOW_PRIVATE_IPS=true.
 routes:
   low:
-    provider: glm-free
-    model: glm-4.6
-    failover: [groq, ollama-local]
+    provider: groq
+    model: openai/gpt-oss-20b
+    failover: [glm-free, ollama-local]
   medium:
-    provider: glm-free
-    model: glm-4.6
-    failover: [groq, openai, ollama-local]
+    provider: groq
+    model: openai/gpt-oss-120b
+    failover: [glm-free, openai, ollama-local]
   high:
-    provider: openai
-    model: gpt-4o
-    failover: [glm-free, groq, ollama-local]
+    provider: groq
+    model: openai/gpt-oss-120b
+    failover: [openai, glm-free, ollama-local]

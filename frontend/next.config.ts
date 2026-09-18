@@ -1,5 +1,11 @@
 import path from "node:path";
+import { config as loadDotenv } from "dotenv";
 import type { NextConfig } from "next";
+
+// One .env at the repository root configures both halves (gateway and
+// inspector). Next only reads frontend/.env on its own, so load the root file
+// here; values already in the environment win.
+loadDotenv({ path: path.join(process.cwd(), "..", ".env"), quiet: true });
 
 const nextConfig: NextConfig = {
   output: "standalone",
