@@ -43,3 +43,6 @@ models/
 Thumbs.db
 .idea/
 *.swp
+*.db-shm
+*.db-wal
+*.db-journal
