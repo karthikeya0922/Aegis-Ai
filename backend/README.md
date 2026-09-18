@@ -7,7 +7,7 @@ This service is the absolute authority on whether a prompt is safe. It is
 **stateless** -- the same input always yields the same verdict. All session
 state (token vault, semantic cache) belongs to Person 2's Gateway and its Redis.
 
-**Current build phase: Phase 15 (policy versioning).** Every subsystem on the ingress and governance side is real; only the ML egress side (embeddings, grounding, harm screen) remains stubbed. Every endpoint
+**Current build phase: Phase 9 (embeddings).** Everything is real except grounded verification and the egress harm screen (Phases 10-11). Every endpoint
 is live and contract-valid. `GET /api/health` reports exactly which subsystems
 are real and which are still stubs.
 
@@ -25,7 +25,8 @@ are real and which are still stubs.
 | Fairness harness | **Real.** Per-group recall over a 5-group corpus, baseline vs current, persisted; `POST /api/fairness/run` |
 | Human review | **Real.** Appeals persisted; override tokens hashed, single-use, request-scoped, expiring; verified in the pipeline |
 | Metrics and audit report | **Real.** Aggregates over `request_audit`; estimates from `pricing.yaml` / `sustainability.yaml` with the basis in every response |
-| Egress, embeddings, grounding | Stub -- phases 9-11, see `docs/PERSON1_BUILD_PLAN.md` |
+| Embeddings | **Real.** all-MiniLM-L6-v2 via sentence-transformers, dim 384, L2-normalised; hash fallback that reports itself |
+| Egress screen, grounding | Stub -- phases 10-11, see `docs/PERSON1_BUILD_PLAN.md` |
 
 ---
 
@@ -538,6 +539,32 @@ YAML regardless of what the author wrote. The baseline is recorded as v1 at
 startup, and before the first update on a deployment with empty history, so
 there is always something to roll back to. Author identity is a salted hash.
 
+## Embeddings and why the cache guards exist (Phase 9)
+
+`POST /embed` returns L2-normalised vectors from all-MiniLM-L6-v2 (dim
+384), so the Gateway's cosine search is a plain dot product. The model is
+loaded once and warmed at startup; if it is unavailable the endpoint falls
+back to deterministic hash vectors and says so (`engine: hash-fallback`,
+`degraded: true`) -- exact matches still work, near matches do not, and a
+Gateway can refuse to build an index on them.
+
+**Measured on this model:**
+
+| Pair | cosine |
+|---|---|
+| "What is the capital of France?" / "France's capital city?" | 0.918 |
+| "Is this drug safe during pregnancy?" / "Is this drug **not** safe during pregnancy?" | **0.989** |
+| "What is the capital of France?" / "Recipe for pancakes" | 0.098 |
+
+The negation pair scores *higher* than the paraphrase pair, and above the
+0.92 cache threshold. Cosine similarity cannot see "not" -- or a changed
+number, or a swapped entity. Serving the cached answer to the negated
+question is a safety failure, not a performance win. That is why `/inspect`
+returns `cache.semantic_guards` (negations, numbers, entities) and the
+Gateway must refuse a hit unless they match exactly, whatever the
+similarity says. A test pins the 0.989 so a model change that alters the
+picture is noticed.
+
 ### Entropy is a supporting signal
 
 `H(X) = -sum p(x) log2 p(x)` over string literals. A UUID, a git SHA and a
@@ -563,6 +590,7 @@ app/
   audit/            database.py, models.py, service.py, metrics.py, estimates.py (real)
   reviews/          service.py -- appeals, decisions, ReviewOverrideVerifier (real)
   policies/         service.py -- versioned policy updates and rollback (real)
+  cache/            embeddings.py -- sentence-transformers with hash fallback (real)
   fairness/         harness.py -- per-group recall, baseline vs current (real)
   verification/     grounded response checking    (phase 10)
   utils/            ids, timing, redacting logger

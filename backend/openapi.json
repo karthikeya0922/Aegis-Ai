@@ -138,7 +138,7 @@
           "embeddings"
         ],
         "summary": "Embed text for the semantic cache",
-        "description": "Returns L2-normalised vectors so the Gateway's cosine search is a plain dot product. Assert `dim` against your Redis index on startup.",
+        "description": "Returns L2-normalised vectors from the configured sentence-transformer (all-MiniLM-L6-v2 by default, dim 384). Assert `dim` against your Redis index on startup and check `engine`: `hash-fallback` means the model was unavailable and the vectors have no semantic structure -- exact matches still work, near matches do not.\n\nMeasured on this model: 'Is this drug safe during pregnancy?' and '...not safe...' score cosine 0.989. Similarity cannot see negation; honour `cache.semantic_guards` from /inspect before serving a hit.",
         "operationId": "embed_embed_post",
         "requestBody": {
           "content": {
@@ -2493,6 +2493,16 @@
             "type": "number",
             "minimum": 0.0,
             "title": "Duration Ms"
+          },
+          "engine": {
+            "type": "string",
+            "title": "Engine",
+            "default": "sentence-transformers"
+          },
+          "degraded": {
+            "type": "boolean",
+            "title": "Degraded",
+            "default": false
           }
         },
         "additionalProperties": false,

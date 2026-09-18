@@ -197,13 +197,15 @@ Even the large model misses the Indian name in this template. The gazetteer catc
 
 ## Phase 9 — Embeddings
 
-- [ ] `sentence-transformers` `all-MiniLM-L6-v2`, lazy singleton, warmed at startup
-- [ ] `POST /embed` batch support
-- [ ] Normalised vectors so Person 2's cosine search is correct
-- [ ] Model name + dim returned so the gateway can assert index compatibility
-- [ ] `tests/test_embed.py` — determinism, batch equality, dim check
+- [x] `sentence-transformers` `all-MiniLM-L6-v2`, lazy singleton, warmed at startup
+- [x] `POST /embed` batch support
+- [x] Normalised vectors so Person 2's cosine search is correct
+- [x] Model name + dim returned so the gateway can assert index compatibility
+- [x] `tests/test_embed.py` — determinism, batch equality, dim check
 
 ---
+
+**DONE** -- `app/cache/embeddings.py`, 12 tests. all-MiniLM-L6-v2, dim 384, L2-normalised, lazy + warmed, hash fallback that reports itself. Measured: paraphrase 0.918, **negation 0.989**, unrelated 0.098 -- the negation pair beats the paraphrase pair and the 0.92 threshold, which is the number behind `cache.semantic_guards`. A test pins it.
 
 ## Phase 10 — Grounded Response Verification
 
@@ -327,7 +329,7 @@ sweep's checklist. Add to it whenever something is hardcoded to keep moving.
 | ~~Scanners run on joined text; `message_index` always 0~~ | `stubs.py` | per-message scan, real offsets | **done, Phase 5** |
 | ~~In-memory review records~~ | `api/governance.py` | `review_request` table | **done, Phase 14** |
 | ~~`PermissiveOverrideVerifier` accepts any `ovr_` token~~ | `security/pipeline.py` | `ReviewOverrideVerifier` is the default; permissive kept for tests only | **done, Phase 14** |
-| Deterministic hash "embeddings" | `api/embed.py` | sentence-transformers | Phase 9 |
+| ~~Deterministic hash "embeddings"~~ | `api/embed.py` | sentence-transformers; hash kept as labelled fallback | **done, Phase 9** |
 | Fixed 8/10 grounding result | `stubs.py` | NLI cross-encoder | Phase 10 |
 | Egress always PASS | `stubs.py` | harm/bias screen | Phase 11 |
 | ~~Metrics return zeros~~ | `stubs.py` | aggregation over `request_audit` | **done, Phase 12** |
