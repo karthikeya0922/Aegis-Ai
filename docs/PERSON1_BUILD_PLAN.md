@@ -230,17 +230,19 @@ Even the large model misses the Indian name in this template. The gazetteer catc
 
 ## Phase 12 — Metrics & Audit Read APIs
 
-- [ ] `app/audit/metrics.py` aggregation queries
-- [ ] `GET /api/metrics` — volume, latency p50/p95, tokens, cost
-- [ ] `GET /api/metrics/security` — counts, top rules fired
-- [ ] `GET /api/metrics/sustainability` — cache hit rate, Wh, gCO2e
-- [ ] `GET /api/metrics/providers`
-- [ ] `GET /api/audit/events` — pagination + filters
-- [ ] `GET /api/audit/report`
-- [ ] `config/pricing.yaml`, `config/sustainability.yaml` — every estimate carries a `basis` string
-- [ ] `tests/test_metrics.py`
+- [x] `app/audit/metrics.py` aggregation queries
+- [x] `GET /api/metrics` — volume, latency p50/p95, tokens, cost
+- [x] `GET /api/metrics/security` — counts, top rules fired
+- [x] `GET /api/metrics/sustainability` — cache hit rate, Wh, gCO2e
+- [x] `GET /api/metrics/providers`
+- [x] `GET /api/audit/events` — pagination + filters
+- [x] `GET /api/audit/report`
+- [x] `config/pricing.yaml`, `config/sustainability.yaml` — every estimate carries a `basis` string
+- [x] `tests/test_metrics.py`
 
 ---
+
+**DONE** -- `app/audit/metrics.py` + `estimates.py`, 20 tests. Nearest-rank percentiles in Python (capped window). Estimates filled on the audit write from `pricing.yaml` / `sustainability.yaml`; every response carries the basis and names the counterfactual model. Report has one section per HLEG requirement. Two bugs caught by tests: percentile used round not ceil; prefix match took first not longest. Live: inspector overhead p50 6.2ms / p95 7.8ms over simulated traffic.
 
 ## Phase 13 — Fairness Evaluation Harness
 
@@ -326,7 +328,7 @@ sweep's checklist. Add to it whenever something is hardcoded to keep moving.
 | Deterministic hash "embeddings" | `api/embed.py` | sentence-transformers | Phase 9 |
 | Fixed 8/10 grounding result | `stubs.py` | NLI cross-encoder | Phase 10 |
 | Egress always PASS | `stubs.py` | harm/bias screen | Phase 11 |
-| Metrics return zeros | `stubs.py` | aggregation over `request_audit` (table populated as of Phase 8) | Phase 12 |
+| ~~Metrics return zeros~~ | `stubs.py` | aggregation over `request_audit` | **done, Phase 12** |
 | ~~Fairness report nulls~~ | `stubs.py` | measured harness output | **done, Phase 13** |
 | PERSON recall gap for East Asian (0.81) and African (0.83) names | detector | gazetteers for those groups sourced independently of the eval corpus; hyphen-aware name matching | post-16 / roadmap |
 | Policy PUT not persisted | `api/governance.py` | `policy_version` table | Phase 15 |

@@ -360,7 +360,7 @@
           "audit"
         ],
         "summary": "Structured audit export",
-        "description": "Returns structured sections the Gateway renders. Carries a disclaimer stating that this is transaction evidence supporting a deployer's own obligations, not a conformity assessment. Populated from the audit table in Phase 12.",
+        "description": "Structured sections the Gateway renders, one per Trustworthy AI requirement, each a set of evidence rows from the audit table with a note saying what the numbers are and are not. Carries a disclaimer: this is transaction evidence supporting a deployer's own obligations, not a conformity assessment.",
         "operationId": "audit_report_api_audit_report_get",
         "parameters": [
           {
@@ -979,8 +979,18 @@
           "metrics"
         ],
         "summary": "Aggregate platform metrics",
-        "operationId": "metrics_api_metrics_get",
+        "operationId": "overview_api_metrics_get",
         "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "default",
+              "title": "Tenant Id"
+            }
+          },
           {
             "name": "window_hours",
             "in": "query",
@@ -1024,8 +1034,18 @@
           "metrics"
         ],
         "summary": "Security and oversight counters",
-        "operationId": "security_metrics_api_metrics_security_get",
+        "operationId": "security_api_metrics_security_get",
         "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "default",
+              "title": "Tenant Id"
+            }
+          },
           {
             "name": "window_hours",
             "in": "query",
@@ -1069,9 +1089,19 @@
           "metrics"
         ],
         "summary": "Cache efficiency and estimated environmental figures",
-        "description": "Energy and CO2 values are **estimates**, derived from configurable per-token assumptions and a grid intensity factor -- not measurements. The `basis` and `disclaimer` fields must be surfaced in the UI wherever these numbers appear.",
-        "operationId": "sustainability_metrics_api_metrics_sustainability_get",
+        "description": "Energy and CO2 values are **estimates**, derived from configurable per-token assumptions and a grid intensity factor -- not measurements. The `basis` and `disclaimer` fields must be surfaced in the UI wherever these numbers appear. Avoided figures on cache hits are counted against a named counterfactual model.",
+        "operationId": "sustainability_api_metrics_sustainability_get",
         "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "default",
+              "title": "Tenant Id"
+            }
+          },
           {
             "name": "window_hours",
             "in": "query",
@@ -1114,9 +1144,19 @@
         "tags": [
           "metrics"
         ],
-        "summary": "Per-provider health and failover telemetry",
-        "operationId": "provider_metrics_api_metrics_providers_get",
+        "summary": "Per-provider volume, failover and latency",
+        "operationId": "providers_api_metrics_providers_get",
         "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "default",
+              "title": "Tenant Id"
+            }
+          },
           {
             "name": "window_hours",
             "in": "query",

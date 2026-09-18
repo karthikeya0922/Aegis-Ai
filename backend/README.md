@@ -7,7 +7,7 @@ This service is the absolute authority on whether a prompt is safe. It is
 **stateless** -- the same input always yields the same verdict. All session
 state (token vault, semantic cache) belongs to Person 2's Gateway and its Redis.
 
-**Current build phase: Phase 14 (human review).** The whole ingress path is real, every decision is on file, the detector's fairness is measured, and automated blocks are contestable. Every endpoint
+**Current build phase: Phase 12 (metrics).** The whole ingress path is real, every decision is on file, the detector's fairness is measured, automated blocks are contestable, and the dashboard reads real aggregates. Every endpoint
 is live and contract-valid. `GET /api/health` reports exactly which subsystems
 are real and which are still stubs.
 
@@ -24,7 +24,8 @@ are real and which are still stubs.
 | Database | **Real.** SQLite by default, Postgres by `DATABASE_URL`; Alembic migrations; two-phase audit write; erasure and retention |
 | Fairness harness | **Real.** Per-group recall over a 5-group corpus, baseline vs current, persisted; `POST /api/fairness/run` |
 | Human review | **Real.** Appeals persisted; override tokens hashed, single-use, request-scoped, expiring; verified in the pipeline |
-| Egress, embeddings, grounding, metrics | Stub -- phases 9-12, see `docs/PERSON1_BUILD_PLAN.md` |
+| Metrics and audit report | **Real.** Aggregates over `request_audit`; estimates from `pricing.yaml` / `sustainability.yaml` with the basis in every response |
+| Egress, embeddings, grounding | Stub -- phases 9-11, see `docs/PERSON1_BUILD_PLAN.md` |
 
 ---
 
@@ -490,6 +491,33 @@ Requester and reviewer identities are stored as salted hashes. Reviewer
 authentication is Phase 16 (RBAC lives in the Gateway; the Inspector will
 require a shared secret on the decision endpoint).
 
+## Metrics and estimates (Phase 12)
+
+Every number on the dashboard is a sum, a count or a percentile over rows
+that real requests wrote. An empty window reports zeros and null
+percentiles, not placeholders.
+
+**Estimates are labelled and carry their basis.** The Inspector never sees a
+provider invoice or a power meter. When the Gateway reports tokens and a
+model, the audit row's cost, energy and CO2 are computed from
+`config/pricing.yaml` (list prices as of a date, USD per million tokens)
+and `config/sustainability.yaml` (Wh per 1k tokens by model class, grid
+gCO2/kWh by region via `AEGIS_GRID_REGION`). Each metrics response carries
+the config's `basis` string, and names the counterfactual model that
+"savings" and "avoided" are counted against -- a savings figure without a
+named counterfactual is fabricated telemetry.
+
+| Endpoint | What it aggregates |
+|---|---|
+| `GET /api/metrics` | volume, decisions, tokens, end-to-end and **inspector-overhead** latency percentiles, estimated spend and savings |
+| `GET /api/metrics/security` | PII and secret counts, injection and credential blocks, egress flags, review queue, top rules fired |
+| `GET /api/metrics/sustainability` | cache hit rate, estimated energy and CO2, estimated energy avoided by cache |
+| `GET /api/metrics/providers` | per-provider volume, failures, failover in/out, latency p50 |
+| `GET /api/audit/report` | seven sections, one per Trustworthy AI requirement, each rows of evidence with a note |
+
+Measured inspector overhead over the Phase 12 smoke traffic: **p50 6.2 ms,
+p95 7.8 ms** -- the honest number for "what does Aegis add to a request".
+
 ### Entropy is a supporting signal
 
 `H(X) = -sum p(x) log2 p(x)` over string literals. A UUID, a git SHA and a
@@ -512,15 +540,15 @@ app/
   security/         secret_scanner.py, entropy.py, pii_scanner.py,
                     india_recognizers.py, injection.py, redactor.py,
                     policy_engine.py, pipeline.py, spans.py (all real)
-  audit/            database.py, models.py, service.py (real); metrics.py (phase 12)
+  audit/            database.py, models.py, service.py, metrics.py, estimates.py (real)
   reviews/          service.py -- appeals, decisions, ReviewOverrideVerifier (real)
   fairness/         harness.py -- per-group recall, baseline vs current (real)
   verification/     grounded response checking    (phase 10)
   utils/            ids, timing, redacting logger
-  stubs.py          only the subsystems not yet shipped (phases 8-14)
+  stubs.py          stub_egress only (phases 10-11)
 config/             secret_patterns.yaml, pii_entities.yaml, india_names.yaml,
-                    injection_rules.yaml, policies.yaml, routing.yaml (real);
-                    pricing (later)
+                    injection_rules.yaml, policies.yaml, routing.yaml,
+                    pricing.yaml, sustainability.yaml (all real)
 eval/               name_corpus.yaml, run_fairness.py (real)
 tests/
 ```
