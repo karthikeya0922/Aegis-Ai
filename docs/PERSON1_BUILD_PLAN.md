@@ -209,26 +209,30 @@ Even the large model misses the Indian name in this template. The gazetteer catc
 
 ## Phase 10 — Grounded Response Verification
 
-- [ ] Sentence-level claim splitting
-- [ ] Evidence retrieval — embed reference chunks, top-k per claim
-- [ ] **NLI cross-encoder** entailment (not BERTScore)
-- [ ] Per-claim `SUPPORTED` / `UNSUPPORTED` / `CONTRADICTED`
-- [ ] Aggregate score + `status` via configurable thresholds
-- [ ] Returns `unsupported_claims` for display
-- [ ] `tests/test_grounding.py` — supported, unsupported, contradicted, no-reference (skips)
+- [x] Sentence-level claim splitting
+- [x] Evidence retrieval — embed reference chunks, top-k per claim
+- [x] **NLI cross-encoder** entailment (not BERTScore)
+- [x] Per-claim `SUPPORTED` / `UNSUPPORTED` / `CONTRADICTED`
+- [x] Aggregate score + `status` via configurable thresholds
+- [x] Returns `unsupported_claims` for display
+- [x] `tests/test_grounding.py` — supported, unsupported, contradicted, no-reference (skips)
 
 ---
+
+**DONE** -- `app/verification/grounding.py`, NLI cross-encoder with label order read from the model config. Measured: fabricated date CONTRADICTED 1.00; uncovered claim UNSUPPORTED (neutral 0.94); 'fifteen minutes' entails '15 minutes' 0.99. No lexical fallback: absent model = SKIPPED, never a fake score. Live scenario 6: 4/4 -> PASS; 1/3 with a contradiction -> REPLACE with fallback; ~120-185ms.
 
 ## Phase 11 — Egress Screening
 
-- [ ] `POST /inspect/egress` full implementation
-- [ ] Harm screen — categories with scores
-- [ ] Bias screen — stereotype and demeaning-language signals (Requirement 5, output side)
-- [ ] Composes with grounding into a single `action`: `PASS` | `ANNOTATE` | `REPLACE`
-- [ ] Fallback replacement text configurable
-- [ ] `tests/test_egress.py`
+- [x] `POST /inspect/egress` full implementation
+- [x] Harm screen — categories with scores
+- [x] Bias screen — stereotype and demeaning-language signals (Requirement 5, output side)
+- [x] Composes with grounding into a single `action`: `PASS` | `ANNOTATE` | `REPLACE`
+- [x] Fallback replacement text configurable
+- [x] `tests/test_egress.py`
 
 ---
+
+**DONE** -- `app/verification/screens.py` + `config/egress_screens.yaml` + `egress.py` composition. Heuristic harm and bias screens, noisy-OR scored, no slurs in the repo (the bias screen matches a demeaning frame around a generic group noun). 'kill a process' excluded by a technical-object lookahead. Policy engine gained `evaluate_egress` with replace | annotate | pass verbs and per-profile grounding bands; `0.0 or default` bug fixed. `stubs.py` deleted. 57 tests.
 
 ## Phase 12 — Metrics & Audit Read APIs
 
@@ -330,8 +334,8 @@ sweep's checklist. Add to it whenever something is hardcoded to keep moving.
 | ~~In-memory review records~~ | `api/governance.py` | `review_request` table | **done, Phase 14** |
 | ~~`PermissiveOverrideVerifier` accepts any `ovr_` token~~ | `security/pipeline.py` | `ReviewOverrideVerifier` is the default; permissive kept for tests only | **done, Phase 14** |
 | ~~Deterministic hash "embeddings"~~ | `api/embed.py` | sentence-transformers; hash kept as labelled fallback | **done, Phase 9** |
-| Fixed 8/10 grounding result | `stubs.py` | NLI cross-encoder | Phase 10 |
-| Egress always PASS | `stubs.py` | harm/bias screen | Phase 11 |
+| ~~Fixed 8/10 grounding result~~ | `stubs.py` | NLI cross-encoder | **done, Phase 10** |
+| ~~Egress always PASS~~ | `stubs.py` | harm/bias screens + policy | **done, Phase 11** |
 | ~~Metrics return zeros~~ | `stubs.py` | aggregation over `request_audit` | **done, Phase 12** |
 | ~~Fairness report nulls~~ | `stubs.py` | measured harness output | **done, Phase 13** |
 | PERSON recall gap for East Asian (0.81) and African (0.83) names | detector | gazetteers for those groups sourced independently of the eval corpus; hyphen-aware name matching | post-16 / roadmap |

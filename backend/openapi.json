@@ -54,7 +54,7 @@
           "inspection"
         ],
         "summary": "Screen a model response before it reaches the user",
-        "description": "Runs harm and bias screening, and grounded verification when `reference_context` is supplied. Returns PASS / ANNOTATE / REPLACE.",
+        "description": "Runs the harm and bias screens and, when `reference_context` is supplied and `grounding` is in `checks`, Grounded Response Verification. Returns PASS / ANNOTATE / REPLACE as decided by the policy profile's egress rules; on REPLACE, `replacement_text` holds the configured fallback.\n\nThe screens are heuristic (pattern-based) and the verification is an NLI support score, not a guarantee. A REPLACE cannot retract tokens already streamed: buffer when a reference document is attached.\n\nThe Inspector records the outcome on the request's audit row; the Gateway need not repeat it in POST /audit/events.",
         "operationId": "inspect_egress_inspect_egress_post",
         "requestBody": {
           "content": {
@@ -96,7 +96,7 @@
           "inspection"
         ],
         "summary": "Grounded Response Verification (standalone)",
-        "description": "Compares an answer against a reference document using sentence-level claim extraction and NLI entailment. This is a heuristic support score, not a guarantee of factual correctness.",
+        "description": "Compares an answer against a reference document: sentence-level claims, top-k evidence by embedding similarity, NLI cross-encoder entailment per claim. Returns SUPPORTED / UNSUPPORTED / CONTRADICTED per claim and a support score. This is a heuristic support score, not a guarantee of factual correctness, and it cannot judge whether the reference itself is true.",
         "operationId": "verify_verify_post",
         "requestBody": {
           "content": {

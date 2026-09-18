@@ -7,7 +7,7 @@ This service is the absolute authority on whether a prompt is safe. It is
 **stateless** -- the same input always yields the same verdict. All session
 state (token vault, semantic cache) belongs to Person 2's Gateway and its Redis.
 
-**Current build phase: Phase 9 (embeddings).** Everything is real except grounded verification and the egress harm screen (Phases 10-11). Every endpoint
+**Current build phase: Phase 11.** Every endpoint is real; `stubs.py` no longer exists. Phase 16 (hardening) and the sweep remain. Every endpoint
 is live and contract-valid. `GET /api/health` reports exactly which subsystems
 are real and which are still stubs.
 
@@ -26,7 +26,8 @@ are real and which are still stubs.
 | Human review | **Real.** Appeals persisted; override tokens hashed, single-use, request-scoped, expiring; verified in the pipeline |
 | Metrics and audit report | **Real.** Aggregates over `request_audit`; estimates from `pricing.yaml` / `sustainability.yaml` with the basis in every response |
 | Embeddings | **Real.** all-MiniLM-L6-v2 via sentence-transformers, dim 384, L2-normalised; hash fallback that reports itself |
-| Egress screen, grounding | Stub -- phases 10-11, see `docs/PERSON1_BUILD_PLAN.md` |
+| Grounded Response Verification | **Real.** NLI cross-encoder, per-claim SUPPORTED / UNSUPPORTED / CONTRADICTED; skipped and reported when the model is absent, never a faked score |
+| Egress screens | **Real.** Heuristic harm and bias screens, config-driven, policy-decided; a floor, not a classifier |
 
 ---
 
@@ -565,6 +566,48 @@ Gateway must refuse a hit unless they match exactly, whatever the
 similarity says. A test pins the 0.989 so a model change that alters the
 picture is noticed.
 
+## Egress: Grounded Response Verification and the screens (Phases 10-11)
+
+`POST /inspect/egress` screens the model's response before the user sees
+it: harm screen, bias screen, then -- when a reference document is supplied
+-- Grounded Response Verification. The screens and the verifier report;
+the policy profile's `egress_harm`, `egress_bias` and `grounding` rules
+decide PASS, ANNOTATE or REPLACE.
+
+**Grounded Response Verification** is a support score, not a hallucination
+detector. The answer is split into claims; for each, the top reference
+sentences by embedding similarity are scored by an NLI cross-encoder
+(`cross-encoder/nli-deberta-v3-small`, label order read from the model,
+never assumed). Two failure modes are kept apart because they mean
+different things:
+
+| Claim | Reference says | Verdict |
+|---|---|---|
+| "The policy took effect in 2019." | "...took effect on 1 March 2021." | **CONTRADICTED** (1.00) |
+| "The service is written in Rust." | (nothing about a language) | **UNSUPPORTED** (neutral 0.94) |
+| "Override tokens are valid for fifteen minutes." | "...expire after 15 minutes." | SUPPORTED (0.99) |
+
+Score = supported / claims. Below the profile's `review_below` the response
+is annotated REVIEW; below `replace_below` it is replaced with the grounding
+fallback. If the model is unavailable the verification is **skipped and
+reported**, never replaced by a lexical heuristic that would produce a
+plausible-looking number. BERTScore is not used: it measures similarity,
+and 2019 looks like 2021.
+
+**The screens are heuristic, and say so.** `config/egress_screens.yaml`
+holds regexes for harm (violence, self-harm, weapons, illegal-activity
+instructions) and bias (sweeping generalisations, demeaning language,
+exclusion). The bias screen matches a demeaning *frame* around a generic
+group noun -- "all X are", "X don't deserve to" -- so the repository
+contains no slurs and the screen still catches the pattern. "How to kill a
+process", "attack a problem" and a suicide-helpline referral are in the
+benign corpus and must pass. Known misses (harm without a keyword,
+leetspeak, bias without a listed group) are asserted in the tests.
+
+**Streaming.** A REPLACE cannot retract tokens already sent. When a
+reference document is attached the Gateway should buffer, verify, then
+emit; otherwise it may stream and call this afterwards for annotation.
+
 ### Entropy is a supporting signal
 
 `H(X) = -sum p(x) log2 p(x)` over string literals. A UUID, a git SHA and a
@@ -592,12 +635,11 @@ app/
   policies/         service.py -- versioned policy updates and rollback (real)
   cache/            embeddings.py -- sentence-transformers with hash fallback (real)
   fairness/         harness.py -- per-group recall, baseline vs current (real)
-  verification/     grounded response checking    (phase 10)
+  verification/     grounding.py, screens.py, egress.py (real)
   utils/            ids, timing, redacting logger
-  stubs.py          stub_egress only (phases 10-11)
 config/             secret_patterns.yaml, pii_entities.yaml, india_names.yaml,
                     injection_rules.yaml, policies.yaml, routing.yaml,
-                    pricing.yaml, sustainability.yaml (all real)
+                    pricing.yaml, sustainability.yaml, egress_screens.yaml (all real)
 eval/               name_corpus.yaml, run_fairness.py (real)
 tests/
 ```
@@ -625,7 +667,11 @@ its own terms:
   known OWASP LLM01 patterns and is bypassable by obfuscation, translation and
   encoding.
 - Grounded Response Verification is a **support score**, not a guarantee of
-  factual correctness.
+  factual correctness. It cannot judge whether the reference itself is true,
+  and claims the reference does not cover are UNSUPPORTED, not false.
+- The egress harm and bias screens are **regex over normalised text**, not a
+  trained classifier. They catch blunt cases and miss subtle ones; the
+  known-misses block in `tests/test_egress.py` lists examples.
 - Energy and CO2 figures are **estimates** from configurable assumptions, not
   measurements.
 - Audit output is **transaction evidence** supporting a deployer's own
