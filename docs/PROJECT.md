@@ -1073,3 +1073,16 @@ Aegis Ai/
   and lib, every extension script passes `node --check`; a staged AWS-shaped
   key in this repo is refused by the hook; the demo-docs commit passes via
   the baseline.
+
+### 2026-09-19 — README gallery
+- **What changed:** `docs/images/` — five terminal captures rendered to SVG
+  with rich's exporter (hook refusal, `aegis scan --pii`, `aegis chat` with
+  rehydration, blocked → appeal → reviews, `aegis status`) and four headless
+  Chrome captures of the running Gateway (landing, overview, Live Inspector
+  after a sanitised prompt, audit log). README gains a "See it" section.
+  The Live Inspector capture was driven over the DevTools protocol (type,
+  send, wait for the response, screenshot), so it shows a real run. Baseline
+  extended to cover the example key echoed in one SVG's command line.
+- **Why:** the user asked for images of every feature in the README.
+- **Not captured:** the extension popup on a live chat site -- needs a real
+  browser session; the README describes it instead.

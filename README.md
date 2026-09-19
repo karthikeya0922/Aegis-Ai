@@ -18,6 +18,38 @@ It ships in four forms that share one engine:
 | **CLI** | `aegis scan` stops a credential before it is *committed* (pre-commit hook, CI, SARIF). `aegis chat` runs a guarded conversation through the Gateway with the live pipeline readout. `appeal` / `reviews` / `status`. | [`cli/`](cli/README.md) |
 | **Browser extension** | Intercepts what you type into ChatGPT, Claude and Gemini: credentials blocked, personal data masked, pasted prompt-injection held — before the site sees it. Popup shows your deployment's numbers. | [`extension/`](extension/README.md) |
 
+## See it
+
+**Landing → dashboard → live inspector → audit log** (the Gateway, Person 2):
+
+<p align="center"><img src="docs/images/web-landing.png" width="49%" alt="Landing page"> <img src="docs/images/web-dashboard.png" width="49%" alt="Gateway overview dashboard"></p>
+
+<p align="center"><img src="docs/images/web-playground.png" width="100%" alt="Live Inspector: every guardrail in the order it ran, original vs. sent-to-provider, response with provider / cache / grounding"></p>
+
+<p align="center"><img src="docs/images/web-audit.png" width="100%" alt="Audit log: every decision with action, provider, latency, entities, cache and cost"></p>
+
+**The CLI** (Person 1) — the same engine from a terminal. A commit refused by the pre-commit hook:
+
+<p align="center"><img src="docs/images/cli-hook-refused.svg" width="100%" alt="git commit refused: AWS key found in staged settings.py, preview masked"></p>
+
+A guarded chat: personal data masked before the provider sees it, rehydrated in the final answer:
+
+<p align="center"><img src="docs/images/cli-chat.svg" width="100%" alt="aegis chat: pipeline stages with timings, sanitised prompt, streamed answer, rehydrated final answer"></p>
+
+A blocked request appealed to a human reviewer, and the deployment's numbers with their basis:
+
+<p align="center"><img src="docs/images/cli-appeal.svg" width="49%" alt="aegis chat blocked, aegis appeal, aegis reviews list"> <img src="docs/images/cli-status.svg" width="49%" alt="aegis status: services, traffic, security, cache and sustainability estimates with basis, providers, fairness"></p>
+
+`aegis scan` over a directory with `--pii`, showing a finding allowed by annotation:
+
+<p align="center"><img src="docs/images/cli-scan.svg" width="100%" alt="aegis scan --pii: secrets blocked, PII sanitised, one finding allowed by a # aegis:allow annotation"></p>
+
+**The browser extension** blocks a pasted key on ChatGPT before the site sees it and masks an email into `[EMAIL_1]`; its popup shows this page's scans and the deployment's numbers. Load it unpacked from [`extension/`](extension/README.md).
+
+Every terminal image above is the real output of the command shown, rendered
+to SVG; every web image is a headless-browser capture of the running Gateway
+against the running Inspector.
+
 ## The seven requirements, and where each lives
 
 | HLEG requirement | Aegis feature | Proof |

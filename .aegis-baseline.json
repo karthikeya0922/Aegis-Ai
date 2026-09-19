@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-09-19T08:59:01.780143+00:00",
+  "generated_at": "2026-09-19T09:12:27.681584+00:00",
   "note": "Fingerprints only (hash of path, type and value). No secret values are stored here.",
   "findings": [
     {
@@ -170,6 +170,2898 @@
       "path": "docs/PROJECT.md",
       "line": 934,
       "type": "DATABASE_CREDENTIAL"
+    },
+    {
+      "fingerprint": "cc4284477a983532",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 48,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "be0e9cfc0fd5f173",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 123,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "8deaa26f62753e36",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 125,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "f421132cc8545c91",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 126,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "f421132cc8545c91",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 126,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "f421132cc8545c91",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 126,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "bf2374f505a3d17d",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 126,
+      "type": "AWS_ACCESS_KEY"
+    },
+    {
+      "fingerprint": "f421132cc8545c91",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 126,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "76b69542cdc74a76",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 128,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "090cfa34a9eec2d8",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 131,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "e3f9b988e5a78684",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 131,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "090cfa34a9eec2d8",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 131,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "573a673c0f790634",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 131,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "090cfa34a9eec2d8",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 131,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "090cfa34a9eec2d8",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 131,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "efa0f3a21ad0adeb",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 132,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "efa0f3a21ad0adeb",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 132,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "573a673c0f790634",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 134,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "e3f9b988e5a78684",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 136,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "f3ee9533e1a5ba31",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 136,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "f3ee9533e1a5ba31",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 136,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "f3ee9533e1a5ba31",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 136,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "f3ee9533e1a5ba31",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 136,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "e3f9b988e5a78684",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 136,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "f3ee9533e1a5ba31",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 136,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "f3ee9533e1a5ba31",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 136,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ad797a846512e589",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 141,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ad797a846512e589",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 141,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ad797a846512e589",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 141,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ad797a846512e589",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 141,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ad797a846512e589",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 141,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ad797a846512e589",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 141,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ad797a846512e589",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 141,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ad797a846512e589",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 141,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ad797a846512e589",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 141,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ad797a846512e589",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 141,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ad797a846512e589",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 141,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ad797a846512e589",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 141,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ad797a846512e589",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 141,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ad797a846512e589",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 141,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "35cdd3ec958d88cc",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 142,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "35cdd3ec958d88cc",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 142,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "df5fdc45a07075ad",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 143,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "b9f1231d949e8c34",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 145,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "d018e92ae295a569",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 146,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "d018e92ae295a569",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 146,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "d018e92ae295a569",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 146,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "d018e92ae295a569",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 146,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "d018e92ae295a569",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 146,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "d018e92ae295a569",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 146,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "d018e92ae295a569",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 146,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "d018e92ae295a569",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 146,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "d018e92ae295a569",
+      "path": "docs/images/cli-appeal.svg",
+      "line": 146,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "6c2b8115daac612a",
+      "path": "docs/images/cli-chat.svg",
+      "line": 123,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "dae240b621a3896e",
+      "path": "docs/images/cli-chat.svg",
+      "line": 126,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "4a93a87fd2560df9",
+      "path": "docs/images/cli-chat.svg",
+      "line": 132,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "503f505b189bd12c",
+      "path": "docs/images/cli-chat.svg",
+      "line": 135,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "d2620dc963f5b7e2",
+      "path": "docs/images/cli-chat.svg",
+      "line": 135,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "6bb8e9107a485d43",
+      "path": "docs/images/cli-chat.svg",
+      "line": 139,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "6bb8e9107a485d43",
+      "path": "docs/images/cli-chat.svg",
+      "line": 139,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "6bb8e9107a485d43",
+      "path": "docs/images/cli-chat.svg",
+      "line": 139,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "6bb8e9107a485d43",
+      "path": "docs/images/cli-chat.svg",
+      "line": 139,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "6bb8e9107a485d43",
+      "path": "docs/images/cli-chat.svg",
+      "line": 139,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "336d8d10a1ab47a5",
+      "path": "docs/images/cli-chat.svg",
+      "line": 141,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "336d8d10a1ab47a5",
+      "path": "docs/images/cli-chat.svg",
+      "line": 141,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "336d8d10a1ab47a5",
+      "path": "docs/images/cli-chat.svg",
+      "line": 141,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "336d8d10a1ab47a5",
+      "path": "docs/images/cli-chat.svg",
+      "line": 141,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0c5428e284337b9a",
+      "path": "docs/images/cli-chat.svg",
+      "line": 144,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0c5428e284337b9a",
+      "path": "docs/images/cli-chat.svg",
+      "line": 144,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0c5428e284337b9a",
+      "path": "docs/images/cli-chat.svg",
+      "line": 144,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0c5428e284337b9a",
+      "path": "docs/images/cli-chat.svg",
+      "line": 144,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0c5428e284337b9a",
+      "path": "docs/images/cli-chat.svg",
+      "line": 144,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0c5428e284337b9a",
+      "path": "docs/images/cli-chat.svg",
+      "line": 144,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0c5428e284337b9a",
+      "path": "docs/images/cli-chat.svg",
+      "line": 144,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0c5428e284337b9a",
+      "path": "docs/images/cli-chat.svg",
+      "line": 144,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0c5428e284337b9a",
+      "path": "docs/images/cli-chat.svg",
+      "line": 144,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "e41122e9c0c71ce5",
+      "path": "docs/images/cli-chat.svg",
+      "line": 148,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ba185680202f57c8",
+      "path": "docs/images/cli-scan.svg",
+      "line": 126,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ed7de6a48cd857ae",
+      "path": "docs/images/cli-scan.svg",
+      "line": 139,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ed7de6a48cd857ae",
+      "path": "docs/images/cli-scan.svg",
+      "line": 139,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ed7de6a48cd857ae",
+      "path": "docs/images/cli-scan.svg",
+      "line": 139,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ed7de6a48cd857ae",
+      "path": "docs/images/cli-scan.svg",
+      "line": 139,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ed7de6a48cd857ae",
+      "path": "docs/images/cli-scan.svg",
+      "line": 139,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ed7de6a48cd857ae",
+      "path": "docs/images/cli-scan.svg",
+      "line": 139,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ed7de6a48cd857ae",
+      "path": "docs/images/cli-scan.svg",
+      "line": 139,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ed7de6a48cd857ae",
+      "path": "docs/images/cli-scan.svg",
+      "line": 139,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ed7de6a48cd857ae",
+      "path": "docs/images/cli-scan.svg",
+      "line": 139,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ed7de6a48cd857ae",
+      "path": "docs/images/cli-scan.svg",
+      "line": 139,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ed7de6a48cd857ae",
+      "path": "docs/images/cli-scan.svg",
+      "line": 139,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ed7de6a48cd857ae",
+      "path": "docs/images/cli-scan.svg",
+      "line": 139,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ed7de6a48cd857ae",
+      "path": "docs/images/cli-scan.svg",
+      "line": 139,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ed7de6a48cd857ae",
+      "path": "docs/images/cli-scan.svg",
+      "line": 139,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ed7de6a48cd857ae",
+      "path": "docs/images/cli-scan.svg",
+      "line": 139,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ed7de6a48cd857ae",
+      "path": "docs/images/cli-scan.svg",
+      "line": 139,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "84e5c766e3f084c4",
+      "path": "docs/images/cli-scan.svg",
+      "line": 143,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "84e5c766e3f084c4",
+      "path": "docs/images/cli-scan.svg",
+      "line": 143,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "84e5c766e3f084c4",
+      "path": "docs/images/cli-scan.svg",
+      "line": 143,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "84e5c766e3f084c4",
+      "path": "docs/images/cli-scan.svg",
+      "line": 143,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "84e5c766e3f084c4",
+      "path": "docs/images/cli-scan.svg",
+      "line": 143,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "84e5c766e3f084c4",
+      "path": "docs/images/cli-scan.svg",
+      "line": 143,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "84e5c766e3f084c4",
+      "path": "docs/images/cli-scan.svg",
+      "line": 143,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "84e5c766e3f084c4",
+      "path": "docs/images/cli-scan.svg",
+      "line": 143,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "84e5c766e3f084c4",
+      "path": "docs/images/cli-scan.svg",
+      "line": 143,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "84e5c766e3f084c4",
+      "path": "docs/images/cli-scan.svg",
+      "line": 143,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "84e5c766e3f084c4",
+      "path": "docs/images/cli-scan.svg",
+      "line": 143,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "84e5c766e3f084c4",
+      "path": "docs/images/cli-scan.svg",
+      "line": 143,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "84e5c766e3f084c4",
+      "path": "docs/images/cli-scan.svg",
+      "line": 143,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "84e5c766e3f084c4",
+      "path": "docs/images/cli-scan.svg",
+      "line": 143,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "84e5c766e3f084c4",
+      "path": "docs/images/cli-scan.svg",
+      "line": 143,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "84e5c766e3f084c4",
+      "path": "docs/images/cli-scan.svg",
+      "line": 143,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "3af7314ac7c50a1b",
+      "path": "docs/images/cli-scan.svg",
+      "line": 148,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "3af7314ac7c50a1b",
+      "path": "docs/images/cli-scan.svg",
+      "line": 148,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "3af7314ac7c50a1b",
+      "path": "docs/images/cli-scan.svg",
+      "line": 148,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "3af7314ac7c50a1b",
+      "path": "docs/images/cli-scan.svg",
+      "line": 148,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "3af7314ac7c50a1b",
+      "path": "docs/images/cli-scan.svg",
+      "line": 148,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "3af7314ac7c50a1b",
+      "path": "docs/images/cli-scan.svg",
+      "line": 148,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "3af7314ac7c50a1b",
+      "path": "docs/images/cli-scan.svg",
+      "line": 148,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "3af7314ac7c50a1b",
+      "path": "docs/images/cli-scan.svg",
+      "line": 148,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "3af7314ac7c50a1b",
+      "path": "docs/images/cli-scan.svg",
+      "line": 148,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "3af7314ac7c50a1b",
+      "path": "docs/images/cli-scan.svg",
+      "line": 148,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "3af7314ac7c50a1b",
+      "path": "docs/images/cli-scan.svg",
+      "line": 148,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "3af7314ac7c50a1b",
+      "path": "docs/images/cli-scan.svg",
+      "line": 148,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "3af7314ac7c50a1b",
+      "path": "docs/images/cli-scan.svg",
+      "line": 148,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "3af7314ac7c50a1b",
+      "path": "docs/images/cli-scan.svg",
+      "line": 148,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "3af7314ac7c50a1b",
+      "path": "docs/images/cli-scan.svg",
+      "line": 148,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "3af7314ac7c50a1b",
+      "path": "docs/images/cli-scan.svg",
+      "line": 148,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "3af7314ac7c50a1b",
+      "path": "docs/images/cli-scan.svg",
+      "line": 148,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "3af7314ac7c50a1b",
+      "path": "docs/images/cli-scan.svg",
+      "line": 148,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "3af7314ac7c50a1b",
+      "path": "docs/images/cli-scan.svg",
+      "line": 148,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "3af7314ac7c50a1b",
+      "path": "docs/images/cli-scan.svg",
+      "line": 148,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "3af7314ac7c50a1b",
+      "path": "docs/images/cli-scan.svg",
+      "line": 148,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "3af7314ac7c50a1b",
+      "path": "docs/images/cli-scan.svg",
+      "line": 148,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "3af7314ac7c50a1b",
+      "path": "docs/images/cli-scan.svg",
+      "line": 148,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "3af7314ac7c50a1b",
+      "path": "docs/images/cli-scan.svg",
+      "line": 148,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "cfc9205a059c8d16",
+      "path": "docs/images/cli-status.svg",
+      "line": 48,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "bac26846f3f28551",
+      "path": "docs/images/cli-status.svg",
+      "line": 51,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "75feb4c10fcdc668",
+      "path": "docs/images/cli-status.svg",
+      "line": 54,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "40fb3aaa408186fa",
+      "path": "docs/images/cli-status.svg",
+      "line": 57,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "9ba29c47935dcc13",
+      "path": "docs/images/cli-status.svg",
+      "line": 60,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "106e8576163ba5a2",
+      "path": "docs/images/cli-status.svg",
+      "line": 63,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0bcd99bbec41ee1c",
+      "path": "docs/images/cli-status.svg",
+      "line": 66,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "2195eb4bf2de2915",
+      "path": "docs/images/cli-status.svg",
+      "line": 69,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "750d17177e55e37b",
+      "path": "docs/images/cli-status.svg",
+      "line": 72,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "249a4263eaeb7810",
+      "path": "docs/images/cli-status.svg",
+      "line": 75,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "9704cb6c15235e3f",
+      "path": "docs/images/cli-status.svg",
+      "line": 78,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "1abe6695c5942e29",
+      "path": "docs/images/cli-status.svg",
+      "line": 81,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "d82cf5762a9b7ebf",
+      "path": "docs/images/cli-status.svg",
+      "line": 84,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "aa50c96d2aea672a",
+      "path": "docs/images/cli-status.svg",
+      "line": 87,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "63cd5390bcdb50b9",
+      "path": "docs/images/cli-status.svg",
+      "line": 90,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "a718dedce0e07d12",
+      "path": "docs/images/cli-status.svg",
+      "line": 93,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "06ee1d05907deb87",
+      "path": "docs/images/cli-status.svg",
+      "line": 96,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "14d688973e29b01c",
+      "path": "docs/images/cli-status.svg",
+      "line": 99,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "21462323c5bd4c58",
+      "path": "docs/images/cli-status.svg",
+      "line": 102,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "c1d995345202a1d0",
+      "path": "docs/images/cli-status.svg",
+      "line": 105,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "c19374e26ab85057",
+      "path": "docs/images/cli-status.svg",
+      "line": 108,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "b7cd1c0b3e0361ae",
+      "path": "docs/images/cli-status.svg",
+      "line": 111,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "99df232303b665a9",
+      "path": "docs/images/cli-status.svg",
+      "line": 114,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "1aca91c8c789e871",
+      "path": "docs/images/cli-status.svg",
+      "line": 120,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "8e5f6954e8c33e30",
+      "path": "docs/images/cli-status.svg",
+      "line": 123,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "eaf0dd1bca1bcd74",
+      "path": "docs/images/cli-status.svg",
+      "line": 126,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "594d0236c53c7d1b",
+      "path": "docs/images/cli-status.svg",
+      "line": 129,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "6beaf63d3b43b2d5",
+      "path": "docs/images/cli-status.svg",
+      "line": 132,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "78899869d89aca90",
+      "path": "docs/images/cli-status.svg",
+      "line": 135,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "667fd05bd8b5870e",
+      "path": "docs/images/cli-status.svg",
+      "line": 138,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "2c307d4811503a78",
+      "path": "docs/images/cli-status.svg",
+      "line": 141,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "8c4538f269e6385e",
+      "path": "docs/images/cli-status.svg",
+      "line": 144,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "3d948f533d0084f3",
+      "path": "docs/images/cli-status.svg",
+      "line": 147,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "299c49cc62e937e2",
+      "path": "docs/images/cli-status.svg",
+      "line": 150,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "c5ce55ebd34ed3d9",
+      "path": "docs/images/cli-status.svg",
+      "line": 153,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "4594d2a4bfac1e4c",
+      "path": "docs/images/cli-status.svg",
+      "line": 156,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "75ab778c399385c6",
+      "path": "docs/images/cli-status.svg",
+      "line": 159,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "d5e1c89ddbbbbe8c",
+      "path": "docs/images/cli-status.svg",
+      "line": 162,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0c14f8ccd02a1185",
+      "path": "docs/images/cli-status.svg",
+      "line": 165,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "dde3b96b789bb38d",
+      "path": "docs/images/cli-status.svg",
+      "line": 168,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "9ade5748c4dd642a",
+      "path": "docs/images/cli-status.svg",
+      "line": 173,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "45a7843065513258",
+      "path": "docs/images/cli-status.svg",
+      "line": 180,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "6c8c6887f4bc6aa4",
+      "path": "docs/images/cli-status.svg",
+      "line": 182,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "4f7926eb82b6faf9",
+      "path": "docs/images/cli-status.svg",
+      "line": 183,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "8c0c257a9e8be248",
+      "path": "docs/images/cli-status.svg",
+      "line": 183,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 183,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "8c0c257a9e8be248",
+      "path": "docs/images/cli-status.svg",
+      "line": 183,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 183,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "8c0c257a9e8be248",
+      "path": "docs/images/cli-status.svg",
+      "line": 183,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 184,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "dba6db5c54860e05",
+      "path": "docs/images/cli-status.svg",
+      "line": 184,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 184,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "dba6db5c54860e05",
+      "path": "docs/images/cli-status.svg",
+      "line": 184,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 184,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "dba6db5c54860e05",
+      "path": "docs/images/cli-status.svg",
+      "line": 184,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 184,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "dba6db5c54860e05",
+      "path": "docs/images/cli-status.svg",
+      "line": 184,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 185,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "fbbef79104e20348",
+      "path": "docs/images/cli-status.svg",
+      "line": 185,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 185,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "fbbef79104e20348",
+      "path": "docs/images/cli-status.svg",
+      "line": 185,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "34d02c489e2e819a",
+      "path": "docs/images/cli-status.svg",
+      "line": 185,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "fbbef79104e20348",
+      "path": "docs/images/cli-status.svg",
+      "line": 185,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 185,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "fbbef79104e20348",
+      "path": "docs/images/cli-status.svg",
+      "line": 185,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 185,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "fbbef79104e20348",
+      "path": "docs/images/cli-status.svg",
+      "line": 185,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 185,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "fbbef79104e20348",
+      "path": "docs/images/cli-status.svg",
+      "line": 185,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 186,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "c6ca5b7a0984891b",
+      "path": "docs/images/cli-status.svg",
+      "line": 186,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "e097e58891433c44",
+      "path": "docs/images/cli-status.svg",
+      "line": 186,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "c6ca5b7a0984891b",
+      "path": "docs/images/cli-status.svg",
+      "line": 186,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 186,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "c6ca5b7a0984891b",
+      "path": "docs/images/cli-status.svg",
+      "line": 186,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 186,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "c6ca5b7a0984891b",
+      "path": "docs/images/cli-status.svg",
+      "line": 186,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 186,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "c6ca5b7a0984891b",
+      "path": "docs/images/cli-status.svg",
+      "line": 186,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 187,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "45ec1045cc223ffa",
+      "path": "docs/images/cli-status.svg",
+      "line": 187,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 187,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "45ec1045cc223ffa",
+      "path": "docs/images/cli-status.svg",
+      "line": 187,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 187,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "45ec1045cc223ffa",
+      "path": "docs/images/cli-status.svg",
+      "line": 187,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 187,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "45ec1045cc223ffa",
+      "path": "docs/images/cli-status.svg",
+      "line": 187,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 188,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ec5477885a9e888a",
+      "path": "docs/images/cli-status.svg",
+      "line": 188,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 188,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ec5477885a9e888a",
+      "path": "docs/images/cli-status.svg",
+      "line": 188,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "d6c77270ba9c1a7b",
+      "path": "docs/images/cli-status.svg",
+      "line": 188,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ec5477885a9e888a",
+      "path": "docs/images/cli-status.svg",
+      "line": 188,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 188,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ec5477885a9e888a",
+      "path": "docs/images/cli-status.svg",
+      "line": 188,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 188,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ec5477885a9e888a",
+      "path": "docs/images/cli-status.svg",
+      "line": 188,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 188,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ec5477885a9e888a",
+      "path": "docs/images/cli-status.svg",
+      "line": 188,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 189,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "a8fb392e61d714bf",
+      "path": "docs/images/cli-status.svg",
+      "line": 189,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 189,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "a8fb392e61d714bf",
+      "path": "docs/images/cli-status.svg",
+      "line": 189,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "34d02c489e2e819a",
+      "path": "docs/images/cli-status.svg",
+      "line": 190,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "1faf71397b296fa8",
+      "path": "docs/images/cli-status.svg",
+      "line": 190,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 190,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "1faf71397b296fa8",
+      "path": "docs/images/cli-status.svg",
+      "line": 190,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0e56076ab8040b01",
+      "path": "docs/images/cli-status.svg",
+      "line": 191,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "47f06a19d9a9ecf5",
+      "path": "docs/images/cli-status.svg",
+      "line": 191,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 191,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "47f06a19d9a9ecf5",
+      "path": "docs/images/cli-status.svg",
+      "line": 191,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 191,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "47f06a19d9a9ecf5",
+      "path": "docs/images/cli-status.svg",
+      "line": 191,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0e56076ab8040b01",
+      "path": "docs/images/cli-status.svg",
+      "line": 192,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "e220652651df7923",
+      "path": "docs/images/cli-status.svg",
+      "line": 192,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 192,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "e220652651df7923",
+      "path": "docs/images/cli-status.svg",
+      "line": 192,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 192,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "e220652651df7923",
+      "path": "docs/images/cli-status.svg",
+      "line": 192,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0e56076ab8040b01",
+      "path": "docs/images/cli-status.svg",
+      "line": 193,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "456b987b2849ce85",
+      "path": "docs/images/cli-status.svg",
+      "line": 193,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 193,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "456b987b2849ce85",
+      "path": "docs/images/cli-status.svg",
+      "line": 193,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 193,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "456b987b2849ce85",
+      "path": "docs/images/cli-status.svg",
+      "line": 193,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0e56076ab8040b01",
+      "path": "docs/images/cli-status.svg",
+      "line": 194,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "90a08b97e1ec9e3b",
+      "path": "docs/images/cli-status.svg",
+      "line": 194,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 194,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "90a08b97e1ec9e3b",
+      "path": "docs/images/cli-status.svg",
+      "line": 194,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 194,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "90a08b97e1ec9e3b",
+      "path": "docs/images/cli-status.svg",
+      "line": 194,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0e56076ab8040b01",
+      "path": "docs/images/cli-status.svg",
+      "line": 195,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "2654a50b5099702f",
+      "path": "docs/images/cli-status.svg",
+      "line": 195,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 195,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "2654a50b5099702f",
+      "path": "docs/images/cli-status.svg",
+      "line": 195,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 195,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "2654a50b5099702f",
+      "path": "docs/images/cli-status.svg",
+      "line": 195,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "34d02c489e2e819a",
+      "path": "docs/images/cli-status.svg",
+      "line": 196,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "dfb564461bc2b8ac",
+      "path": "docs/images/cli-status.svg",
+      "line": 196,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 196,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "dfb564461bc2b8ac",
+      "path": "docs/images/cli-status.svg",
+      "line": 196,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0e56076ab8040b01",
+      "path": "docs/images/cli-status.svg",
+      "line": 197,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "cff7970ed75a4aeb",
+      "path": "docs/images/cli-status.svg",
+      "line": 197,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 197,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "cff7970ed75a4aeb",
+      "path": "docs/images/cli-status.svg",
+      "line": 197,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 197,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "cff7970ed75a4aeb",
+      "path": "docs/images/cli-status.svg",
+      "line": 197,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0e56076ab8040b01",
+      "path": "docs/images/cli-status.svg",
+      "line": 198,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "16108dc46e2d729e",
+      "path": "docs/images/cli-status.svg",
+      "line": 198,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 198,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "16108dc46e2d729e",
+      "path": "docs/images/cli-status.svg",
+      "line": 198,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 198,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "16108dc46e2d729e",
+      "path": "docs/images/cli-status.svg",
+      "line": 198,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0e56076ab8040b01",
+      "path": "docs/images/cli-status.svg",
+      "line": 199,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "e93a480c8ed57361",
+      "path": "docs/images/cli-status.svg",
+      "line": 199,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 199,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "e93a480c8ed57361",
+      "path": "docs/images/cli-status.svg",
+      "line": 199,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 199,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "e93a480c8ed57361",
+      "path": "docs/images/cli-status.svg",
+      "line": 199,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0e56076ab8040b01",
+      "path": "docs/images/cli-status.svg",
+      "line": 200,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "7871f60e4ad9e480",
+      "path": "docs/images/cli-status.svg",
+      "line": 200,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 200,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "7871f60e4ad9e480",
+      "path": "docs/images/cli-status.svg",
+      "line": 200,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 200,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "7871f60e4ad9e480",
+      "path": "docs/images/cli-status.svg",
+      "line": 200,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0e56076ab8040b01",
+      "path": "docs/images/cli-status.svg",
+      "line": 201,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "9d0b6cbae7eac599",
+      "path": "docs/images/cli-status.svg",
+      "line": 201,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 201,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "9d0b6cbae7eac599",
+      "path": "docs/images/cli-status.svg",
+      "line": 201,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 201,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "9d0b6cbae7eac599",
+      "path": "docs/images/cli-status.svg",
+      "line": 201,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0e56076ab8040b01",
+      "path": "docs/images/cli-status.svg",
+      "line": 202,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "268da8b18f4473bc",
+      "path": "docs/images/cli-status.svg",
+      "line": 202,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 202,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "268da8b18f4473bc",
+      "path": "docs/images/cli-status.svg",
+      "line": 202,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 202,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "268da8b18f4473bc",
+      "path": "docs/images/cli-status.svg",
+      "line": 202,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "34d02c489e2e819a",
+      "path": "docs/images/cli-status.svg",
+      "line": 203,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "bdf663b5c2a70ba7",
+      "path": "docs/images/cli-status.svg",
+      "line": 203,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 203,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "bdf663b5c2a70ba7",
+      "path": "docs/images/cli-status.svg",
+      "line": 203,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0e56076ab8040b01",
+      "path": "docs/images/cli-status.svg",
+      "line": 204,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "a703fcc8c7c21893",
+      "path": "docs/images/cli-status.svg",
+      "line": 204,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 204,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "a703fcc8c7c21893",
+      "path": "docs/images/cli-status.svg",
+      "line": 204,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 204,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "a703fcc8c7c21893",
+      "path": "docs/images/cli-status.svg",
+      "line": 204,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0e56076ab8040b01",
+      "path": "docs/images/cli-status.svg",
+      "line": 205,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "7994ff93d755d367",
+      "path": "docs/images/cli-status.svg",
+      "line": 205,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 205,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "7994ff93d755d367",
+      "path": "docs/images/cli-status.svg",
+      "line": 205,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 205,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "7994ff93d755d367",
+      "path": "docs/images/cli-status.svg",
+      "line": 205,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0e56076ab8040b01",
+      "path": "docs/images/cli-status.svg",
+      "line": 206,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "99113cae8c199f70",
+      "path": "docs/images/cli-status.svg",
+      "line": 206,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 206,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "99113cae8c199f70",
+      "path": "docs/images/cli-status.svg",
+      "line": 206,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 206,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "99113cae8c199f70",
+      "path": "docs/images/cli-status.svg",
+      "line": 206,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0e56076ab8040b01",
+      "path": "docs/images/cli-status.svg",
+      "line": 207,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "bdc23e64cc3717f7",
+      "path": "docs/images/cli-status.svg",
+      "line": 207,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 207,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "bdc23e64cc3717f7",
+      "path": "docs/images/cli-status.svg",
+      "line": 207,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 207,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "bdc23e64cc3717f7",
+      "path": "docs/images/cli-status.svg",
+      "line": 207,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0e56076ab8040b01",
+      "path": "docs/images/cli-status.svg",
+      "line": 208,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "7a495b63cf665a8c",
+      "path": "docs/images/cli-status.svg",
+      "line": 208,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 208,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "7a495b63cf665a8c",
+      "path": "docs/images/cli-status.svg",
+      "line": 208,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 208,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "7a495b63cf665a8c",
+      "path": "docs/images/cli-status.svg",
+      "line": 208,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0e56076ab8040b01",
+      "path": "docs/images/cli-status.svg",
+      "line": 209,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "5c62581f8a189e4a",
+      "path": "docs/images/cli-status.svg",
+      "line": 209,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "3d0860466f1ae03c",
+      "path": "docs/images/cli-status.svg",
+      "line": 209,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "5c62581f8a189e4a",
+      "path": "docs/images/cli-status.svg",
+      "line": 209,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0e56076ab8040b01",
+      "path": "docs/images/cli-status.svg",
+      "line": 209,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "5c62581f8a189e4a",
+      "path": "docs/images/cli-status.svg",
+      "line": 209,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "07f3b1af5d881913",
+      "path": "docs/images/cli-status.svg",
+      "line": 209,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "5c62581f8a189e4a",
+      "path": "docs/images/cli-status.svg",
+      "line": 209,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0e56076ab8040b01",
+      "path": "docs/images/cli-status.svg",
+      "line": 209,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "5c62581f8a189e4a",
+      "path": "docs/images/cli-status.svg",
+      "line": 209,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "07f3b1af5d881913",
+      "path": "docs/images/cli-status.svg",
+      "line": 209,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "5c62581f8a189e4a",
+      "path": "docs/images/cli-status.svg",
+      "line": 209,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "3d0860466f1ae03c",
+      "path": "docs/images/cli-status.svg",
+      "line": 209,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "5c62581f8a189e4a",
+      "path": "docs/images/cli-status.svg",
+      "line": 209,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0e56076ab8040b01",
+      "path": "docs/images/cli-status.svg",
+      "line": 209,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "5c62581f8a189e4a",
+      "path": "docs/images/cli-status.svg",
+      "line": 209,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 209,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "5c62581f8a189e4a",
+      "path": "docs/images/cli-status.svg",
+      "line": 209,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0e56076ab8040b01",
+      "path": "docs/images/cli-status.svg",
+      "line": 210,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "9047f85971b12d96",
+      "path": "docs/images/cli-status.svg",
+      "line": 210,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 210,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "9047f85971b12d96",
+      "path": "docs/images/cli-status.svg",
+      "line": 210,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0e56076ab8040b01",
+      "path": "docs/images/cli-status.svg",
+      "line": 211,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "d3de5c7a4aa1cbeb",
+      "path": "docs/images/cli-status.svg",
+      "line": 211,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 211,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "d3de5c7a4aa1cbeb",
+      "path": "docs/images/cli-status.svg",
+      "line": 211,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0e56076ab8040b01",
+      "path": "docs/images/cli-status.svg",
+      "line": 212,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "7cf4d3a210c9eff0",
+      "path": "docs/images/cli-status.svg",
+      "line": 212,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "07f3b1af5d881913",
+      "path": "docs/images/cli-status.svg",
+      "line": 212,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "7cf4d3a210c9eff0",
+      "path": "docs/images/cli-status.svg",
+      "line": 212,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0e56076ab8040b01",
+      "path": "docs/images/cli-status.svg",
+      "line": 212,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "7cf4d3a210c9eff0",
+      "path": "docs/images/cli-status.svg",
+      "line": 212,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "07f3b1af5d881913",
+      "path": "docs/images/cli-status.svg",
+      "line": 212,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "7cf4d3a210c9eff0",
+      "path": "docs/images/cli-status.svg",
+      "line": 212,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0e56076ab8040b01",
+      "path": "docs/images/cli-status.svg",
+      "line": 212,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "7cf4d3a210c9eff0",
+      "path": "docs/images/cli-status.svg",
+      "line": 212,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 212,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "7cf4d3a210c9eff0",
+      "path": "docs/images/cli-status.svg",
+      "line": 212,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0e56076ab8040b01",
+      "path": "docs/images/cli-status.svg",
+      "line": 213,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "5811389258f6e303",
+      "path": "docs/images/cli-status.svg",
+      "line": 213,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "3d0860466f1ae03c",
+      "path": "docs/images/cli-status.svg",
+      "line": 213,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "5811389258f6e303",
+      "path": "docs/images/cli-status.svg",
+      "line": 213,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0e56076ab8040b01",
+      "path": "docs/images/cli-status.svg",
+      "line": 213,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "5811389258f6e303",
+      "path": "docs/images/cli-status.svg",
+      "line": 213,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "3d0860466f1ae03c",
+      "path": "docs/images/cli-status.svg",
+      "line": 213,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "5811389258f6e303",
+      "path": "docs/images/cli-status.svg",
+      "line": 213,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0e56076ab8040b01",
+      "path": "docs/images/cli-status.svg",
+      "line": 213,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "5811389258f6e303",
+      "path": "docs/images/cli-status.svg",
+      "line": 213,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "cd9161ec2a8abd6c",
+      "path": "docs/images/cli-status.svg",
+      "line": 213,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 213,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "5811389258f6e303",
+      "path": "docs/images/cli-status.svg",
+      "line": 213,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0e56076ab8040b01",
+      "path": "docs/images/cli-status.svg",
+      "line": 214,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ac1ea3a67ffb44b7",
+      "path": "docs/images/cli-status.svg",
+      "line": 214,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "3d0860466f1ae03c",
+      "path": "docs/images/cli-status.svg",
+      "line": 214,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ac1ea3a67ffb44b7",
+      "path": "docs/images/cli-status.svg",
+      "line": 214,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "07f3b1af5d881913",
+      "path": "docs/images/cli-status.svg",
+      "line": 214,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ac1ea3a67ffb44b7",
+      "path": "docs/images/cli-status.svg",
+      "line": 214,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0e56076ab8040b01",
+      "path": "docs/images/cli-status.svg",
+      "line": 214,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ac1ea3a67ffb44b7",
+      "path": "docs/images/cli-status.svg",
+      "line": 214,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "3d0860466f1ae03c",
+      "path": "docs/images/cli-status.svg",
+      "line": 214,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ac1ea3a67ffb44b7",
+      "path": "docs/images/cli-status.svg",
+      "line": 214,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0e56076ab8040b01",
+      "path": "docs/images/cli-status.svg",
+      "line": 214,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ac1ea3a67ffb44b7",
+      "path": "docs/images/cli-status.svg",
+      "line": 214,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 214,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ac1ea3a67ffb44b7",
+      "path": "docs/images/cli-status.svg",
+      "line": 214,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0e56076ab8040b01",
+      "path": "docs/images/cli-status.svg",
+      "line": 215,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "d641f2fa63ee5977",
+      "path": "docs/images/cli-status.svg",
+      "line": 215,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 215,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "d641f2fa63ee5977",
+      "path": "docs/images/cli-status.svg",
+      "line": 215,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "34d02c489e2e819a",
+      "path": "docs/images/cli-status.svg",
+      "line": 216,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "4b64e9e4c9b52437",
+      "path": "docs/images/cli-status.svg",
+      "line": 216,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 216,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "4b64e9e4c9b52437",
+      "path": "docs/images/cli-status.svg",
+      "line": 216,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "34d02c489e2e819a",
+      "path": "docs/images/cli-status.svg",
+      "line": 217,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "8685549842930850",
+      "path": "docs/images/cli-status.svg",
+      "line": 217,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "34d02c489e2e819a",
+      "path": "docs/images/cli-status.svg",
+      "line": 217,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "8685549842930850",
+      "path": "docs/images/cli-status.svg",
+      "line": 217,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "34d02c489e2e819a",
+      "path": "docs/images/cli-status.svg",
+      "line": 217,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "8685549842930850",
+      "path": "docs/images/cli-status.svg",
+      "line": 217,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "34d02c489e2e819a",
+      "path": "docs/images/cli-status.svg",
+      "line": 217,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "8685549842930850",
+      "path": "docs/images/cli-status.svg",
+      "line": 217,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "34d02c489e2e819a",
+      "path": "docs/images/cli-status.svg",
+      "line": 217,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "8685549842930850",
+      "path": "docs/images/cli-status.svg",
+      "line": 217,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 217,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "8685549842930850",
+      "path": "docs/images/cli-status.svg",
+      "line": 217,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 218,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "4af9aeeb7f798f47",
+      "path": "docs/images/cli-status.svg",
+      "line": 218,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 218,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "4af9aeeb7f798f47",
+      "path": "docs/images/cli-status.svg",
+      "line": 218,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 218,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "4af9aeeb7f798f47",
+      "path": "docs/images/cli-status.svg",
+      "line": 218,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 218,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "4af9aeeb7f798f47",
+      "path": "docs/images/cli-status.svg",
+      "line": 218,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 218,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "4af9aeeb7f798f47",
+      "path": "docs/images/cli-status.svg",
+      "line": 218,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 218,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "4af9aeeb7f798f47",
+      "path": "docs/images/cli-status.svg",
+      "line": 218,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0e56076ab8040b01",
+      "path": "docs/images/cli-status.svg",
+      "line": 219,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ae30a802fd96e96a",
+      "path": "docs/images/cli-status.svg",
+      "line": 219,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "07f3b1af5d881913",
+      "path": "docs/images/cli-status.svg",
+      "line": 219,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ae30a802fd96e96a",
+      "path": "docs/images/cli-status.svg",
+      "line": 219,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 219,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "ae30a802fd96e96a",
+      "path": "docs/images/cli-status.svg",
+      "line": 219,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "34d02c489e2e819a",
+      "path": "docs/images/cli-status.svg",
+      "line": 220,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "281013ca4be86cc0",
+      "path": "docs/images/cli-status.svg",
+      "line": 220,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 220,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "281013ca4be86cc0",
+      "path": "docs/images/cli-status.svg",
+      "line": 220,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "4f7926eb82b6faf9",
+      "path": "docs/images/cli-status.svg",
+      "line": 220,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "281013ca4be86cc0",
+      "path": "docs/images/cli-status.svg",
+      "line": 220,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 220,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "281013ca4be86cc0",
+      "path": "docs/images/cli-status.svg",
+      "line": 220,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 220,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "281013ca4be86cc0",
+      "path": "docs/images/cli-status.svg",
+      "line": 220,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "34d02c489e2e819a",
+      "path": "docs/images/cli-status.svg",
+      "line": 221,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "061ab7079c3b57a4",
+      "path": "docs/images/cli-status.svg",
+      "line": 221,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 221,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "061ab7079c3b57a4",
+      "path": "docs/images/cli-status.svg",
+      "line": 221,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "34d02c489e2e819a",
+      "path": "docs/images/cli-status.svg",
+      "line": 221,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "061ab7079c3b57a4",
+      "path": "docs/images/cli-status.svg",
+      "line": 221,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 221,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "061ab7079c3b57a4",
+      "path": "docs/images/cli-status.svg",
+      "line": 221,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "e436c7382b854397",
+      "path": "docs/images/cli-status.svg",
+      "line": 221,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "061ab7079c3b57a4",
+      "path": "docs/images/cli-status.svg",
+      "line": 221,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "6a935d1189b3eff0",
+      "path": "docs/images/cli-status.svg",
+      "line": 221,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "061ab7079c3b57a4",
+      "path": "docs/images/cli-status.svg",
+      "line": 221,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "34d02c489e2e819a",
+      "path": "docs/images/cli-status.svg",
+      "line": 221,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "061ab7079c3b57a4",
+      "path": "docs/images/cli-status.svg",
+      "line": 221,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 221,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "061ab7079c3b57a4",
+      "path": "docs/images/cli-status.svg",
+      "line": 221,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0e56076ab8040b01",
+      "path": "docs/images/cli-status.svg",
+      "line": 222,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "06f2ca222dd15a9b",
+      "path": "docs/images/cli-status.svg",
+      "line": 222,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 222,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "06f2ca222dd15a9b",
+      "path": "docs/images/cli-status.svg",
+      "line": 222,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "0e56076ab8040b01",
+      "path": "docs/images/cli-status.svg",
+      "line": 223,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "80253c01cabd26db",
+      "path": "docs/images/cli-status.svg",
+      "line": 223,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "59d963a6dd51166d",
+      "path": "docs/images/cli-status.svg",
+      "line": 223,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "80253c01cabd26db",
+      "path": "docs/images/cli-status.svg",
+      "line": 223,
+      "type": "HIGH_ENTROPY_STRING"
     },
     {
       "fingerprint": "579c149e69229aa6",
