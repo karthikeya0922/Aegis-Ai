@@ -139,6 +139,7 @@ def scan(
         raise typer.Exit(res.exit_code)
 
     failing_ids = {id(f) for f in res.failing}
+    quiet = quiet or hook  # a refused commit should show only what refused it
     shown = [f for f in res.findings if not quiet or id(f) in failing_ids]
     if shown:
         t = Table(show_lines=False, title=None, pad_edge=False)

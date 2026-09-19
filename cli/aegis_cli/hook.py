@@ -18,11 +18,15 @@ if [ "$AEGIS_ALLOW" = "1" ]; then
   echo "aegis: AEGIS_ALLOW=1 set, skipping staged scan for this commit" >&2
   exit 0
 fi
+# A committed baseline (aegis scan --baseline .aegis-baseline.json --update-baseline)
+# suppresses known fixtures by fingerprint; values are never stored in it.
+BL=""
+if [ -f .aegis-baseline.json ]; then BL="--baseline .aegis-baseline.json"; fi
 if command -v aegis >/dev/null 2>&1; then
-  exec aegis scan --staged --hook
+  exec aegis scan --staged --hook $BL
 fi
 if command -v python >/dev/null 2>&1; then
-  exec python -m aegis_cli scan --staged --hook
+  exec python -m aegis_cli scan --staged --hook $BL
 fi
 echo "aegis: CLI not found on PATH; install with 'pip install -e ./cli' (commit allowed)" >&2
 exit 0

@@ -1,0 +1,193 @@
+{
+  "version": 1,
+  "generated_at": "2026-09-19T08:59:01.780143+00:00",
+  "note": "Fingerprints only (hash of path, type and value). No secret values are stored here.",
+  "findings": [
+    {
+      "fingerprint": "110ded3babdfc069",
+      "path": "docs/AEGIS_PROBLEM_STATEMENT.md",
+      "line": 381,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "3b15c56f2be7d918",
+      "path": "docs/AEGIS_PROBLEM_STATEMENT.md",
+      "line": 507,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "94f1493d3bee84fb",
+      "path": "docs/AEGIS_PROBLEM_STATEMENT.md",
+      "line": 508,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "110ded3babdfc069",
+      "path": "docs/AEGIS_PROBLEM_STATEMENT.md",
+      "line": 523,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "49c6d08b7707ea52",
+      "path": "docs/AEGIS_PROBLEM_STATEMENT.md",
+      "line": 524,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "a31056bfd265e090",
+      "path": "docs/AEGIS_PROBLEM_STATEMENT.md",
+      "line": 525,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "00d9b7bf195bfb32",
+      "path": "docs/AEGIS_PROBLEM_STATEMENT.md",
+      "line": 526,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "41759e91491478a3",
+      "path": "docs/AEGIS_PROBLEM_STATEMENT.md",
+      "line": 558,
+      "type": "DATABASE_CREDENTIAL"
+    },
+    {
+      "fingerprint": "a2203475d88a2a29",
+      "path": "docs/AEGIS_PROBLEM_STATEMENT.md",
+      "line": 558,
+      "type": "AWS_ACCESS_KEY"
+    },
+    {
+      "fingerprint": "67a417bbc1808a79",
+      "path": "docs/DEMO_PROMPTS.md",
+      "line": 11,
+      "type": "AWS_ACCESS_KEY"
+    },
+    {
+      "fingerprint": "f8bd155869c3a815",
+      "path": "docs/DEMO_PROMPTS.md",
+      "line": 14,
+      "type": "GITHUB_TOKEN"
+    },
+    {
+      "fingerprint": "72bf2f0b8f4f3888",
+      "path": "docs/DEMO_PROMPTS.md",
+      "line": 17,
+      "type": "DATABASE_CREDENTIAL"
+    },
+    {
+      "fingerprint": "ee8affb942c36b7d",
+      "path": "docs/DEMO_PROMPTS.md",
+      "line": 20,
+      "type": "AWS_SECRET_KEY"
+    },
+    {
+      "fingerprint": "67a417bbc1808a79",
+      "path": "docs/DEMO_PROMPTS.md",
+      "line": 110,
+      "type": "AWS_ACCESS_KEY"
+    },
+    {
+      "fingerprint": "ea77412d4bf97da6",
+      "path": "docs/FRONTEND.md",
+      "line": 48,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "aa09073ba9f05364",
+      "path": "docs/LANDING_PAGE_PROMPT.md",
+      "line": 162,
+      "type": "GENERIC_SECRET"
+    },
+    {
+      "fingerprint": "8a9993a4bc37410e",
+      "path": "docs/PROJECT.md",
+      "line": 129,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "f9b3c981e6fd1c95",
+      "path": "docs/PROJECT.md",
+      "line": 220,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "2bf8d16489ec49c4",
+      "path": "docs/PROJECT.md",
+      "line": 257,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "34e1f4ea65b4e6d5",
+      "path": "docs/PROJECT.md",
+      "line": 258,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "f9b3c981e6fd1c95",
+      "path": "docs/PROJECT.md",
+      "line": 387,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "f9b3c981e6fd1c95",
+      "path": "docs/PROJECT.md",
+      "line": 615,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "f9b3c981e6fd1c95",
+      "path": "docs/PROJECT.md",
+      "line": 678,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "d35fe0b361cbbf20",
+      "path": "docs/PROJECT.md",
+      "line": 808,
+      "type": "AWS_ACCESS_KEY"
+    },
+    {
+      "fingerprint": "826c1bc61181805d",
+      "path": "docs/PROJECT.md",
+      "line": 856,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "08cb1027a9530dab",
+      "path": "docs/PROJECT.md",
+      "line": 865,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "f9b3c981e6fd1c95",
+      "path": "docs/PROJECT.md",
+      "line": 924,
+      "type": "HIGH_ENTROPY_STRING"
+    },
+    {
+      "fingerprint": "5e79a8852ba46660",
+      "path": "docs/PROJECT.md",
+      "line": 934,
+      "type": "DATABASE_CREDENTIAL"
+    },
+    {
+      "fingerprint": "579c149e69229aa6",
+      "path": "backend/README.md",
+      "line": 184,
+      "type": "DATABASE_CREDENTIAL"
+    },
+    {
+      "fingerprint": "81c2b1a95b069d93",
+      "path": "backend/README.md",
+      "line": 184,
+      "type": "AWS_ACCESS_KEY"
+    },
+    {
+      "fingerprint": "81c2b1a95b069d93",
+      "path": "backend/README.md",
+      "line": 221,
+      "type": "AWS_ACCESS_KEY"
+    }
+  ]
+}

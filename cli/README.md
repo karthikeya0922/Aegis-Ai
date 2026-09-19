@@ -63,7 +63,10 @@ aegis scan --baseline .aegis-baseline.json                     # from then on
 ```
 
 The baseline holds fingerprints (a hash of path, type and value), never the
-values. A changed value at the same place is a new finding.
+values. A changed value at the same place is a new finding. The installed
+hook picks up a committed `.aegis-baseline.json` automatically, which is how
+a repo can keep documented example keys (like this one's demo prompts)
+without turning the hook off.
 
 ### Policy
 

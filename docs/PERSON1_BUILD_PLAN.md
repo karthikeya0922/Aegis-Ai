@@ -394,3 +394,4 @@ Tracked in `docs/EXTENSION_CLI_PLAN.md`.
 - [x] B4 tests (25) + README
 - [x] A0-A3 extension: worker, adapters, send gate, paste screen, popup, options (demo-day build; not yet loaded against live sites)
 - [ ] A4 adapter fixtures / vitest
+- [x] Repo polish: README front page, DEMO_PROMPTS.md, hook honours a committed baseline, hook installed in this repo

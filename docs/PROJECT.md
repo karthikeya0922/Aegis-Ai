@@ -1051,3 +1051,25 @@ Aegis Ai/
   check on the demo machine (generic fallback catches the focused composer).
 - **Skipped for time:** A4 vitest fixtures for the adapters; Redis cache-HIT
   demo (no Docker on this machine).
+
+### 2026-09-19 — Repo polish before the demo
+- **What changed:** root `README.md` rewritten as the single front page:
+  four forms of one engine, the seven HLEG requirements mapped to features
+  with a proof for each, run instructions with and without Docker, the
+  ninety-second demo, the honesty list, repository layout; Person 2's
+  gateway internals kept as a trimmed section with a corrected sequence
+  diagram (scan happens before the cache lookup, which is what the code
+  does). New `docs/DEMO_PROMPTS.md` with a prompt per verdict (block /
+  injection / sanitize / allow / grounding / egress) and the hook demo.
+  `cli/aegis_cli/hook.py`: the installed hook now passes a committed
+  `.aegis-baseline.json` automatically; `.aegis-baseline.json` added for the
+  documented example keys in the demo docs. A stray `leak.py` the user had
+  committed locally while trying the hook in this repo (which had no hook
+  installed yet) was dropped from history before push, and the hook is now
+  installed here.
+- **Why:** demo day; the README is what the jury reads first, and the repo
+  itself should be protected by the tool it ships.
+- **Verified:** backend 605 passed, CLI 25 passed, `tsc` clean for frontend
+  and lib, every extension script passes `node --check`; a staged AWS-shaped
+  key in this repo is refused by the hook; the demo-docs commit passes via
+  the baseline.
