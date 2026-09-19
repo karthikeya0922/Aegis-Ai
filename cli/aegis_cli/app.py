@@ -125,8 +125,11 @@ def scan(
     if update_baseline:
         if not baseline:
             err.print("[red]--update-baseline needs --baseline PATH[/red]"); raise typer.Exit(2)
-        S.write_baseline(baseline, res.findings)
-        console.print(f"baseline written: {baseline} ({len(res.findings)} fingerprint(s), no values stored)")
+        # Entropy findings are warn-only and never fail a scan; baselining them
+        # would only bloat the file (SVG path data, hashes, minified assets).
+        keep = [f for f in res.findings if f.category != "ENTROPY"]
+        S.write_baseline(baseline, keep)
+        console.print(f"baseline written: {baseline} ({len(keep)} fingerprint(s), no values stored)")
         raise typer.Exit(0)
 
     if fmt == "json":
